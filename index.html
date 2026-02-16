@@ -420,31 +420,51 @@
   .notes-popup p { color: var(--text-secondary); font-size: 14px; line-height: 1.6; white-space: pre-wrap; }
   .notes-popup button { margin-top: 14px; padding: 10px 30px; background: var(--accent-yellow); border: none; border-radius: 8px; color: var(--bg-primary); font-weight: 700; cursor: pointer; }
 
-  /* ===== CALIBRATION SCREEN ===== */
-  #calibrationScreen {
+  /* ===== SETTINGS SCREEN (Tabs: Monitor + Drug Master) ===== */
+  #settingsScreen {
     position: fixed; inset: 0; z-index: 998;
     background: var(--bg-primary);
     display: none; flex-direction: column;
     overflow: hidden;
   }
-  .calib-header {
+  .settings-header {
     display: flex; align-items: center; gap: 12px;
     padding: 12px 20px; background: var(--bg-card);
     border-bottom: 1px solid var(--border); flex-shrink: 0;
   }
-  .calib-header h2 {
+  .settings-header h2 {
     font-size: 18px; font-weight: 700;
     background: linear-gradient(135deg, var(--accent-yellow), var(--accent-orange));
     -webkit-background-clip: text; -webkit-text-fill-color: transparent;
     flex: 1;
   }
-  .calib-header .btn-calib-close {
+  .settings-header .btn-settings-close {
     padding: 8px 16px; background: var(--bg-secondary); border: 1px solid var(--border);
     border-radius: 8px; color: var(--text-secondary); font-size: 13px; font-weight: 600;
     cursor: pointer; min-height: 38px;
   }
-  .calib-header .btn-calib-close:active { background: var(--bg-card-hover); }
-  .calib-body {
+  .settings-header .btn-settings-close:active { background: var(--bg-card-hover); }
+
+  /* Settings Tab Bar */
+  .settings-tab-bar {
+    display: flex; gap: 0; background: var(--bg-card);
+    border-bottom: 2px solid var(--border); flex-shrink: 0; padding: 0 20px;
+  }
+  .settings-tab {
+    padding: 12px 24px; font-size: 14px; font-weight: 700;
+    color: var(--text-muted); cursor: pointer;
+    border: none; background: none; border-bottom: 3px solid transparent;
+    margin-bottom: -2px; transition: all 0.2s; min-height: 44px;
+  }
+  .settings-tab:active { opacity: 0.7; }
+  .settings-tab.active {
+    color: var(--accent-cyan);
+    border-bottom-color: var(--accent-cyan);
+    background: rgba(6,182,212,0.05);
+  }
+  .settings-tab-content { display: none; flex: 1; min-height: 0; overflow: hidden; }
+  .settings-tab-content.active { display: flex; flex-direction: column; }
+  .calib-body, .settings-tab-body {
     display: flex; flex: 1; min-height: 0; overflow: hidden;
   }
   .calib-left {
@@ -613,8 +633,84 @@
     background: var(--bg-secondary); border: 1px solid var(--border);
     border-radius: 12px; color: var(--accent-yellow);
     font-size: 14px; font-weight: 600; cursor: pointer; min-height: 50px;
+    -webkit-tap-highlight-color: rgba(245,158,11,0.2);
   }
   .btn-monitor-settings:active { background: var(--bg-card-hover); }
+
+  /* ===== DRUG MASTER EDITOR ===== */
+  .dm-editor {
+    flex: 1; display: flex; flex-direction: column; overflow: hidden;
+  }
+  .dm-toolbar {
+    display: flex; align-items: center; gap: 12px; padding: 12px 20px;
+    background: var(--bg-card); border-bottom: 1px solid var(--border); flex-shrink: 0;
+  }
+  .dm-toolbar label { font-size: 13px; font-weight: 700; color: var(--text-secondary); }
+  .dm-toolbar select {
+    padding: 8px 32px 8px 12px; background: var(--bg-secondary); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text-primary); font-size: 14px; font-weight: 600;
+    -webkit-appearance: none; appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='%238892a8'%3E%3Cpath d='M6 8L0 0h12z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 10px center;
+  }
+  .dm-toolbar .btn-dm-reset {
+    margin-left: auto; padding: 8px 16px; background: rgba(239,68,68,0.1);
+    border: 1px solid rgba(239,68,68,0.3); border-radius: 8px;
+    color: var(--accent-red); font-size: 12px; font-weight: 600; cursor: pointer;
+  }
+  .dm-scroll {
+    flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 12px 20px;
+  }
+  .dm-category {
+    margin-bottom: 16px;
+  }
+  .dm-category-title {
+    font-size: 13px; font-weight: 700; color: var(--accent-cyan);
+    padding: 8px 12px; background: rgba(6,182,212,0.08); border-radius: 8px;
+    margin-bottom: 6px; display: flex; align-items: center; gap: 8px;
+  }
+  .dm-drug-row {
+    display: flex; align-items: center; gap: 6px; padding: 8px 10px;
+    background: var(--bg-secondary); border: 1px solid var(--border);
+    border-radius: 8px; margin-bottom: 4px; flex-wrap: wrap;
+  }
+  .dm-drug-row input, .dm-drug-row select {
+    padding: 6px 8px; background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 6px; color: var(--text-primary); font-size: 13px;
+    outline: none; -webkit-appearance: none; appearance: none;
+  }
+  .dm-drug-row input:focus, .dm-drug-row select:focus { border-color: var(--accent-blue); }
+  .dm-drug-name { width: 120px; font-weight: 700; }
+  .dm-drug-conc { width: 60px; text-align: center; }
+  .dm-drug-unit { width: 70px; font-size: 11px; }
+  .dm-drug-dose { width: 65px; text-align: center; color: var(--accent-yellow); font-weight: 700; }
+  .dm-drug-route { width: 65px; text-align: center; }
+  .dm-field-label { font-size: 10px; color: var(--text-muted); font-weight: 600; }
+  .dm-drug-delete {
+    width: 28px; height: 28px; line-height: 28px; text-align: center;
+    border-radius: 6px; background: rgba(239,68,68,0.1); color: var(--accent-red);
+    font-size: 12px; cursor: pointer; border: none; flex-shrink: 0;
+  }
+  .dm-drug-delete:active { background: rgba(239,68,68,0.2); }
+  .btn-dm-add {
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    width: 100%; padding: 8px; margin-top: 4px;
+    background: var(--bg-secondary); border: 1px dashed var(--accent-cyan);
+    border-radius: 8px; color: var(--accent-cyan);
+    font-size: 12px; font-weight: 600; cursor: pointer; min-height: 36px;
+  }
+  .btn-dm-add:active { background: var(--bg-card-hover); }
+  .dm-save-bar {
+    padding: 12px 20px; background: var(--bg-card); border-top: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .btn-dm-save {
+    width: 100%; padding: 14px;
+    background: linear-gradient(135deg, var(--accent-green), #059669);
+    border: none; border-radius: 10px; color: white;
+    font-size: 16px; font-weight: 700; cursor: pointer; min-height: 48px;
+  }
+  .btn-dm-save:active { opacity: 0.8; }
 
   ::-webkit-scrollbar { width: 4px; }
   ::-webkit-scrollbar-track { background: transparent; }
@@ -714,40 +810,72 @@
     </div>
 
     <button class="btn-start" onclick="startSession()">麻酔セッション開始</button>
-    <button class="btn-monitor-settings" onclick="openCalibration()">⚙️ モニター設定（読取位置キャリブレーション）</button>
+    <button class="btn-monitor-settings" id="btnOpenSettings">⚙️ 設定（モニター / 薬剤マスタ）</button>
   </div>
 </div>
 
-<!-- ========== CALIBRATION SCREEN ========== -->
-<div id="calibrationScreen">
-  <div class="calib-header">
-    <h2>⚙️ モニター設定・キャリブレーション</h2>
-    <button class="btn-calib-close" onclick="closeCalibration()">✕ 閉じる</button>
+<!-- ========== SETTINGS SCREEN (Tabs) ========== -->
+<div id="settingsScreen">
+  <div class="settings-header">
+    <h2>⚙️ 設定</h2>
+    <button class="btn-settings-close" id="btnCloseSettings">✕ 閉じる</button>
   </div>
-  <div class="calib-body">
-    <div class="calib-left">
-      <div class="calib-image-area" id="calibImageArea">
-        <div class="calib-placeholder" id="calibPlaceholder">
-          <div class="icon">📷</div>
-          <p>モニター画面を撮影して<br>読取位置を設定します</p>
-          <p style="font-size:11px;color:var(--text-muted);margin-top:6px;">撮影後、枠をドラッグして<br>各パラメータの表示位置を指定</p>
-        </div>
-        <img id="calibImage" style="display:none;" alt="Reference">
-        <div class="calib-overlay" id="calibOverlay" style="display:none;"></div>
-      </div>
-      <button class="btn-calib-capture" onclick="captureCalibImage()">📸 モニター画面を撮影（リファレンス）</button>
-    </div>
-    <div class="calib-right">
-      <div class="calib-section-title">📐 読取エリア</div>
-      <div class="calib-box-list" id="calibBoxList">
-        <div style="color:var(--text-muted);font-size:12px;padding:8px;">リファレンス画像を撮影後、<br>枠を追加してください</div>
-      </div>
-      <button class="btn-add-box" id="btnAddBox" onclick="addCalibBox()" style="display:none;">＋ 読取枠を追加</button>
+  <div class="settings-tab-bar">
+    <button class="settings-tab active" data-tab="tabMonitor" id="tabBtnMonitor">📐 モニター設定</button>
+    <button class="settings-tab" data-tab="tabDrugMaster" id="tabBtnDrugMaster">💊 薬剤マスタ</button>
+  </div>
 
-      <div class="calib-section-title">💾 プロファイル</div>
-      <input class="calib-profile-name-input" id="calibProfileName" placeholder="例: 第1オペ室・日本光電">
-      <button class="btn-save-profile" onclick="saveCalibProfile()">💾 プロファイルを保存</button>
-      <div class="calib-profile-list" id="calibProfileList" style="margin-top:8px;"></div>
+  <!-- Tab 1: Monitor Calibration -->
+  <div class="settings-tab-content active" id="tabMonitor">
+    <div class="calib-body">
+      <div class="calib-left">
+        <div class="calib-image-area" id="calibImageArea">
+          <div class="calib-placeholder" id="calibPlaceholder">
+            <div class="icon">📷</div>
+            <p>モニター画面を撮影して<br>読取位置を設定します</p>
+            <p style="font-size:11px;color:var(--text-muted);margin-top:6px;">撮影後、枠をドラッグして<br>各パラメータの表示位置を指定</p>
+          </div>
+          <img id="calibImage" style="display:none;" alt="Reference">
+          <div class="calib-overlay" id="calibOverlay" style="display:none;"></div>
+        </div>
+        <button class="btn-calib-capture" onclick="captureCalibImage()">📸 モニター画面を撮影（リファレンス）</button>
+      </div>
+      <div class="calib-right">
+        <div class="calib-section-title">📐 読取エリア</div>
+        <div class="calib-box-list" id="calibBoxList">
+          <div style="color:var(--text-muted);font-size:12px;padding:8px;">リファレンス画像を撮影後、<br>枠を追加してください</div>
+        </div>
+        <button class="btn-add-box" id="btnAddBox" onclick="addCalibBox()" style="display:none;">＋ 読取枠を追加</button>
+
+        <div class="calib-section-title">💾 プロファイル</div>
+        <input class="calib-profile-name-input" id="calibProfileName" placeholder="例: 第1オペ室・日本光電">
+        <button class="btn-save-profile" onclick="saveCalibProfile()">💾 プロファイルを保存</button>
+        <div class="calib-profile-list" id="calibProfileList" style="margin-top:8px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab 2: Drug Master Editor -->
+  <div class="settings-tab-content" id="tabDrugMaster">
+    <div class="dm-editor">
+      <div class="dm-toolbar">
+        <label>動物種:</label>
+        <select id="dmSpeciesSelect">
+          <option value="dog">🐕 犬</option>
+          <option value="cat">🐈 猫</option>
+          <option value="rabbit">🐇 ウサギ</option>
+          <option value="ferret">🦊 フェレット</option>
+          <option value="guinea_pig">🐹 モルモット</option>
+          <option value="hamster">🐹 ハムスター</option>
+          <option value="bird">🐦 鳥類</option>
+          <option value="reptile">🦎 爬虫類</option>
+        </select>
+        <button class="btn-dm-reset" id="btnDmReset">🔄 デフォルトに戻す</button>
+      </div>
+      <div class="dm-scroll" id="dmDrugListArea"></div>
+      <div class="dm-save-bar">
+        <button class="btn-dm-save" id="btnDmSave">💾 薬剤マスタを保存</button>
+      </div>
     </div>
   </div>
 </div>
@@ -985,7 +1113,7 @@ const DRUG_MASTER = {
 // ===================================================================
 //  PREMED / ANESTHESIA DRUG MASTER (per species)
 // ===================================================================
-const PREMED_MASTER = {
+let PREMED_MASTER = {
   dog: {
     premed: [
       { name:'メデトミジン', conc:1, concUnit:'mg/mL', doseMin:0.005, doseMax:0.02, doseUnit:'mg/kg', route:'im' },
@@ -1767,7 +1895,7 @@ function saveCalibProfilesToStorage() {
   } catch(e) { console.warn('Calib profile save error:', e); }
 }
 
-function openCalibration() {
+function openSettings(tabId) {
   try {
     loadCalibProfiles();
     renderCalibProfiles();
@@ -1775,18 +1903,32 @@ function openCalibration() {
       const prof = calibState.profiles.find(p => p.id === calibState.activeProfileId);
       if (prof) loadProfileIntoEditor(prof);
     }
-    document.getElementById('calibrationScreen').style.display = 'flex';
+    document.getElementById('settingsScreen').style.display = 'flex';
+    if (tabId) switchSettingsTab(tabId);
   } catch(e) {
-    console.error('openCalibration error:', e);
+    console.error('openSettings error:', e);
     alert('設定画面を開けませんでした: ' + e.message);
   }
 }
+// Backward-compatible alias
+function openCalibration() { openSettings('tabMonitor'); }
 
-function closeCalibration() {
+function closeSettings() {
   try {
-    document.getElementById('calibrationScreen').style.display = 'none';
+    document.getElementById('settingsScreen').style.display = 'none';
     removeParamDropdown();
-  } catch(e) { console.error('closeCalibration error:', e); }
+  } catch(e) { console.error('closeSettings error:', e); }
+}
+function closeCalibration() { closeSettings(); }
+
+function switchSettingsTab(tabId) {
+  document.querySelectorAll('.settings-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.settings-tab-content').forEach(c => c.classList.remove('active'));
+  const btn = document.querySelector(`.settings-tab[data-tab="${tabId}"]`);
+  const content = document.getElementById(tabId);
+  if (btn) btn.classList.add('active');
+  if (content) content.classList.add('active');
+  if (tabId === 'tabDrugMaster') renderDrugMasterEditor();
 }
 
 function captureCalibImage() {
@@ -2121,9 +2263,195 @@ function getActiveCalibProfile() {
   return calibState.profiles.find(p => p.id === calibState.activeProfileId) || null;
 }
 
-// Init: load profiles on startup
+// ===================================================================
+//  DRUG MASTER EDITOR
+// ===================================================================
+const PREMED_MASTER_DEFAULTS = JSON.parse(JSON.stringify(PREMED_MASTER));
+
+function loadDrugMasterFromStorage() {
+  try {
+    const data = localStorage.getItem('vetanes_drug_master_custom');
+    if (data) {
+      const custom = JSON.parse(data);
+      Object.keys(custom).forEach(sp => {
+        if (PREMED_MASTER[sp] !== undefined) {
+          PREMED_MASTER[sp] = custom[sp];
+        }
+      });
+    }
+  } catch(e) { console.warn('Drug master load error:', e); }
+}
+
+function saveDrugMasterToStorage() {
+  try {
+    const toSave = {};
+    Object.keys(PREMED_MASTER).forEach(sp => {
+      if (PREMED_MASTER[sp]) toSave[sp] = PREMED_MASTER[sp];
+    });
+    localStorage.setItem('vetanes_drug_master_custom', JSON.stringify(toSave));
+  } catch(e) { console.warn('Drug master save error:', e); }
+}
+
+function renderDrugMasterEditor() {
+  const species = document.getElementById('dmSpeciesSelect').value;
+  const area = document.getElementById('dmDrugListArea');
+  if (!area) return;
+
+  const drugs = PREMED_MASTER[species];
+  if (!drugs) {
+    area.innerHTML = '<div style="color:var(--text-muted);padding:20px;text-align:center;">この動物種のデフォルトプロトコルはありません</div>';
+    return;
+  }
+
+  let html = '';
+  const cats = ['premed', 'induction', 'maintenance', 'analgesic'];
+  cats.forEach(cat => {
+    const info = PREMED_CATEGORY_LABELS[cat];
+    const list = drugs[cat] || [];
+    html += `<div class="dm-category">
+      <div class="dm-category-title">${info.icon} ${info.label}</div>`;
+    list.forEach((drug, idx) => {
+      const isInhalant = drug.conc === null;
+      html += `<div class="dm-drug-row" data-species="${species}" data-cat="${cat}" data-idx="${idx}">
+        <input class="dm-drug-name" value="${drug.name}" data-field="name" placeholder="薬剤名">
+        ${isInhalant ? `<span class="dm-field-label" style="min-width:60px;text-align:center;">吸入薬</span>` :
+        `<span class="dm-field-label">濃度</span>
+        <input class="dm-drug-conc" type="number" step="any" value="${drug.conc||''}" data-field="conc" placeholder="濃度">
+        <span class="dm-field-label">${drug.concUnit||'mg/mL'}</span>`}
+        <span class="dm-field-label">Min</span>
+        <input class="dm-drug-dose" type="number" step="any" value="${drug.doseMin}" data-field="doseMin">
+        <span class="dm-field-label">Max</span>
+        <input class="dm-drug-dose" type="number" step="any" value="${drug.doseMax}" data-field="doseMax">
+        <span class="dm-field-label">${drug.doseUnit}</span>
+        <input class="dm-drug-route" value="${drug.route}" data-field="route" placeholder="投与経路">
+        <button class="dm-drug-delete" onclick="deleteDmDrug('${species}','${cat}',${idx})">✕</button>
+      </div>`;
+    });
+    html += `<button class="btn-dm-add" onclick="addDmDrug('${species}','${cat}')">＋ ${info.label}を追加</button>
+    </div>`;
+  });
+  area.innerHTML = html;
+}
+
+function collectDmEdits() {
+  const rows = document.querySelectorAll('.dm-drug-row');
+  rows.forEach(row => {
+    const sp = row.dataset.species;
+    const cat = row.dataset.cat;
+    const idx = parseInt(row.dataset.idx);
+    if (!PREMED_MASTER[sp] || !PREMED_MASTER[sp][cat] || !PREMED_MASTER[sp][cat][idx]) return;
+    const drug = PREMED_MASTER[sp][cat][idx];
+    row.querySelectorAll('input[data-field]').forEach(input => {
+      const f = input.dataset.field;
+      if (f === 'name' || f === 'route') {
+        drug[f] = input.value;
+      } else if (f === 'conc') {
+        const v = parseFloat(input.value);
+        drug.conc = isNaN(v) ? null : v;
+      } else if (f === 'doseMin' || f === 'doseMax') {
+        const v = parseFloat(input.value);
+        if (!isNaN(v)) drug[f] = v;
+      }
+    });
+  });
+}
+
+function addDmDrug(species, cat) {
+  collectDmEdits();
+  if (!PREMED_MASTER[species]) return;
+  if (!PREMED_MASTER[species][cat]) PREMED_MASTER[species][cat] = [];
+  const isMaintenanceCat = cat === 'maintenance';
+  PREMED_MASTER[species][cat].push({
+    name: '新規薬剤',
+    conc: isMaintenanceCat ? null : 1,
+    concUnit: isMaintenanceCat ? null : 'mg/mL',
+    doseMin: 0, doseMax: 0,
+    doseUnit: isMaintenanceCat ? '%' : 'mg/kg',
+    route: isMaintenanceCat ? '吸入' : 'iv'
+  });
+  renderDrugMasterEditor();
+}
+
+function deleteDmDrug(species, cat, idx) {
+  collectDmEdits();
+  if (PREMED_MASTER[species] && PREMED_MASTER[species][cat]) {
+    PREMED_MASTER[species][cat].splice(idx, 1);
+  }
+  renderDrugMasterEditor();
+}
+
+function saveDrugMaster() {
+  collectDmEdits();
+  saveDrugMasterToStorage();
+  alert('薬剤マスタを保存しました ✅');
+}
+
+function resetDrugMasterSpecies() {
+  const species = document.getElementById('dmSpeciesSelect').value;
+  if (!confirm(`${species} のプロトコルをデフォルトに戻しますか？`)) return;
+  if (PREMED_MASTER_DEFAULTS[species]) {
+    PREMED_MASTER[species] = JSON.parse(JSON.stringify(PREMED_MASTER_DEFAULTS[species]));
+  }
+  saveDrugMasterToStorage();
+  renderDrugMasterEditor();
+}
+
+// ===================================================================
+//  INIT: Event listeners (iPad-safe)
+// ===================================================================
 document.addEventListener('DOMContentLoaded', () => {
   try { loadCalibProfiles(); } catch(e) { console.warn('init calib error:', e); }
+  try { loadDrugMasterFromStorage(); } catch(e) { console.warn('init drug master error:', e); }
+
+  // Settings button — use addEventListener for iPad Safari compatibility
+  const btnOpen = document.getElementById('btnOpenSettings');
+  if (btnOpen) {
+    btnOpen.addEventListener('click', function(e) {
+      e.preventDefault(); e.stopPropagation();
+      openSettings();
+    });
+    btnOpen.addEventListener('touchend', function(e) {
+      e.preventDefault(); e.stopPropagation();
+      openSettings();
+    }, { passive: false });
+  }
+
+  // Close settings
+  const btnClose = document.getElementById('btnCloseSettings');
+  if (btnClose) {
+    btnClose.addEventListener('click', function(e) { e.preventDefault(); closeSettings(); });
+    btnClose.addEventListener('touchend', function(e) { e.preventDefault(); closeSettings(); }, { passive: false });
+  }
+
+  // Tab buttons
+  document.querySelectorAll('.settings-tab').forEach(tab => {
+    tab.addEventListener('click', function(e) {
+      e.preventDefault();
+      switchSettingsTab(this.dataset.tab);
+    });
+    tab.addEventListener('touchend', function(e) {
+      e.preventDefault();
+      switchSettingsTab(this.dataset.tab);
+    }, { passive: false });
+  });
+
+  // Drug master species selector
+  const dmSelect = document.getElementById('dmSpeciesSelect');
+  if (dmSelect) dmSelect.addEventListener('change', () => { collectDmEdits(); renderDrugMasterEditor(); });
+
+  // Drug master save
+  const btnDmSave = document.getElementById('btnDmSave');
+  if (btnDmSave) {
+    btnDmSave.addEventListener('click', function(e) { e.preventDefault(); saveDrugMaster(); });
+    btnDmSave.addEventListener('touchend', function(e) { e.preventDefault(); saveDrugMaster(); }, { passive: false });
+  }
+
+  // Drug master reset
+  const btnDmReset = document.getElementById('btnDmReset');
+  if (btnDmReset) {
+    btnDmReset.addEventListener('click', function(e) { e.preventDefault(); resetDrugMasterSpecies(); });
+    btnDmReset.addEventListener('touchend', function(e) { e.preventDefault(); resetDrugMasterSpecies(); }, { passive: false });
+  }
 });
 </script>
 </body>
