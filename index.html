@@ -693,6 +693,17 @@
   .dm-drug-dose { width: 65px; text-align: center; color: var(--accent-yellow); font-weight: 700; }
   .dm-drug-route { width: 65px; text-align: center; }
   .dm-field-label { font-size: 10px; color: var(--text-muted); font-weight: 600; }
+  .dm-drug-actions {
+    display: flex; flex-direction: column; gap: 2px; flex-shrink: 0; margin-left: auto;
+  }
+  .dm-drug-move {
+    width: 26px; height: 20px; line-height: 20px; text-align: center;
+    border-radius: 4px; background: rgba(59,130,246,0.1); color: var(--accent-blue);
+    font-size: 10px; cursor: pointer; border: none;
+    -webkit-tap-highlight-color: rgba(59,130,246,0.2);
+  }
+  .dm-drug-move:active { background: rgba(59,130,246,0.25); }
+  .dm-drug-move:disabled { opacity: 0.2; pointer-events: none; }
   .dm-drug-delete {
     width: 28px; height: 28px; line-height: 28px; text-align: center;
     border-radius: 6px; background: rgba(239,68,68,0.1); color: var(--accent-red);
@@ -1150,6 +1161,18 @@ let PREMED_MASTER = {
       { name:'モルヒネ', conc:10, concUnit:'mg/mL', doseMin:0.2, doseMax:0.5, doseUnit:'mg/kg', route:'im' },
       { name:'ケタミン', conc:50, concUnit:'mg/mL', doseMin:2, doseMax:5, doseUnit:'mg/kg', route:'iv/im' },
     ],
+    antibiotic: [
+      { name:'セファゾリン', conc:100, concUnit:'mg/mL', doseMin:20, doseMax:25, doseUnit:'mg/kg', route:'iv' },
+      { name:'アンピシリン', conc:100, concUnit:'mg/mL', doseMin:20, doseMax:25, doseUnit:'mg/kg', route:'iv' },
+      { name:'エンロフロキサシン', conc:50, concUnit:'mg/mL', doseMin:5, doseMax:10, doseUnit:'mg/kg', route:'sc/iv' },
+      { name:'メトロニダゾール', conc:5, concUnit:'mg/mL', doseMin:10, doseMax:15, doseUnit:'mg/kg', route:'iv' },
+    ],
+    fluid: [
+      { name:'乳酸リンゲル', conc:null, concUnit:null, doseMin:5, doseMax:10, doseUnit:'mL/kg/hr', route:'iv' },
+      { name:'生理食塩水', conc:null, concUnit:null, doseMin:5, doseMax:10, doseUnit:'mL/kg/hr', route:'iv' },
+      { name:'酢酸リンゲル', conc:null, concUnit:null, doseMin:5, doseMax:10, doseUnit:'mL/kg/hr', route:'iv' },
+      { name:'ヘスパンダー', conc:null, concUnit:null, doseMin:5, doseMax:20, doseUnit:'mL/kg', route:'iv' },
+    ],
   },
   cat: {
     premed: [
@@ -1175,6 +1198,17 @@ let PREMED_MASTER = {
       { name:'ブプレノルフィン', conc:0.3, concUnit:'mg/mL', doseMin:0.01, doseMax:0.02, doseUnit:'mg/kg', route:'im/iv' },
       { name:'ケタミン', conc:50, concUnit:'mg/mL', doseMin:2, doseMax:5, doseUnit:'mg/kg', route:'im' },
     ],
+    antibiotic: [
+      { name:'セファゾリン', conc:100, concUnit:'mg/mL', doseMin:20, doseMax:25, doseUnit:'mg/kg', route:'iv' },
+      { name:'アンピシリン', conc:100, concUnit:'mg/mL', doseMin:20, doseMax:25, doseUnit:'mg/kg', route:'iv' },
+      { name:'エンロフロキサシン', conc:50, concUnit:'mg/mL', doseMin:5, doseMax:5, doseUnit:'mg/kg', route:'sc' },
+      { name:'メトロニダゾール', conc:5, concUnit:'mg/mL', doseMin:10, doseMax:15, doseUnit:'mg/kg', route:'iv' },
+    ],
+    fluid: [
+      { name:'乳酸リンゲル', conc:null, concUnit:null, doseMin:3, doseMax:5, doseUnit:'mL/kg/hr', route:'iv' },
+      { name:'生理食塩水', conc:null, concUnit:null, doseMin:3, doseMax:5, doseUnit:'mL/kg/hr', route:'iv' },
+      { name:'酢酸リンゲル', conc:null, concUnit:null, doseMin:3, doseMax:5, doseUnit:'mL/kg/hr', route:'iv' },
+    ],
   },
   rabbit: {
     premed: [
@@ -1197,6 +1231,14 @@ let PREMED_MASTER = {
       { name:'ブプレノルフィン', conc:0.3, concUnit:'mg/mL', doseMin:0.01, doseMax:0.05, doseUnit:'mg/kg', route:'sc/iv' },
       { name:'メロキシカム', conc:5, concUnit:'mg/mL', doseMin:0.3, doseMax:0.5, doseUnit:'mg/kg', route:'sc' },
     ],
+    antibiotic: [
+      { name:'エンロフロキサシン', conc:50, concUnit:'mg/mL', doseMin:5, doseMax:10, doseUnit:'mg/kg', route:'sc' },
+      { name:'セファゾリン', conc:100, concUnit:'mg/mL', doseMin:20, doseMax:25, doseUnit:'mg/kg', route:'iv' },
+    ],
+    fluid: [
+      { name:'乳酸リンゲル', conc:null, concUnit:null, doseMin:10, doseMax:10, doseUnit:'mL/kg/hr', route:'iv' },
+      { name:'生理食塩水', conc:null, concUnit:null, doseMin:10, doseMax:10, doseUnit:'mL/kg/hr', route:'iv' },
+    ],
   },
   ferret: {
     premed: [
@@ -1218,6 +1260,13 @@ let PREMED_MASTER = {
     analgesic: [
       { name:'ブプレノルフィン', conc:0.3, concUnit:'mg/mL', doseMin:0.01, doseMax:0.03, doseUnit:'mg/kg', route:'sc' },
     ],
+    antibiotic: [
+      { name:'エンロフロキサシン', conc:50, concUnit:'mg/mL', doseMin:5, doseMax:10, doseUnit:'mg/kg', route:'sc' },
+      { name:'セファゾリン', conc:100, concUnit:'mg/mL', doseMin:20, doseMax:25, doseUnit:'mg/kg', route:'iv' },
+    ],
+    fluid: [
+      { name:'乳酸リンゲル', conc:null, concUnit:null, doseMin:5, doseMax:10, doseUnit:'mL/kg/hr', route:'iv/sc' },
+    ],
   },
   guinea_pig: {
     premed: [
@@ -1238,6 +1287,12 @@ let PREMED_MASTER = {
       { name:'ブプレノルフィン', conc:0.3, concUnit:'mg/mL', doseMin:0.05, doseMax:0.1, doseUnit:'mg/kg', route:'sc' },
       { name:'メロキシカム', conc:5, concUnit:'mg/mL', doseMin:0.2, doseMax:0.5, doseUnit:'mg/kg', route:'sc' },
     ],
+    antibiotic: [
+      { name:'エンロフロキサシン', conc:50, concUnit:'mg/mL', doseMin:5, doseMax:10, doseUnit:'mg/kg', route:'sc' },
+    ],
+    fluid: [
+      { name:'乳酸リンゲル', conc:null, concUnit:null, doseMin:10, doseMax:10, doseUnit:'mL/kg/hr', route:'iv/sc' },
+    ],
   },
   hamster: {
     premed: [
@@ -1255,6 +1310,12 @@ let PREMED_MASTER = {
     analgesic: [
       { name:'ブプレノルフィン', conc:0.3, concUnit:'mg/mL', doseMin:0.05, doseMax:0.1, doseUnit:'mg/kg', route:'sc' },
       { name:'メロキシカム', conc:5, concUnit:'mg/mL', doseMin:0.2, doseMax:0.5, doseUnit:'mg/kg', route:'sc' },
+    ],
+    antibiotic: [
+      { name:'エンロフロキサシン', conc:50, concUnit:'mg/mL', doseMin:5, doseMax:10, doseUnit:'mg/kg', route:'sc' },
+    ],
+    fluid: [
+      { name:'乳酸リンゲル', conc:null, concUnit:null, doseMin:10, doseMax:10, doseUnit:'mL/kg/hr', route:'sc' },
     ],
   },
   bird: {
@@ -1275,6 +1336,13 @@ let PREMED_MASTER = {
       { name:'ブプレノルフィン', conc:0.3, concUnit:'mg/mL', doseMin:0.01, doseMax:0.05, doseUnit:'mg/kg', route:'im' },
       { name:'メロキシカム', conc:5, concUnit:'mg/mL', doseMin:0.5, doseMax:1.0, doseUnit:'mg/kg', route:'im' },
     ],
+    antibiotic: [
+      { name:'エンロフロキサシン', conc:50, concUnit:'mg/mL', doseMin:10, doseMax:15, doseUnit:'mg/kg', route:'im' },
+      { name:'アンピシリン', conc:100, concUnit:'mg/mL', doseMin:100, doseMax:200, doseUnit:'mg/kg', route:'im' },
+    ],
+    fluid: [
+      { name:'乳酸リンゲル', conc:null, concUnit:null, doseMin:10, doseMax:10, doseUnit:'mL/kg/hr', route:'iv/io' },
+    ],
   },
   reptile: {
     premed: [
@@ -1294,6 +1362,13 @@ let PREMED_MASTER = {
     analgesic: [
       { name:'トラマドール', conc:50, concUnit:'mg/mL', doseMin:5, doseMax:10, doseUnit:'mg/kg', route:'po/im' },
     ],
+    antibiotic: [
+      { name:'エンロフロキサシン', conc:50, concUnit:'mg/mL', doseMin:5, doseMax:10, doseUnit:'mg/kg', route:'im' },
+      { name:'セフタジジム', conc:100, concUnit:'mg/mL', doseMin:20, doseMax:40, doseUnit:'mg/kg', route:'im' },
+    ],
+    fluid: [
+      { name:'乳酸リンゲル', conc:null, concUnit:null, doseMin:5, doseMax:10, doseUnit:'mL/kg/day', route:'sc/ico' },
+    ],
   },
   other: null, // uses dog defaults
 };
@@ -1303,6 +1378,8 @@ const PREMED_CATEGORY_LABELS = {
   induction: { label:'麻酔導入薬', icon:'🔧' },
   maintenance: { label:'維持麻酔', icon:'💨' },
   analgesic: { label:'鎮痛・その他', icon:'💉' },
+  antibiotic: { label:'抗生剤', icon:'🛡' },
+  fluid: { label:'輸液', icon:'🩸' },
 };
 
 // ===================================================================
@@ -2324,7 +2401,7 @@ function renderDrugMasterEditor() {
   }
 
   let html = '';
-  const cats = ['premed', 'induction', 'maintenance', 'analgesic'];
+  const cats = ['premed', 'induction', 'maintenance', 'analgesic', 'antibiotic', 'fluid'];
   cats.forEach(cat => {
     const info = PREMED_CATEGORY_LABELS[cat];
     const list = drugs[cat] || [];
@@ -2344,6 +2421,10 @@ function renderDrugMasterEditor() {
         <input class="dm-drug-dose" type="number" step="any" value="${drug.doseMax}" data-field="doseMax">
         <span class="dm-field-label">${drug.doseUnit}</span>
         <input class="dm-drug-route" value="${drug.route}" data-field="route" placeholder="投与経路">
+        <div class="dm-drug-actions">
+          <button class="dm-drug-move" onclick="moveDmDrug('${species}','${cat}',${idx},-1)" ${idx===0?'disabled':''}>▲</button>
+          <button class="dm-drug-move" onclick="moveDmDrug('${species}','${cat}',${idx},1)" ${idx===list.length-1?'disabled':''}>▼</button>
+        </div>
         <button class="dm-drug-delete" onclick="deleteDmDrug('${species}','${cat}',${idx})">✕</button>
       </div>`;
     });
@@ -2397,6 +2478,18 @@ function deleteDmDrug(species, cat, idx) {
   if (PREMED_MASTER[species] && PREMED_MASTER[species][cat]) {
     PREMED_MASTER[species][cat].splice(idx, 1);
   }
+  renderDrugMasterEditor();
+}
+
+function moveDmDrug(species, cat, idx, dir) {
+  collectDmEdits();
+  var arr = PREMED_MASTER[species] && PREMED_MASTER[species][cat];
+  if (!arr) return;
+  var newIdx = idx + dir;
+  if (newIdx < 0 || newIdx >= arr.length) return;
+  var tmp = arr[idx];
+  arr[idx] = arr[newIdx];
+  arr[newIdx] = tmp;
   renderDrugMasterEditor();
 }
 
