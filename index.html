@@ -1,0 +1,2130 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>VetAnes - 獣医麻酔管理</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg-primary: #0a0e1a;
+    --bg-secondary: #111827;
+    --bg-card: #1a2236;
+    --bg-card-hover: #1e2a42;
+    --border: #2a3550;
+    --text-primary: #e8ecf4;
+    --text-secondary: #8892a8;
+    --text-muted: #5a6478;
+    --accent-blue: #3b82f6;
+    --accent-green: #10b981;
+    --accent-red: #ef4444;
+    --accent-yellow: #f59e0b;
+    --accent-purple: #8b5cf6;
+    --accent-cyan: #06b6d4;
+    --accent-orange: #f97316;
+    --accent-pink: #ec4899;
+    --hr-color: #ef4444;
+    --spo2-color: #3b82f6;
+    --rr-color: #f59e0b;
+    --bp-color: #10b981;
+    --etco2-color: #8b5cf6;
+    --temp-color: #06b6d4;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif;
+    background: var(--bg-primary); color: var(--text-primary);
+    overflow: hidden; height: 100vh; width: 100vw;
+    -webkit-touch-callout: none; -webkit-user-select: none; user-select: none;
+  }
+
+  /* ===== STARTUP SCREEN ===== */
+  #startupScreen {
+    position: fixed; inset: 0; z-index: 1000;
+    background: var(--bg-primary);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .startup-card {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 20px; padding: 32px 36px;
+    width: 720px; max-height: 92vh;
+    overflow-y: auto; -webkit-overflow-scrolling: touch;
+  }
+  .startup-card h1 {
+    font-size: 30px; font-weight: 700; margin-bottom: 4px;
+    background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .startup-card p.sub { color: var(--text-secondary); margin-bottom: 20px; font-size: 14px; }
+  .form-section-title {
+    font-size: 13px; font-weight: 700; color: var(--accent-cyan);
+    letter-spacing: 1px; margin: 18px 0 10px; padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+  .form-group { margin-bottom: 14px; }
+  .form-group label {
+    display: block; font-size: 13px; font-weight: 600;
+    color: var(--text-secondary); margin-bottom: 4px; letter-spacing: 0.3px;
+  }
+  .form-group input, .form-group select, .form-group textarea {
+    width: 100%; padding: 12px 14px;
+    background: var(--bg-secondary); border: 1px solid var(--border);
+    border-radius: 10px; color: var(--text-primary); font-size: 16px;
+    outline: none; transition: border-color 0.2s;
+    -webkit-appearance: none; appearance: none;
+  }
+  .form-group textarea {
+    resize: vertical; min-height: 60px; font-family: inherit;
+  }
+  .form-group select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='%238892a8'%3E%3Cpath d='M6 8L0 0h12z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 14px center; padding-right: 38px;
+  }
+  .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+    border-color: var(--accent-blue); box-shadow: 0 0 0 3px rgba(59,130,246,0.15);
+  }
+  .form-row { display: flex; gap: 10px; }
+  .form-row .form-group { flex: 1; }
+  .form-row-3 { display: flex; gap: 10px; }
+  .form-row-3 .form-group { flex: 1; }
+
+  /* Sex toggle */
+  .sex-toggle { display: flex; gap: 8px; }
+  .sex-toggle button {
+    flex: 1; padding: 10px; border-radius: 10px; font-size: 15px; font-weight: 700;
+    cursor: pointer; border: 1px solid var(--border); background: var(--bg-secondary);
+    color: var(--text-secondary); transition: all 0.2s; min-height: 44px;
+  }
+  .sex-toggle button.active-male { background: rgba(59,130,246,0.2); border-color: var(--accent-blue); color: var(--accent-blue); }
+  .sex-toggle button.active-female { background: rgba(236,72,153,0.2); border-color: var(--accent-pink); color: var(--accent-pink); }
+  .sex-toggle button.active-unknown { background: rgba(139,92,246,0.2); border-color: var(--accent-purple); color: var(--accent-purple); }
+
+  .btn-start {
+    width: 100%; padding: 16px;
+    background: linear-gradient(135deg, var(--accent-blue), #2563eb);
+    color: white; font-size: 18px; font-weight: 700;
+    border: none; border-radius: 12px; cursor: pointer; margin-top: 16px;
+    min-height: 54px;
+  }
+  .btn-start:active { opacity: 0.8; }
+  .btn-scan-chart {
+    width: 100%; padding: 14px; background: var(--bg-secondary);
+    border: 1px dashed var(--border); border-radius: 12px;
+    color: var(--accent-cyan); font-size: 15px; font-weight: 600;
+    cursor: pointer; margin-bottom: 16px; min-height: 50px;
+    position: relative; overflow: hidden; transition: all 0.3s;
+  }
+  .btn-scan-chart:active { background: var(--bg-card-hover); }
+  .btn-scan-chart.scanning { border-color: var(--accent-cyan); color: white; }
+  .scan-flash { position: absolute; inset: 0; background: white; opacity: 0; animation: flashAnim 0.3s ease-out; }
+  @keyframes flashAnim { 0% { opacity: 0.8; } 100% { opacity: 0; } }
+  .scan-line { position: absolute; left: 0; right: 0; height: 2px; background: var(--accent-cyan); box-shadow: 0 0 10px var(--accent-cyan); animation: scanLineAnim 1.5s ease-in-out; }
+  @keyframes scanLineAnim { 0% { top: 0; opacity: 1; } 100% { top: 100%; opacity: 0; } }
+
+  /* ===== DRUG PREP SCREEN ===== */
+  #drugPrepScreen {
+    position: fixed; inset: 0; z-index: 999;
+    background: var(--bg-primary);
+    display: none; align-items: flex-start; justify-content: center;
+    overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 20px;
+  }
+  .prep-card {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 20px; padding: 24px 28px;
+    width: 940px; max-width: 98vw;
+  }
+  .prep-patient-bar {
+    display: flex; align-items: center; gap: 16px;
+    background: var(--bg-secondary); border-radius: 12px; padding: 12px 16px; margin-bottom: 16px;
+    font-size: 14px; font-weight: 600;
+  }
+  .prep-patient-bar .species-emoji { font-size: 24px; }
+  .prep-patient-bar .weight-badge {
+    background: rgba(59,130,246,0.15); padding: 4px 12px; border-radius: 8px;
+    color: var(--accent-blue); font-weight: 700;
+  }
+  .prep-category {
+    margin-bottom: 14px;
+  }
+  .prep-category-title {
+    display: flex; align-items: center; gap: 8px; cursor: pointer;
+    font-size: 14px; font-weight: 700; color: var(--accent-cyan);
+    padding: 8px 12px; background: rgba(6,182,212,0.08); border-radius: 10px;
+    margin-bottom: 8px; user-select: none;
+  }
+  .prep-category-title .arrow { transition: transform 0.2s; }
+  .prep-category-title.collapsed .arrow { transform: rotate(-90deg); }
+  .prep-drug-list { display: flex; flex-direction: column; gap: 6px; }
+  .prep-drug-list.hidden { display: none; }
+  .prep-drug-row {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--bg-secondary); border: 1px solid var(--border);
+    border-radius: 10px; padding: 10px 12px; transition: border-color 0.2s;
+  }
+  .prep-drug-row.checked { border-color: var(--accent-green); background: rgba(16,185,129,0.05); }
+  .prep-drug-row input[type="checkbox"] {
+    width: 22px; height: 22px; accent-color: var(--accent-green);
+    flex-shrink: 0; cursor: pointer;
+  }
+  .prep-drug-name { font-size: 14px; font-weight: 700; min-width: 130px; }
+  .prep-drug-dose-range { font-size: 11px; color: var(--text-secondary); min-width: 90px; }
+  .prep-drug-input {
+    width: 70px; padding: 6px 8px; font-size: 14px; font-weight: 700;
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;
+    color: var(--accent-yellow); text-align: center; outline: none;
+    -webkit-appearance: none; appearance: none;
+  }
+  .prep-drug-input:focus { border-color: var(--accent-blue); }
+  .prep-drug-unit { font-size: 12px; color: var(--text-secondary); min-width: 40px; }
+  .prep-drug-calc {
+    font-size: 16px; font-weight: 800; color: var(--accent-green);
+    min-width: 80px; text-align: right;
+  }
+  .prep-drug-calc .calc-detail { font-size: 10px; color: var(--text-secondary); font-weight: 400; }
+  .prep-drug-route {
+    font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 6px;
+    background: rgba(139,92,246,0.15); color: var(--accent-purple);
+    text-transform: uppercase; min-width: 30px; text-align: center;
+  }
+  .btn-prep-done {
+    width: 100%; padding: 16px;
+    background: linear-gradient(135deg, var(--accent-green), #059669);
+    color: white; font-size: 18px; font-weight: 700;
+    border: none; border-radius: 12px; cursor: pointer; margin-top: 16px;
+    min-height: 54px;
+  }
+  .btn-prep-done:active { opacity: 0.8; }
+  .btn-prep-skip {
+    display: block; width: 100%; text-align: center; padding: 10px;
+    color: var(--text-muted); font-size: 13px; cursor: pointer;
+    background: none; border: none; margin-top: 4px;
+  }
+  .btn-prep-skip:active { color: var(--text-secondary); }
+
+  /* ===== MAIN LAYOUT ===== */
+  #mainApp { display: none; height: 100vh; }
+  .app-layout { display: flex; height: 100%; }
+  .left-panel {
+    width: 65%; padding: 10px;
+    display: flex; flex-direction: column; gap: 8px;
+    overflow-y: auto; -webkit-overflow-scrolling: touch;
+  }
+  .right-panel {
+    width: 35%; padding: 10px 10px 10px 0;
+    display: flex; flex-direction: column; gap: 8px;
+    overflow-y: auto; -webkit-overflow-scrolling: touch;
+  }
+
+  /* ===== HEADER ===== */
+  .patient-header {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 7px 14px; flex-shrink: 0;
+  }
+  .patient-header .hdr-item { white-space: nowrap; }
+  .patient-header .label { font-size: 10px; color: var(--text-muted); letter-spacing: 0.5px; }
+  .patient-header .value { font-size: 14px; font-weight: 700; }
+  .patient-header .divider { width: 1px; height: 26px; background: var(--border); }
+  .elapsed-badge {
+    margin-left: auto; background: var(--accent-blue);
+    padding: 5px 12px; border-radius: 20px;
+    font-size: 12px; font-weight: 700; white-space: nowrap;
+  }
+  .procedure-badge {
+    background: rgba(139,92,246,0.2); border: 1px solid var(--accent-purple);
+    padding: 4px 10px; border-radius: 8px;
+    font-size: 11px; font-weight: 600; color: var(--accent-purple);
+    max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .notes-badge {
+    background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.4);
+    padding: 4px 10px; border-radius: 8px;
+    font-size: 11px; font-weight: 600; color: var(--accent-yellow);
+    max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    cursor: pointer;
+  }
+
+  /* ===== VITAL BIG DISPLAY ===== */
+  .vitals-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 8px; flex-shrink: 0;
+  }
+  .vital-card {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 8px 12px; text-align: center;
+    position: relative; transition: border-color 0.3s;
+  }
+  .vital-card .vital-label { font-size: 11px; font-weight: 700; color: var(--text-muted); letter-spacing: 1px; margin-bottom: 1px; }
+  .vital-card .vital-value { font-size: 32px; font-weight: 800; line-height: 1.1; font-variant-numeric: tabular-nums; }
+  .vital-card .vital-unit { font-size: 11px; color: var(--text-secondary); }
+  .vital-card .vital-indicator { position: absolute; top: 8px; right: 10px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent-green); }
+  .vital-card.alert { border-color: var(--accent-red); animation: alertPulse 1s infinite; }
+  .vital-card.alert .vital-value { color: var(--accent-red) !important; }
+  .vital-card.alert .vital-indicator { background: var(--accent-red); }
+  @keyframes alertPulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.3); } 50% { box-shadow: 0 0 20px 4px rgba(239,68,68,0.2); } }
+  .vital-hr .vital-value { color: var(--hr-color); }
+  .vital-spo2 .vital-value { color: var(--spo2-color); }
+  .vital-rr .vital-value { color: var(--rr-color); }
+  .vital-etco2 .vital-value { color: var(--etco2-color); }
+  .vital-bp .vital-value { color: var(--bp-color); }
+  .vital-temp .vital-value { color: var(--temp-color); }
+  .vital-bp { grid-column: 1 / -1; }
+  .bp-detail { display: flex; gap: 12px; justify-content: center; align-items: baseline; font-size: 34px; font-weight: 800; }
+  .bp-detail .bp-slash { color: var(--text-muted); font-size: 24px; font-weight: 400; }
+  .bp-detail .bp-mean { font-size: 22px; font-weight: 700; color: var(--text-secondary); margin-left: 4px; }
+
+  /* ===== MANUAL VITAL INPUT ===== */
+  .manual-vitals-row {
+    display: flex; gap: 4px; align-items: flex-end; flex-shrink: 0;
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 10px; padding: 8px 10px;
+  }
+  .mv-field { flex: 1; min-width: 0; }
+  .mv-field label { display: block; font-size: 9px; color: var(--text-muted); font-weight: 700; letter-spacing: 0.5px; margin-bottom: 2px; text-align: center; }
+  .mv-field input {
+    width: 100%; padding: 6px 2px; font-size: 16px; font-weight: 700;
+    background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 6px;
+    color: var(--text-primary); text-align: center; outline: none;
+    -webkit-appearance: none; appearance: none;
+  }
+  .mv-field input:focus { border-color: var(--accent-blue); }
+  .mv-field input::placeholder { color: var(--text-muted); font-size: 12px; font-weight: 400; }
+  .btn-manual-apply {
+    padding: 6px 10px; min-width: 56px; min-height: 36px;
+    background: var(--accent-green); border: none; border-radius: 8px;
+    color: white; font-size: 11px; font-weight: 700; cursor: pointer;
+    white-space: nowrap; flex-shrink: 0;
+  }
+  .btn-manual-apply:active { opacity: 0.8; }
+
+  /* ===== CHART ===== */
+  .chart-container { flex: 1; min-height: 160px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 10px; position: relative; }
+
+  /* ===== CAPTURE BUTTON ===== */
+  .capture-row { display: flex; gap: 10px; flex-shrink: 0; }
+  .btn-capture {
+    flex: 1; padding: 14px;
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    border: none; border-radius: 14px; color: white; font-size: 18px; font-weight: 800;
+    cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;
+    transition: transform 0.1s; position: relative; overflow: hidden; min-height: 56px;
+  }
+  .btn-capture:active { transform: scale(0.97); }
+  .btn-capture .icon { font-size: 24px; }
+  .btn-capture.capturing { background: linear-gradient(135deg, #7c3aed, #6d28d9); pointer-events: none; }
+
+  /* ===== RIGHT PANEL ===== */
+  .panel-section { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 10px; }
+  .panel-title { font-size: 11px; font-weight: 700; color: var(--text-muted); letter-spacing: 1px; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+
+  /* Timer */
+  .timer-bar-wrap { height: 8px; background: var(--bg-secondary); border-radius: 4px; overflow: hidden; margin-bottom: 2px; }
+  .timer-bar { height: 100%; width: 100%; border-radius: 4px; background: var(--accent-green); transition: width 1s linear, background 0.5s; }
+  .timer-bar.warning { background: var(--accent-yellow); }
+  .timer-bar.critical { background: var(--accent-orange); }
+  .timer-bar.danger { background: var(--accent-red); }
+  .timer-text { text-align: center; font-size: 20px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .announce-row { display: flex; gap: 6px; margin-top: 6px; }
+  .btn-announce { flex: 1; padding: 10px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 10px; color: var(--text-primary); font-size: 13px; font-weight: 700; cursor: pointer; min-height: 44px; transition: background 0.2s; }
+  .btn-announce:active { background: var(--bg-card-hover); }
+  .btn-announce.active { background: var(--accent-blue); border-color: var(--accent-blue); }
+  .announce-status { font-size: 11px; color: var(--text-secondary); margin-top: 3px; text-align: center; }
+
+  /* CRI */
+  .cri-select { width: 100%; padding: 10px 38px 10px 12px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 10px; color: var(--text-primary); font-size: 13px; margin-bottom: 8px; outline: none; -webkit-appearance: none; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='%238892a8'%3E%3Cpath d='M6 8L0 0h12z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; }
+  .cri-control { display: flex; align-items: center; gap: 6px; }
+  .cri-btn-group { display: flex; flex-direction: column; gap: 3px; }
+  .cri-btn { width: 48px; height: 40px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 10px; color: var(--text-primary); font-size: 18px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; min-height: 40px; }
+  .cri-btn:active { background: var(--accent-blue); border-color: var(--accent-blue); }
+  .cri-btn.fine { font-size: 13px; color: var(--text-secondary); height: 30px; min-height: 30px; }
+  .cri-display { flex: 1; text-align: center; }
+  .cri-display .rate { font-size: 26px; font-weight: 800; }
+  .cri-display .rate-unit { font-size: 11px; color: var(--text-secondary); }
+  .cri-display .converted { font-size: 15px; font-weight: 700; color: var(--accent-cyan); margin-top: 1px; }
+  .cri-display .converted-unit { font-size: 10px; color: var(--text-secondary); }
+
+  /* Events */
+  .event-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
+  .btn-event { padding: 10px 4px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 10px; color: var(--text-primary); font-size: 12px; font-weight: 700; cursor: pointer; text-align: center; min-height: 44px; transition: all 0.2s; }
+  .btn-event:active { transform: scale(0.95); }
+  .btn-event.recorded { background: rgba(16,185,129,0.15); border-color: var(--accent-green); color: var(--accent-green); }
+  .btn-event .event-time { display: block; font-size: 9px; color: var(--text-secondary); margin-top: 1px; }
+  .btn-event[data-cat="procedure"] { background: rgba(245,158,11,0.1); border-color: rgba(245,158,11,0.3); }
+  .btn-event[data-cat="procedure"].recorded { background: rgba(245,158,11,0.25); border-color: var(--accent-yellow); color: var(--accent-yellow); }
+  .btn-event[data-cat="airway"] { background: rgba(16,185,129,0.08); border-color: rgba(16,185,129,0.3); }
+  .btn-event[data-cat="airway"].recorded { background: rgba(16,185,129,0.2); border-color: var(--accent-green); color: var(--accent-green); }
+
+  /* Drug admin */
+  .drug-admin-section { margin-top: 6px; }
+  .drug-admin-row { display: flex; gap: 6px; align-items: center; }
+  .drug-admin-row select, .drug-admin-row input {
+    padding: 8px 10px; background: var(--bg-secondary); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text-primary); font-size: 13px; outline: none;
+    -webkit-appearance: none; appearance: none;
+  }
+  .drug-admin-row select { flex: 2; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='%238892a8'%3E%3Cpath d='M5 6L0 0h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 8px center; padding-right: 24px; }
+  .drug-admin-row input { flex: 1; }
+  .btn-drug-add { padding: 8px 14px; background: var(--accent-purple); border: none; border-radius: 8px; color: white; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; min-height: 36px; }
+  .btn-drug-add:active { opacity: 0.8; }
+
+  /* Emergency */
+  .emerg-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
+  .btn-emerg { padding: 8px 6px; background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.3); border-radius: 10px; color: var(--text-primary); cursor: pointer; text-align: center; min-height: 44px; transition: all 0.15s; }
+  .btn-emerg:active { transform: scale(0.95); background: rgba(239,68,68,0.2); }
+  .btn-emerg .drug-name { font-size: 11px; font-weight: 700; }
+  .btn-emerg .drug-dose { font-size: 15px; font-weight: 800; color: var(--accent-red); margin: 1px 0; }
+  .btn-emerg .drug-detail { font-size: 8px; color: var(--text-secondary); }
+  .btn-emerg.used { background: rgba(239,68,68,0.25); border-color: var(--accent-red); }
+
+  /* Voice */
+  .btn-voice { width: 100%; padding: 12px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 10px; color: var(--text-primary); font-size: 14px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; }
+  .btn-voice.recording { background: rgba(239,68,68,0.15); border-color: var(--accent-red); color: var(--accent-red); animation: voicePulse 1.5s infinite; }
+  @keyframes voicePulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.3); } 50% { box-shadow: 0 0 15px 3px rgba(239,68,68,0.15); } }
+  .voice-log { max-height: 50px; overflow-y: auto; -webkit-overflow-scrolling: touch; margin-top: 4px; font-size: 11px; color: var(--text-secondary); line-height: 1.4; }
+  .voice-log p { padding: 1px 0; border-bottom: 1px solid var(--border); }
+
+  /* Event Log */
+  .event-log { max-height: 120px; overflow-y: auto; -webkit-overflow-scrolling: touch; font-size: 11px; line-height: 1.5; color: var(--text-secondary); }
+  .event-log .log-entry { padding: 2px 0; border-bottom: 1px solid rgba(42,53,80,0.5); cursor: pointer; display: flex; align-items: flex-start; gap: 4px; }
+  .event-log .log-entry:active { background: var(--bg-card-hover); }
+  .event-log .log-time { color: var(--accent-cyan); font-weight: 600; white-space: nowrap; flex-shrink: 0; }
+  .event-log .log-thumb { width: 36px; height: 27px; border-radius: 3px; object-fit: cover; flex-shrink: 0; }
+  .event-log .log-text { flex: 1; min-width: 0; }
+  .event-log .log-note { color: var(--accent-yellow); font-style: italic; font-size: 10px; display: block; }
+
+  /* Log edit modal */
+  .log-edit-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 1500; animation: fadeIn 0.2s; }
+  .log-edit-popup {
+    background: var(--bg-card); border: 1px solid var(--accent-cyan); border-radius: 16px;
+    padding: 20px; max-width: 520px; width: 92%;
+  }
+  .log-edit-popup h3 { color: var(--accent-cyan); margin-bottom: 10px; font-size: 14px; }
+  .log-edit-popup .log-edit-img { max-width: 100%; border-radius: 8px; margin-bottom: 10px; }
+  .log-edit-popup .log-edit-text { font-size: 12px; color: var(--text-secondary); margin-bottom: 10px; line-height: 1.5; }
+  .log-edit-popup textarea {
+    width: 100%; padding: 10px; min-height: 60px; resize: vertical;
+    background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px;
+    color: var(--text-primary); font-size: 14px; font-family: inherit; outline: none;
+  }
+  .log-edit-popup .btn-row { display: flex; gap: 8px; margin-top: 10px; }
+  .log-edit-popup .btn-row button {
+    flex: 1; padding: 10px; border: none; border-radius: 8px;
+    font-weight: 700; cursor: pointer; min-height: 44px; font-size: 14px;
+  }
+  .log-edit-popup .btn-save { background: var(--accent-cyan); color: var(--bg-primary); }
+  .log-edit-popup .btn-cancel { background: var(--bg-secondary); color: var(--text-secondary); border: 1px solid var(--border); }
+
+  /* Alert */
+  .alert-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 2000; animation: fadeIn 0.2s; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  .alert-box { background: var(--bg-card); border: 2px solid var(--accent-red); border-radius: 20px; padding: 28px 36px; text-align: center; max-width: 400px; animation: alertBounce 0.3s; }
+  @keyframes alertBounce { 0% { transform: scale(0.8); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+  .alert-box .alert-icon { font-size: 44px; margin-bottom: 10px; }
+  .alert-box .alert-title { font-size: 20px; font-weight: 800; color: var(--accent-red); margin-bottom: 6px; }
+  .alert-box .alert-msg { font-size: 15px; color: var(--text-secondary); margin-bottom: 16px; line-height: 1.5; }
+  .alert-box .btn-dismiss { padding: 12px 36px; background: var(--accent-red); border: none; border-radius: 10px; color: white; font-size: 15px; font-weight: 700; cursor: pointer; min-height: 44px; }
+
+  /* Notes popup */
+  .notes-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 1500; animation: fadeIn 0.2s; }
+  .notes-popup { background: var(--bg-card); border: 1px solid var(--accent-yellow); border-radius: 16px; padding: 24px; max-width: 500px; width: 90%; }
+  .notes-popup h3 { color: var(--accent-yellow); margin-bottom: 10px; font-size: 16px; }
+  .notes-popup p { color: var(--text-secondary); font-size: 14px; line-height: 1.6; white-space: pre-wrap; }
+  .notes-popup button { margin-top: 14px; padding: 10px 30px; background: var(--accent-yellow); border: none; border-radius: 8px; color: var(--bg-primary); font-weight: 700; cursor: pointer; }
+
+  /* ===== CALIBRATION SCREEN ===== */
+  #calibrationScreen {
+    position: fixed; inset: 0; z-index: 998;
+    background: var(--bg-primary);
+    display: none; flex-direction: column;
+    overflow: hidden;
+  }
+  .calib-header {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 20px; background: var(--bg-card);
+    border-bottom: 1px solid var(--border); flex-shrink: 0;
+  }
+  .calib-header h2 {
+    font-size: 18px; font-weight: 700;
+    background: linear-gradient(135deg, var(--accent-yellow), var(--accent-orange));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    flex: 1;
+  }
+  .calib-header .btn-calib-close {
+    padding: 8px 16px; background: var(--bg-secondary); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text-secondary); font-size: 13px; font-weight: 600;
+    cursor: pointer; min-height: 38px;
+  }
+  .calib-header .btn-calib-close:active { background: var(--bg-card-hover); }
+  .calib-body {
+    display: flex; flex: 1; min-height: 0; overflow: hidden;
+  }
+  .calib-left {
+    flex: 1; display: flex; flex-direction: column; padding: 12px;
+    min-width: 0;
+  }
+  .calib-right {
+    width: 280px; padding: 12px; overflow-y: auto; -webkit-overflow-scrolling: touch;
+    border-left: 1px solid var(--border); flex-shrink: 0;
+  }
+  .calib-image-area {
+    flex: 1; position: relative; background: var(--bg-secondary);
+    border: 2px dashed var(--border); border-radius: 12px;
+    overflow: hidden; min-height: 200px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .calib-image-area.has-image { border-style: solid; border-color: var(--accent-cyan); }
+  .calib-image-area img {
+    width: 100%; height: 100%; object-fit: contain; display: block;
+  }
+  .calib-placeholder {
+    text-align: center; color: var(--text-muted); padding: 20px;
+  }
+  .calib-placeholder .icon { font-size: 48px; margin-bottom: 10px; }
+  .calib-placeholder p { font-size: 13px; line-height: 1.6; }
+  .btn-calib-capture {
+    margin-top: 10px; padding: 14px;
+    background: linear-gradient(135deg, var(--accent-orange), #ea580c);
+    border: none; border-radius: 12px; color: white;
+    font-size: 16px; font-weight: 700; cursor: pointer;
+    min-height: 50px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .btn-calib-capture:active { opacity: 0.8; }
+
+  /* Bounding boxes overlay */
+  .calib-overlay {
+    position: absolute; inset: 0; cursor: crosshair;
+  }
+  .calib-box {
+    position: absolute; border: 2px solid; border-radius: 4px;
+    cursor: move; touch-action: none; min-width: 40px; min-height: 30px;
+    display: flex; align-items: flex-start; justify-content: flex-start;
+  }
+  .calib-box .box-label {
+    position: absolute; top: -22px; left: 0;
+    font-size: 11px; font-weight: 800; padding: 2px 8px;
+    border-radius: 4px 4px 0 0; white-space: nowrap;
+    cursor: pointer;
+  }
+  .calib-box .box-delete {
+    position: absolute; top: -22px; right: 0;
+    width: 20px; height: 20px; line-height: 20px; text-align: center;
+    font-size: 12px; cursor: pointer; border-radius: 4px;
+    background: rgba(239,68,68,0.8); color: white;
+  }
+  .calib-box .box-resize {
+    position: absolute; bottom: -4px; right: -4px;
+    width: 16px; height: 16px; border-radius: 3px;
+    background: white; border: 2px solid; cursor: se-resize;
+    touch-action: none;
+  }
+  .calib-box[data-param="HR"] { border-color: var(--hr-color); }
+  .calib-box[data-param="HR"] .box-label { background: var(--hr-color); color: white; }
+  .calib-box[data-param="HR"] .box-resize { border-color: var(--hr-color); }
+  .calib-box[data-param="SPO2"] { border-color: var(--spo2-color); }
+  .calib-box[data-param="SPO2"] .box-label { background: var(--spo2-color); color: white; }
+  .calib-box[data-param="SPO2"] .box-resize { border-color: var(--spo2-color); }
+  .calib-box[data-param="RR"] { border-color: var(--rr-color); }
+  .calib-box[data-param="RR"] .box-label { background: var(--rr-color); color: white; }
+  .calib-box[data-param="RR"] .box-resize { border-color: var(--rr-color); }
+  .calib-box[data-param="BP"] { border-color: var(--bp-color); }
+  .calib-box[data-param="BP"] .box-label { background: var(--bp-color); color: white; }
+  .calib-box[data-param="BP"] .box-resize { border-color: var(--bp-color); }
+  .calib-box[data-param="ETCO2"] { border-color: var(--etco2-color); }
+  .calib-box[data-param="ETCO2"] .box-label { background: var(--etco2-color); color: white; }
+  .calib-box[data-param="ETCO2"] .box-resize { border-color: var(--etco2-color); }
+  .calib-box[data-param="TEMP"] { border-color: var(--temp-color); }
+  .calib-box[data-param="TEMP"] .box-label { background: var(--temp-color); color: white; }
+  .calib-box[data-param="TEMP"] .box-resize { border-color: var(--temp-color); }
+  .calib-box[data-param="ISO"] { border-color: #94a3b8; }
+  .calib-box[data-param="ISO"] .box-label { background: #94a3b8; color: white; }
+  .calib-box[data-param="ISO"] .box-resize { border-color: #94a3b8; }
+
+  /* Param select dropdown */
+  .calib-param-select {
+    position: absolute; z-index: 10; background: var(--bg-card);
+    border: 1px solid var(--accent-cyan); border-radius: 10px;
+    padding: 6px; box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    min-width: 140px;
+  }
+  .calib-param-select button {
+    display: block; width: 100%; padding: 10px 12px; text-align: left;
+    background: none; border: none; color: var(--text-primary);
+    font-size: 13px; font-weight: 600; cursor: pointer; border-radius: 6px;
+    min-height: 40px;
+  }
+  .calib-param-select button:active { background: var(--bg-card-hover); }
+  .calib-param-select button .param-dot {
+    display: inline-block; width: 10px; height: 10px; border-radius: 50%;
+    margin-right: 8px; vertical-align: middle;
+  }
+
+  /* Right panel controls */
+  .calib-section-title {
+    font-size: 12px; font-weight: 700; color: var(--accent-cyan);
+    letter-spacing: 0.5px; margin: 14px 0 8px; padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+  .calib-section-title:first-child { margin-top: 0; }
+  .calib-box-list { display: flex; flex-direction: column; gap: 6px; }
+  .calib-box-item {
+    display: flex; align-items: center; gap: 6px; padding: 8px 10px;
+    background: var(--bg-secondary); border: 1px solid var(--border);
+    border-radius: 8px; font-size: 12px; font-weight: 600;
+  }
+  .calib-box-item .param-dot {
+    width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0;
+  }
+  .calib-box-item .param-name { flex: 1; }
+  .calib-box-item .param-coords { color: var(--text-muted); font-size: 10px; }
+  .btn-add-box {
+    width: 100%; padding: 10px; margin-top: 8px;
+    background: var(--bg-secondary); border: 1px dashed var(--accent-cyan);
+    border-radius: 8px; color: var(--accent-cyan);
+    font-size: 13px; font-weight: 600; cursor: pointer; min-height: 44px;
+  }
+  .btn-add-box:active { background: var(--bg-card-hover); }
+
+  /* Profile section */
+  .calib-profile-list { display: flex; flex-direction: column; gap: 6px; }
+  .calib-profile-item {
+    display: flex; align-items: center; gap: 6px; padding: 10px;
+    background: var(--bg-secondary); border: 1px solid var(--border);
+    border-radius: 8px; cursor: pointer; min-height: 44px;
+  }
+  .calib-profile-item:active { background: var(--bg-card-hover); }
+  .calib-profile-item.active { border-color: var(--accent-green); background: rgba(16,185,129,0.08); }
+  .calib-profile-item .profile-name { flex: 1; font-size: 13px; font-weight: 600; }
+  .calib-profile-item .profile-count { font-size: 11px; color: var(--text-muted); }
+  .calib-profile-item .profile-delete {
+    width: 24px; height: 24px; line-height: 24px; text-align: center;
+    border-radius: 6px; background: rgba(239,68,68,0.15); color: var(--accent-red);
+    font-size: 12px; cursor: pointer; flex-shrink: 0;
+  }
+  .btn-save-profile {
+    width: 100%; padding: 12px;
+    background: linear-gradient(135deg, var(--accent-green), #059669);
+    border: none; border-radius: 10px; color: white;
+    font-size: 14px; font-weight: 700; cursor: pointer; margin-top: 8px;
+    min-height: 44px;
+  }
+  .btn-save-profile:active { opacity: 0.8; }
+  .calib-profile-name-input {
+    width: 100%; padding: 10px 12px; margin-top: 8px;
+    background: var(--bg-secondary); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text-primary); font-size: 14px;
+    outline: none; -webkit-appearance: none;
+  }
+  .calib-profile-name-input:focus { border-color: var(--accent-blue); }
+
+  /* Settings button on startup */
+  .btn-monitor-settings {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    width: 100%; padding: 12px; margin-top: 8px;
+    background: var(--bg-secondary); border: 1px solid var(--border);
+    border-radius: 12px; color: var(--accent-yellow);
+    font-size: 14px; font-weight: 600; cursor: pointer; min-height: 50px;
+  }
+  .btn-monitor-settings:active { background: var(--bg-card-hover); }
+
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  @media (min-width: 1024px) and (orientation: landscape) {
+    .vital-card .vital-value { font-size: 36px; }
+    .bp-detail { font-size: 36px; }
+  }
+  @media (max-height: 700px) {
+    .vital-card { padding: 6px 10px; }
+    .vital-card .vital-value { font-size: 28px; }
+    .bp-detail { font-size: 28px; }
+    .panel-section { padding: 8px; }
+    .chart-container { min-height: 120px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ========== STARTUP SCREEN ========== -->
+<div id="startupScreen">
+  <div class="startup-card">
+    <h1>🩺 VetAnes</h1>
+    <p class="sub">獣医麻酔管理アシスタント</p>
+
+    <button class="btn-scan-chart" id="btnScanChart" onclick="mockScanChart()">📷 カルテを撮影して自動入力</button>
+
+    <!-- 施術情報 -->
+    <div class="form-section-title">施術情報</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>実施日</label>
+        <input type="date" id="inputDate">
+      </div>
+      <div class="form-group">
+        <label>執刀医</label>
+        <input type="text" id="inputSurgeon" placeholder="執刀医">
+      </div>
+      <div class="form-group">
+        <label>麻酔担当</label>
+        <input type="text" id="inputAnesthetist" placeholder="麻酔担当">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>オペ内容 / 麻酔目的</label>
+        <input type="text" id="inputProcedure" placeholder="例: 避妊手術、腫瘤切除">
+      </div>
+    </div>
+
+    <!-- 患者情報 -->
+    <div class="form-section-title">患者情報</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>患者ID</label>
+        <input type="text" id="inputId" placeholder="ID">
+      </div>
+      <div class="form-group">
+        <label>患者名</label>
+        <input type="text" id="inputName" placeholder="患者名">
+      </div>
+    </div>
+    <div class="form-row-3">
+      <div class="form-group">
+        <label>動物種</label>
+        <select id="inputSpecies">
+          <option value="dog">犬</option>
+          <option value="cat">猫</option>
+          <option value="rabbit">ウサギ</option>
+          <option value="ferret">フェレット</option>
+          <option value="guinea_pig">モルモット</option>
+          <option value="hamster">ハムスター</option>
+          <option value="bird">鳥類</option>
+          <option value="reptile">爬虫類</option>
+          <option value="other">その他</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>体重 (kg)</label>
+        <input type="number" id="inputWeight" placeholder="kg" step="0.01" min="0.001">
+      </div>
+      <div class="form-group">
+        <label>年齢</label>
+        <input type="text" id="inputAge" placeholder="例: 5歳">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>性別</label>
+      <div class="sex-toggle" id="sexToggle">
+        <button type="button" data-sex="male" onclick="setSex('male')">♂ オス</button>
+        <button type="button" data-sex="female" onclick="setSex('female')">♀ メス</button>
+        <button type="button" data-sex="unknown" onclick="setSex('unknown')">不明</button>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>備考（既往歴・注意事項）</label>
+      <textarea id="inputNotes" placeholder="アレルギー、既往歴、特記事項など"></textarea>
+    </div>
+
+    <button class="btn-start" onclick="startSession()">麻酔セッション開始</button>
+    <button class="btn-monitor-settings" onclick="openCalibration()">⚙️ モニター設定（読取位置キャリブレーション）</button>
+  </div>
+</div>
+
+<!-- ========== CALIBRATION SCREEN ========== -->
+<div id="calibrationScreen">
+  <div class="calib-header">
+    <h2>⚙️ モニター設定・キャリブレーション</h2>
+    <button class="btn-calib-close" onclick="closeCalibration()">✕ 閉じる</button>
+  </div>
+  <div class="calib-body">
+    <div class="calib-left">
+      <div class="calib-image-area" id="calibImageArea">
+        <div class="calib-placeholder" id="calibPlaceholder">
+          <div class="icon">📷</div>
+          <p>モニター画面を撮影して<br>読取位置を設定します</p>
+          <p style="font-size:11px;color:var(--text-muted);margin-top:6px;">撮影後、枠をドラッグして<br>各パラメータの表示位置を指定</p>
+        </div>
+        <img id="calibImage" style="display:none;" alt="Reference">
+        <div class="calib-overlay" id="calibOverlay" style="display:none;"></div>
+      </div>
+      <button class="btn-calib-capture" onclick="captureCalibImage()">📸 モニター画面を撮影（リファレンス）</button>
+    </div>
+    <div class="calib-right">
+      <div class="calib-section-title">📐 読取エリア</div>
+      <div class="calib-box-list" id="calibBoxList">
+        <div style="color:var(--text-muted);font-size:12px;padding:8px;">リファレンス画像を撮影後、<br>枠を追加してください</div>
+      </div>
+      <button class="btn-add-box" id="btnAddBox" onclick="addCalibBox()" style="display:none;">＋ 読取枠を追加</button>
+
+      <div class="calib-section-title">💾 プロファイル</div>
+      <input class="calib-profile-name-input" id="calibProfileName" placeholder="例: 第1オペ室・日本光電">
+      <button class="btn-save-profile" onclick="saveCalibProfile()">💾 プロファイルを保存</button>
+      <div class="calib-profile-list" id="calibProfileList" style="margin-top:8px;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== DRUG PREPARATION SCREEN ========== -->
+<div id="drugPrepScreen">
+  <div class="prep-card">
+    <h1 style="font-size:22px; font-weight:700; margin-bottom:4px; background:linear-gradient(135deg,var(--accent-green),var(--accent-cyan)); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">💉 薬剤準備チェックリスト</h1>
+    <p class="sub" style="color:var(--text-secondary); margin-bottom:12px; font-size:13px;">体重から投与量・シリンジ準備量を自動計算</p>
+    <div class="prep-patient-bar" id="prepPatientBar"></div>
+    <div id="prepDrugList"></div>
+    <button class="btn-prep-done" onclick="completeDrugPrep()">✅ 準備完了 → モニタリング開始</button>
+    <button class="btn-prep-skip" onclick="skipDrugPrep()">スキップ（準備済み）</button>
+  </div>
+</div>
+
+<!-- ========== MAIN APPLICATION ========== -->
+<div id="mainApp">
+  <div class="app-layout">
+    <!-- LEFT PANEL -->
+    <div class="left-panel">
+      <div class="patient-header">
+        <div class="hdr-item"><span class="label">ID</span><br><span class="value" id="dispId">-</span></div>
+        <div class="divider"></div>
+        <div class="hdr-item"><span class="label">患者名</span><br><span class="value" id="dispName">-</span></div>
+        <div class="divider"></div>
+        <div class="hdr-item"><span class="label">種別</span><br><span class="value" id="dispSpecies">-</span></div>
+        <div class="divider"></div>
+        <div class="hdr-item"><span class="label">体重</span><br><span class="value" id="dispWeight">-</span></div>
+        <div class="divider"></div>
+        <div class="hdr-item"><span class="label">性別</span><br><span class="value" id="dispSex">-</span></div>
+        <div class="procedure-badge" id="dispProcedure" title="">-</div>
+        <div class="notes-badge" id="dispNotes" onclick="showNotesPopup()" style="display:none;" title="">⚠ 備考あり</div>
+        <div class="elapsed-badge" id="dispElapsed">経過 00:00:00</div>
+      </div>
+
+      <div class="vitals-grid">
+        <div class="vital-card vital-hr" id="vitalHR"><div class="vital-label">HR</div><div class="vital-value" id="valHR">--</div><div class="vital-unit">bpm</div><div class="vital-indicator"></div></div>
+        <div class="vital-card vital-spo2" id="vitalSpO2"><div class="vital-label">SpO2</div><div class="vital-value" id="valSpO2">--</div><div class="vital-unit">%</div><div class="vital-indicator"></div></div>
+        <div class="vital-card vital-rr" id="vitalRR"><div class="vital-label">RR</div><div class="vital-value" id="valRR">--</div><div class="vital-unit">/min</div><div class="vital-indicator"></div></div>
+        <div class="vital-card vital-etco2" id="vitalEtCO2"><div class="vital-label">EtCO2</div><div class="vital-value" id="valEtCO2">--</div><div class="vital-unit">mmHg</div><div class="vital-indicator"></div></div>
+        <div class="vital-card vital-temp" id="vitalTemp"><div class="vital-label">体温</div><div class="vital-value" id="valTemp">--</div><div class="vital-unit">℃</div><div class="vital-indicator"></div></div>
+        <div class="vital-card vital-iso" id="vitalIso"><div class="vital-label">ISO</div><div class="vital-value" id="valIso">--</div><div class="vital-unit">%</div><div class="vital-indicator"></div></div>
+        <div class="vital-card vital-bp" id="vitalBP"><div class="vital-label">血圧 (Sys / Dia / Mean)</div><div class="bp-detail"><span id="valSys">--</span><span class="bp-slash">/</span><span id="valDia">--</span><span class="bp-mean">(<span id="valMean">--</span>)</span></div><div class="vital-unit">mmHg</div><div class="vital-indicator"></div></div>
+      </div>
+
+      <!-- Manual vital input row -->
+      <div class="manual-vitals-row">
+        <div class="mv-field"><label>HR</label><input type="number" id="mvHR" placeholder="--"></div>
+        <div class="mv-field"><label>SpO2</label><input type="number" id="mvSpO2" placeholder="--"></div>
+        <div class="mv-field"><label>RR</label><input type="number" id="mvRR" placeholder="--"></div>
+        <div class="mv-field"><label>EtCO2</label><input type="number" id="mvEtCO2" placeholder="--"></div>
+        <div class="mv-field"><label>Sys</label><input type="number" id="mvSys" placeholder="--"></div>
+        <div class="mv-field"><label>Dia</label><input type="number" id="mvDia" placeholder="--"></div>
+        <div class="mv-field"><label>T℃</label><input type="number" id="mvTemp" step="0.1" placeholder="--"></div>
+        <div class="mv-field"><label>ISO</label><input type="number" id="mvIso" step="0.1" placeholder="--"></div>
+        <button class="btn-manual-apply" onclick="applyManualVitals()">✏️<br>適用</button>
+      </div>
+
+      <div class="chart-container"><canvas id="vitalChart"></canvas></div>
+
+      <div class="capture-row">
+        <button class="btn-capture" id="btnCapture" onclick="handleCameraCapture()"><span class="icon">📸</span><span>モニター撮影</span></button>
+      </div>
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div class="right-panel">
+      <!-- Timer -->
+      <div class="panel-section">
+        <div class="panel-title">⏱ タイマー / アナウンス</div>
+        <div class="timer-bar-wrap"><div class="timer-bar" id="timerBar"></div></div>
+        <div class="timer-text" id="timerText">5:00</div>
+        <div class="announce-row">
+          <button class="btn-announce" id="btnInduction" onclick="startAnnounce('induction')">導入</button>
+          <button class="btn-announce" id="btnIncision" onclick="startAnnounce('incision')">切皮</button>
+        </div>
+        <div class="announce-status" id="announceStatus">-</div>
+      </div>
+
+      <!-- CRI -->
+      <div class="panel-section">
+        <div class="panel-title">💊 CRI 計算機</div>
+        <select class="cri-select" id="criDrug" onchange="updateCRI()">
+          <option value="fentanyl">フェンタニル (50μg/mL)</option>
+          <option value="ketamine">ケタミン (50mg/mL)</option>
+          <option value="lidocaine">リドカイン (20mg/mL)</option>
+          <option value="remifentanil">レミフェンタニル (20μg/mL)</option>
+          <option value="morphine">モルヒネ (10mg/mL)</option>
+        </select>
+        <div class="cri-control">
+          <div class="cri-btn-group"><button class="cri-btn" onclick="adjustCRI(-1)">−1</button><button class="cri-btn fine" onclick="adjustCRI(-0.1)">−.1</button></div>
+          <div class="cri-display"><div class="rate" id="criRate">1.0</div><div class="rate-unit">mL/hr</div><div class="converted" id="criConverted">-</div><div class="converted-unit" id="criConvertedUnit">μg/kg/min</div></div>
+          <div class="cri-btn-group"><button class="cri-btn" onclick="adjustCRI(1)">＋1</button><button class="cri-btn fine" onclick="adjustCRI(0.1)">＋.1</button></div>
+        </div>
+      </div>
+
+      <!-- Events -->
+      <div class="panel-section">
+        <div class="panel-title">📋 イベント記録</div>
+        <div class="event-grid">
+          <button class="btn-event" data-event="前投与" data-cat="procedure" onclick="recordEvent(this)">前投与</button>
+          <button class="btn-event" data-event="麻酔導入" data-cat="procedure" onclick="recordEvent(this)">麻酔導入</button>
+          <button class="btn-event" data-event="切皮" data-cat="procedure" onclick="recordEvent(this)">切皮</button>
+          <button class="btn-event" data-event="挿管" data-cat="airway" onclick="recordEvent(this)">挿管</button>
+          <button class="btn-event" data-event="抜管" data-cat="airway" onclick="recordEvent(this)">抜管</button>
+          <button class="btn-event" data-event="IPPV on" data-cat="airway" onclick="recordEvent(this)">IPPV on</button>
+          <button class="btn-event" data-event="IPPV off" data-cat="airway" onclick="recordEvent(this)">IPPV off</button>
+          <button class="btn-event" data-event="OPE開始" data-cat="procedure" onclick="recordEvent(this)">OPE開始</button>
+          <button class="btn-event" data-event="OPE終了" data-cat="procedure" onclick="recordEvent(this)">OPE終了</button>
+          <button class="btn-event" data-event="開創" data-cat="procedure" onclick="recordEvent(this)">開創</button>
+          <button class="btn-event" data-event="閉創" data-cat="procedure" onclick="recordEvent(this)">閉創</button>
+          <button class="btn-event" data-event="覚醒" onclick="recordEvent(this)">覚醒</button>
+        </div>
+      </div>
+
+      <!-- Drug Administration -->
+      <div class="panel-section">
+        <div class="panel-title">💉 薬剤投与記録</div>
+        <div class="drug-admin-row">
+          <select id="drugAdminName"><option value="">薬剤選択</option>
+            <option>プロポフォール</option><option>アルファキサロン</option>
+            <option>ミダゾラム</option><option>ケタミン</option>
+            <option>メデトミジン</option><option>ブトルファノール</option>
+            <option>フェンタニル</option><option>メロキシカム</option>
+            <option>セファゾリン</option><option>マロピタント</option>
+            <option>乳酸リンゲル</option>
+          </select>
+          <input type="text" id="drugAdminDose" placeholder="用量">
+          <select id="drugAdminRoute"><option>iv</option><option>im</option><option>sc</option><option>po</option><option>ip</option></select>
+          <button class="btn-drug-add" onclick="recordDrugAdmin()">記録</button>
+        </div>
+      </div>
+
+      <!-- Emergency -->
+      <div class="panel-section">
+        <div class="panel-title">🚨 緊急薬剤</div>
+        <div class="emerg-grid" id="emergGrid"></div>
+      </div>
+
+      <!-- Voice -->
+      <div class="panel-section">
+        <div class="panel-title">🎙 音声入力</div>
+        <button class="btn-voice" id="btnVoice" onclick="toggleVoice()"><span>🎤</span><span id="voiceLabel">音声入力開始</span></button>
+        <div class="voice-log" id="voiceLog"></div>
+      </div>
+
+      <!-- Log -->
+      <div class="panel-section" style="flex:1; min-height:0;">
+        <div class="panel-title">📝 記録ログ</div>
+        <div class="event-log" id="eventLog"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="alertContainer"></div>
+
+<script>
+// ===================================================================
+//  STATE
+// ===================================================================
+const state = {
+  patient: { id:'', name:'', species:'dog', weight:0, age:'', sex:'', procedure:'', notes:'', surgeon:'', anesthetist:'', date:'' },
+  sessionStart: null,
+  vitals: { hr:[], spo2:[], rr:[], etco2:[], sys:[], dia:[], mean:[], temp:[] },
+  timeLabels: [],
+  timerInterval: null, timerRemaining: 300,
+  announceType: null, announceStart: null, announceInterval: null,
+  criRate: 1.0, voiceActive: false, recognition: null,
+  events: [], elapsedInterval: null,
+  selectedSex: '',
+  // V4: Photo log
+  capturedImages: [],  // { id, timestamp, dataUrl, notes }
+  maxCapturedImages: 20,
+  logEntries: {},      // logId -> { text, captureId, note }
+};
+
+// ===================================================================
+//  SPECIES CONFIG
+// ===================================================================
+const SPECIES_LABELS = {
+  dog:'犬', cat:'猫', rabbit:'ウサギ', ferret:'フェレット',
+  guinea_pig:'モルモット', hamster:'ハムスター', bird:'鳥類', reptile:'爬虫類', other:'その他'
+};
+
+const SPECIES_EMOJI = {
+  dog:'🐕', cat:'🐈', rabbit:'🐇', ferret:'🦦', guinea_pig:'🐹',
+  hamster:'🐹', bird:'🐦', reptile:'🦎', other:'🐾'
+};
+
+// ===================================================================
+//  DRUG MASTER DATA (Emergency + CRI)
+// ===================================================================
+const DRUG_MASTER_DEFAULT = {
+  emergency: [
+    { name:'アトロピン', conc:0.5, unit:'mg/mL', dosePerKg:0.02, doseUnit:'mg/kg' },
+    { name:'エフェドリン', conc:4, unit:'mg/mL', dosePerKg:0.1, doseUnit:'mg/kg' },
+    { name:'エピネフリン', conc:1, unit:'mg/mL', dosePerKg:0.01, doseUnit:'mg/kg' },
+    { name:'ナロキソン', conc:0.4, unit:'mg/mL', dosePerKg:0.04, doseUnit:'mg/kg' },
+    { name:'ドキサプラム', conc:20, unit:'mg/mL', dosePerKg:1, doseUnit:'mg/kg' },
+    { name:'リドカイン', conc:20, unit:'mg/mL', dosePerKg:2, doseUnit:'mg/kg' },
+  ],
+  cri: {
+    fentanyl:{ conc:50, concUnit:'μg/mL', targetUnit:'μg/kg/min' },
+    ketamine:{ conc:50, concUnit:'mg/mL', targetUnit:'mg/kg/hr' },
+    lidocaine:{ conc:20, concUnit:'mg/mL', targetUnit:'mg/kg/hr' },
+    remifentanil:{ conc:20, concUnit:'μg/mL', targetUnit:'μg/kg/min' },
+    morphine:{ conc:10, concUnit:'mg/mL', targetUnit:'mg/kg/hr' },
+  }
+};
+
+const DRUG_MASTER = {
+  dog: { ...DRUG_MASTER_DEFAULT },
+  cat: {
+    emergency: [
+      { name:'アトロピン', conc:0.5, unit:'mg/mL', dosePerKg:0.02, doseUnit:'mg/kg' },
+      { name:'エフェドリン', conc:4, unit:'mg/mL', dosePerKg:0.05, doseUnit:'mg/kg' },
+      { name:'エピネフリン', conc:1, unit:'mg/mL', dosePerKg:0.01, doseUnit:'mg/kg' },
+      { name:'ナロキソン', conc:0.4, unit:'mg/mL', dosePerKg:0.04, doseUnit:'mg/kg' },
+      { name:'ドキサプラム', conc:20, unit:'mg/mL', dosePerKg:1, doseUnit:'mg/kg' },
+      { name:'フルマゼニル', conc:0.1, unit:'mg/mL', dosePerKg:0.01, doseUnit:'mg/kg' },
+    ],
+    cri: DRUG_MASTER_DEFAULT.cri,
+  },
+  rabbit: { ...DRUG_MASTER_DEFAULT },
+  ferret: { ...DRUG_MASTER_DEFAULT },
+  guinea_pig: { ...DRUG_MASTER_DEFAULT },
+  hamster: { ...DRUG_MASTER_DEFAULT },
+  bird: { ...DRUG_MASTER_DEFAULT },
+  reptile: { ...DRUG_MASTER_DEFAULT },
+  other: { ...DRUG_MASTER_DEFAULT },
+};
+
+// ===================================================================
+//  PREMED / ANESTHESIA DRUG MASTER (per species)
+// ===================================================================
+const PREMED_MASTER = {
+  dog: {
+    premed: [
+      { name:'メデトミジン', conc:1, concUnit:'mg/mL', doseMin:0.005, doseMax:0.02, doseUnit:'mg/kg', route:'im' },
+      { name:'ブトルファノール', conc:5, concUnit:'mg/mL', doseMin:0.2, doseMax:0.4, doseUnit:'mg/kg', route:'im' },
+      { name:'ミダゾラム', conc:5, concUnit:'mg/mL', doseMin:0.2, doseMax:0.5, doseUnit:'mg/kg', route:'iv/im' },
+      { name:'マロピタント', conc:10, concUnit:'mg/mL', doseMin:1.0, doseMax:1.0, doseUnit:'mg/kg', route:'sc' },
+      { name:'アトロピン', conc:0.5, concUnit:'mg/mL', doseMin:0.02, doseMax:0.04, doseUnit:'mg/kg', route:'im/sc' },
+      { name:'セファゾリン', conc:100, concUnit:'mg/mL', doseMin:20, doseMax:25, doseUnit:'mg/kg', route:'iv' },
+      { name:'メロキシカム', conc:5, concUnit:'mg/mL', doseMin:0.2, doseMax:0.2, doseUnit:'mg/kg', route:'sc' },
+    ],
+    induction: [
+      { name:'プロポフォール', conc:10, concUnit:'mg/mL', doseMin:2, doseMax:6, doseUnit:'mg/kg', route:'iv slow' },
+      { name:'アルファキサロン', conc:10, concUnit:'mg/mL', doseMin:1, doseMax:3, doseUnit:'mg/kg', route:'iv slow' },
+      { name:'チオペンタール', conc:25, concUnit:'mg/mL', doseMin:10, doseMax:15, doseUnit:'mg/kg', route:'iv' },
+    ],
+    maintenance: [
+      { name:'イソフルラン', conc:null, concUnit:null, doseMin:1.0, doseMax:2.5, doseUnit:'%', route:'吸入' },
+      { name:'セボフルラン', conc:null, concUnit:null, doseMin:2.0, doseMax:4.0, doseUnit:'%', route:'吸入' },
+    ],
+    analgesic: [
+      { name:'フェンタニル', conc:0.05, concUnit:'mg/mL', doseMin:0.002, doseMax:0.005, doseUnit:'mg/kg', route:'iv' },
+      { name:'レミフェンタニル', conc:0.02, concUnit:'mg/mL', doseMin:0.005, doseMax:0.02, doseUnit:'mg/kg', route:'iv(CRI)' },
+      { name:'モルヒネ', conc:10, concUnit:'mg/mL', doseMin:0.2, doseMax:0.5, doseUnit:'mg/kg', route:'im' },
+      { name:'ケタミン', conc:50, concUnit:'mg/mL', doseMin:2, doseMax:5, doseUnit:'mg/kg', route:'iv/im' },
+    ],
+  },
+  cat: {
+    premed: [
+      { name:'メデトミジン', conc:1, concUnit:'mg/mL', doseMin:0.01, doseMax:0.04, doseUnit:'mg/kg', route:'im' },
+      { name:'ブトルファノール', conc:5, concUnit:'mg/mL', doseMin:0.2, doseMax:0.4, doseUnit:'mg/kg', route:'im' },
+      { name:'ミダゾラム', conc:5, concUnit:'mg/mL', doseMin:0.2, doseMax:0.3, doseUnit:'mg/kg', route:'im' },
+      { name:'ブプレノルフィン', conc:0.3, concUnit:'mg/mL', doseMin:0.01, doseMax:0.02, doseUnit:'mg/kg', route:'im' },
+      { name:'アトロピン', conc:0.5, concUnit:'mg/mL', doseMin:0.02, doseMax:0.04, doseUnit:'mg/kg', route:'im/sc' },
+      { name:'セファゾリン', conc:100, concUnit:'mg/mL', doseMin:20, doseMax:25, doseUnit:'mg/kg', route:'iv' },
+      { name:'メロキシカム', conc:5, concUnit:'mg/mL', doseMin:0.1, doseMax:0.2, doseUnit:'mg/kg', route:'sc' },
+    ],
+    induction: [
+      { name:'プロポフォール', conc:10, concUnit:'mg/mL', doseMin:2, doseMax:6, doseUnit:'mg/kg', route:'iv slow' },
+      { name:'アルファキサロン', conc:10, concUnit:'mg/mL', doseMin:2, doseMax:5, doseUnit:'mg/kg', route:'iv/im' },
+      { name:'ケタミン', conc:50, concUnit:'mg/mL', doseMin:5, doseMax:10, doseUnit:'mg/kg', route:'im' },
+    ],
+    maintenance: [
+      { name:'イソフルラン', conc:null, concUnit:null, doseMin:1.0, doseMax:2.5, doseUnit:'%', route:'吸入' },
+      { name:'セボフルラン', conc:null, concUnit:null, doseMin:2.5, doseMax:4.5, doseUnit:'%', route:'吸入' },
+    ],
+    analgesic: [
+      { name:'フェンタニル', conc:0.05, concUnit:'mg/mL', doseMin:0.001, doseMax:0.003, doseUnit:'mg/kg', route:'iv' },
+      { name:'ブプレノルフィン', conc:0.3, concUnit:'mg/mL', doseMin:0.01, doseMax:0.02, doseUnit:'mg/kg', route:'im/iv' },
+      { name:'ケタミン', conc:50, concUnit:'mg/mL', doseMin:2, doseMax:5, doseUnit:'mg/kg', route:'im' },
+    ],
+  },
+  rabbit: {
+    premed: [
+      { name:'ミダゾラム', conc:5, concUnit:'mg/mL', doseMin:0.5, doseMax:1.0, doseUnit:'mg/kg', route:'im' },
+      { name:'ブトルファノール', conc:5, concUnit:'mg/mL', doseMin:0.1, doseMax:0.5, doseUnit:'mg/kg', route:'im/sc' },
+      { name:'メデトミジン', conc:1, concUnit:'mg/mL', doseMin:0.1, doseMax:0.25, doseUnit:'mg/kg', route:'im' },
+      { name:'アトロピン', conc:0.5, concUnit:'mg/mL', doseMin:0.05, doseMax:0.1, doseUnit:'mg/kg', route:'sc' },
+      { name:'メロキシカム', conc:5, concUnit:'mg/mL', doseMin:0.3, doseMax:0.5, doseUnit:'mg/kg', route:'sc' },
+    ],
+    induction: [
+      { name:'プロポフォール', conc:10, concUnit:'mg/mL', doseMin:3, doseMax:10, doseUnit:'mg/kg', route:'iv slow' },
+      { name:'アルファキサロン', conc:10, concUnit:'mg/mL', doseMin:3, doseMax:6, doseUnit:'mg/kg', route:'iv' },
+      { name:'ケタミン', conc:50, concUnit:'mg/mL', doseMin:10, doseMax:35, doseUnit:'mg/kg', route:'im' },
+    ],
+    maintenance: [
+      { name:'イソフルラン', conc:null, concUnit:null, doseMin:1.5, doseMax:3.0, doseUnit:'%', route:'吸入' },
+      { name:'セボフルラン', conc:null, concUnit:null, doseMin:3.0, doseMax:5.0, doseUnit:'%', route:'吸入' },
+    ],
+    analgesic: [
+      { name:'ブプレノルフィン', conc:0.3, concUnit:'mg/mL', doseMin:0.01, doseMax:0.05, doseUnit:'mg/kg', route:'sc/iv' },
+      { name:'メロキシカム', conc:5, concUnit:'mg/mL', doseMin:0.3, doseMax:0.5, doseUnit:'mg/kg', route:'sc' },
+    ],
+  },
+  ferret: {
+    premed: [
+      { name:'ミダゾラム', conc:5, concUnit:'mg/mL', doseMin:0.25, doseMax:0.5, doseUnit:'mg/kg', route:'im' },
+      { name:'ブトルファノール', conc:5, concUnit:'mg/mL', doseMin:0.1, doseMax:0.2, doseUnit:'mg/kg', route:'im' },
+      { name:'メデトミジン', conc:1, concUnit:'mg/mL', doseMin:0.08, doseMax:0.1, doseUnit:'mg/kg', route:'im' },
+      { name:'アトロピン', conc:0.5, concUnit:'mg/mL', doseMin:0.02, doseMax:0.04, doseUnit:'mg/kg', route:'sc' },
+      { name:'メロキシカム', conc:5, concUnit:'mg/mL', doseMin:0.2, doseMax:0.2, doseUnit:'mg/kg', route:'sc' },
+    ],
+    induction: [
+      { name:'プロポフォール', conc:10, concUnit:'mg/mL', doseMin:2, doseMax:8, doseUnit:'mg/kg', route:'iv slow' },
+      { name:'アルファキサロン', conc:10, concUnit:'mg/mL', doseMin:2, doseMax:5, doseUnit:'mg/kg', route:'iv' },
+      { name:'ケタミン', conc:50, concUnit:'mg/mL', doseMin:5, doseMax:10, doseUnit:'mg/kg', route:'im' },
+    ],
+    maintenance: [
+      { name:'イソフルラン', conc:null, concUnit:null, doseMin:1.5, doseMax:3.0, doseUnit:'%', route:'吸入' },
+      { name:'セボフルラン', conc:null, concUnit:null, doseMin:3.0, doseMax:5.0, doseUnit:'%', route:'吸入' },
+    ],
+    analgesic: [
+      { name:'ブプレノルフィン', conc:0.3, concUnit:'mg/mL', doseMin:0.01, doseMax:0.03, doseUnit:'mg/kg', route:'sc' },
+    ],
+  },
+  guinea_pig: {
+    premed: [
+      { name:'ミダゾラム', conc:5, concUnit:'mg/mL', doseMin:0.5, doseMax:1.0, doseUnit:'mg/kg', route:'im' },
+      { name:'ブトルファノール', conc:5, concUnit:'mg/mL', doseMin:0.2, doseMax:0.4, doseUnit:'mg/kg', route:'sc' },
+      { name:'メデトミジン', conc:1, concUnit:'mg/mL', doseMin:0.05, doseMax:0.1, doseUnit:'mg/kg', route:'im' },
+      { name:'メロキシカム', conc:5, concUnit:'mg/mL', doseMin:0.2, doseMax:0.5, doseUnit:'mg/kg', route:'sc' },
+    ],
+    induction: [
+      { name:'アルファキサロン', conc:10, concUnit:'mg/mL', doseMin:5, doseMax:10, doseUnit:'mg/kg', route:'iv/im' },
+      { name:'ケタミン', conc:50, concUnit:'mg/mL', doseMin:20, doseMax:40, doseUnit:'mg/kg', route:'im' },
+    ],
+    maintenance: [
+      { name:'イソフルラン', conc:null, concUnit:null, doseMin:1.5, doseMax:3.5, doseUnit:'%', route:'吸入' },
+      { name:'セボフルラン', conc:null, concUnit:null, doseMin:3.0, doseMax:5.0, doseUnit:'%', route:'吸入' },
+    ],
+    analgesic: [
+      { name:'ブプレノルフィン', conc:0.3, concUnit:'mg/mL', doseMin:0.05, doseMax:0.1, doseUnit:'mg/kg', route:'sc' },
+      { name:'メロキシカム', conc:5, concUnit:'mg/mL', doseMin:0.2, doseMax:0.5, doseUnit:'mg/kg', route:'sc' },
+    ],
+  },
+  hamster: {
+    premed: [
+      { name:'ミダゾラム', conc:5, concUnit:'mg/mL', doseMin:1.0, doseMax:2.0, doseUnit:'mg/kg', route:'im' },
+      { name:'ブトルファノール', conc:5, concUnit:'mg/mL', doseMin:1.0, doseMax:2.0, doseUnit:'mg/kg', route:'sc' },
+      { name:'メデトミジン', conc:1, concUnit:'mg/mL', doseMin:0.1, doseMax:0.3, doseUnit:'mg/kg', route:'im' },
+    ],
+    induction: [
+      { name:'アルファキサロン', conc:10, concUnit:'mg/mL', doseMin:5, doseMax:10, doseUnit:'mg/kg', route:'ip' },
+      { name:'ケタミン', conc:50, concUnit:'mg/mL', doseMin:50, doseMax:100, doseUnit:'mg/kg', route:'ip' },
+    ],
+    maintenance: [
+      { name:'イソフルラン', conc:null, concUnit:null, doseMin:1.5, doseMax:3.0, doseUnit:'%', route:'吸入' },
+    ],
+    analgesic: [
+      { name:'ブプレノルフィン', conc:0.3, concUnit:'mg/mL', doseMin:0.05, doseMax:0.1, doseUnit:'mg/kg', route:'sc' },
+      { name:'メロキシカム', conc:5, concUnit:'mg/mL', doseMin:0.2, doseMax:0.5, doseUnit:'mg/kg', route:'sc' },
+    ],
+  },
+  bird: {
+    premed: [
+      { name:'ミダゾラム', conc:5, concUnit:'mg/mL', doseMin:0.5, doseMax:2.0, doseUnit:'mg/kg', route:'im' },
+      { name:'ブトルファノール', conc:5, concUnit:'mg/mL', doseMin:1.0, doseMax:2.0, doseUnit:'mg/kg', route:'im' },
+      { name:'メロキシカム', conc:5, concUnit:'mg/mL', doseMin:0.5, doseMax:1.0, doseUnit:'mg/kg', route:'im' },
+    ],
+    induction: [
+      { name:'プロポフォール', conc:10, concUnit:'mg/mL', doseMin:3, doseMax:5, doseUnit:'mg/kg', route:'iv slow' },
+      { name:'アルファキサロン', conc:10, concUnit:'mg/mL', doseMin:10, doseMax:20, doseUnit:'mg/kg', route:'iv/im' },
+    ],
+    maintenance: [
+      { name:'イソフルラン', conc:null, concUnit:null, doseMin:1.5, doseMax:3.5, doseUnit:'%', route:'吸入' },
+      { name:'セボフルラン', conc:null, concUnit:null, doseMin:3.0, doseMax:5.0, doseUnit:'%', route:'吸入' },
+    ],
+    analgesic: [
+      { name:'ブプレノルフィン', conc:0.3, concUnit:'mg/mL', doseMin:0.01, doseMax:0.05, doseUnit:'mg/kg', route:'im' },
+      { name:'メロキシカム', conc:5, concUnit:'mg/mL', doseMin:0.5, doseMax:1.0, doseUnit:'mg/kg', route:'im' },
+    ],
+  },
+  reptile: {
+    premed: [
+      { name:'ミダゾラム', conc:5, concUnit:'mg/mL', doseMin:1.0, doseMax:2.0, doseUnit:'mg/kg', route:'im' },
+      { name:'ブトルファノール', conc:5, concUnit:'mg/mL', doseMin:0.5, doseMax:1.0, doseUnit:'mg/kg', route:'im' },
+      { name:'メロキシカム', conc:5, concUnit:'mg/mL', doseMin:0.2, doseMax:0.5, doseUnit:'mg/kg', route:'im' },
+    ],
+    induction: [
+      { name:'プロポフォール', conc:10, concUnit:'mg/mL', doseMin:5, doseMax:15, doseUnit:'mg/kg', route:'iv slow' },
+      { name:'アルファキサロン', conc:10, concUnit:'mg/mL', doseMin:5, doseMax:15, doseUnit:'mg/kg', route:'iv/im' },
+      { name:'ケタミン', conc:50, concUnit:'mg/mL', doseMin:20, doseMax:60, doseUnit:'mg/kg', route:'im' },
+    ],
+    maintenance: [
+      { name:'イソフルラン', conc:null, concUnit:null, doseMin:2.0, doseMax:4.0, doseUnit:'%', route:'吸入' },
+      { name:'セボフルラン', conc:null, concUnit:null, doseMin:3.0, doseMax:6.0, doseUnit:'%', route:'吸入' },
+    ],
+    analgesic: [
+      { name:'トラマドール', conc:50, concUnit:'mg/mL', doseMin:5, doseMax:10, doseUnit:'mg/kg', route:'po/im' },
+    ],
+  },
+  other: null, // uses dog defaults
+};
+
+const PREMED_CATEGORY_LABELS = {
+  premed: { label:'前投薬', icon:'💊' },
+  induction: { label:'麻酔導入薬', icon:'🔧' },
+  maintenance: { label:'維持麻酔', icon:'💨' },
+  analgesic: { label:'鎮痛・その他', icon:'💉' },
+};
+
+// ===================================================================
+//  SEX TOGGLE
+// ===================================================================
+function setSex(sex) {
+  state.selectedSex = sex;
+  document.querySelectorAll('#sexToggle button').forEach(b => {
+    b.classList.remove('active-male','active-female','active-unknown');
+    if (b.dataset.sex === sex) b.classList.add(sex === 'male' ? 'active-male' : sex === 'female' ? 'active-female' : 'active-unknown');
+  });
+}
+
+// ===================================================================
+//  STARTUP
+// ===================================================================
+function mockScanChart() {
+  const btn = document.getElementById('btnScanChart');
+  btn.classList.add('scanning'); btn.textContent = '📷 スキャン中...';
+  const flash = document.createElement('div'); flash.className='scan-flash'; btn.appendChild(flash);
+  const line = document.createElement('div'); line.className='scan-line'; btn.appendChild(line);
+  setTimeout(() => {
+    flash.remove(); line.remove();
+    document.getElementById('inputId').value = '2024-0312';
+    document.getElementById('inputName').value = 'ポチ';
+    document.getElementById('inputSpecies').value = 'dog';
+    document.getElementById('inputWeight').value = '5.2';
+    document.getElementById('inputAge').value = '5歳3ヶ月';
+    document.getElementById('inputProcedure').value = '臀部腫瘤切除';
+    setSex('male');
+    btn.classList.remove('scanning'); btn.textContent = '✅ カルテ読取完了';
+    setTimeout(() => { btn.textContent = '📷 カルテを撮影して自動入力'; }, 2000);
+  }, 2000);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('inputDate').value = new Date().toISOString().split('T')[0];
+});
+
+function startSession() {
+  const name = document.getElementById('inputName').value.trim();
+  const weight = parseFloat(document.getElementById('inputWeight').value);
+  if (!name || !weight || weight <= 0) { alert('患者名と体重を入力してください'); return; }
+
+  const species = document.getElementById('inputSpecies').value;
+  state.patient = {
+    id: document.getElementById('inputId').value.trim() || '-',
+    name, species, weight,
+    age: document.getElementById('inputAge').value.trim() || '-',
+    sex: state.selectedSex || '-',
+    procedure: document.getElementById('inputProcedure').value.trim() || '-',
+    notes: document.getElementById('inputNotes').value.trim(),
+    surgeon: document.getElementById('inputSurgeon').value.trim(),
+    anesthetist: document.getElementById('inputAnesthetist').value.trim(),
+    date: document.getElementById('inputDate').value,
+  };
+
+  // Show drug prep screen
+  document.getElementById('startupScreen').style.display = 'none';
+  showDrugPrepScreen();
+}
+
+// ===================================================================
+//  DRUG PREPARATION SCREEN
+// ===================================================================
+function showDrugPrepScreen() {
+  const sp = state.patient.species;
+  const w = state.patient.weight;
+  const wDisp = w < 1 ? (w*1000).toFixed(0)+'g' : w.toFixed(1)+'kg';
+
+  // Patient bar
+  document.getElementById('prepPatientBar').innerHTML =
+    `<span class="species-emoji">${SPECIES_EMOJI[sp]||'🐾'}</span>` +
+    `<span><strong>${state.patient.name}</strong> (${SPECIES_LABELS[sp]||sp})</span>` +
+    `<span class="weight-badge">${wDisp}</span>` +
+    (state.patient.procedure !== '-' ? `<span style="color:var(--text-secondary)">${state.patient.procedure}</span>` : '');
+
+  buildPrepDrugList(sp, w);
+  document.getElementById('drugPrepScreen').style.display = 'flex';
+}
+
+function buildPrepDrugList(species, weight) {
+  const container = document.getElementById('prepDrugList');
+  container.innerHTML = '';
+  const master = PREMED_MASTER[species] || PREMED_MASTER.dog;
+
+  let drugIdx = 0;
+  for (const [catKey, catInfo] of Object.entries(PREMED_CATEGORY_LABELS)) {
+    const drugs = master[catKey];
+    if (!drugs || drugs.length === 0) continue;
+
+    const section = document.createElement('div');
+    section.className = 'prep-category';
+
+    const title = document.createElement('div');
+    title.className = 'prep-category-title';
+    title.innerHTML = `<span class="arrow">▼</span> ${catInfo.icon} ${catInfo.label}`;
+    title.onclick = function() {
+      this.classList.toggle('collapsed');
+      this.nextElementSibling.classList.toggle('hidden');
+    };
+    section.appendChild(title);
+
+    const list = document.createElement('div');
+    list.className = 'prep-drug-list';
+
+    drugs.forEach(drug => {
+      const idx = drugIdx++;
+      const row = document.createElement('div');
+      row.className = 'prep-drug-row';
+      row.id = 'prepRow_' + idx;
+
+      const isInhale = drug.conc === null;
+      const defaultDose = drug.doseMin;
+      const doseMg = isInhale ? null : (defaultDose * weight);
+      const volMl = isInhale ? null : (doseMg / drug.conc);
+
+      let calcHtml = '';
+      if (isInhale) {
+        calcHtml = `<span class="prep-drug-calc">${drug.doseMin}-${drug.doseMax}${drug.doseUnit}</span>`;
+      } else {
+        const volDisp = volMl < 0.01 ? volMl.toFixed(4) : volMl < 0.1 ? volMl.toFixed(3) : volMl.toFixed(2);
+        calcHtml = `<span class="prep-drug-calc" id="prepCalc_${idx}"><strong>${volDisp} mL</strong><br><span class="calc-detail">${doseMg < 0.01 ? doseMg.toFixed(4) : doseMg.toFixed(2)}${drug.doseUnit.replace('/kg','')}</span></span>`;
+      }
+
+      row.innerHTML =
+        `<input type="checkbox" id="prepChk_${idx}" onchange="togglePrepRow(${idx})">` +
+        `<span class="prep-drug-name">${drug.name}</span>` +
+        `<span class="prep-drug-dose-range">${drug.doseMin}~${drug.doseMax}<br>${drug.doseUnit}</span>` +
+        (isInhale ? '' : `<input type="number" class="prep-drug-input" id="prepDose_${idx}" value="${defaultDose}" step="any" min="0" data-idx="${idx}" data-conc="${drug.conc}" data-unit="${drug.doseUnit}" onchange="updatePrepCalc(${idx})">`) +
+        (isInhale ? '' : `<span class="prep-drug-unit">${drug.doseUnit}</span>`) +
+        calcHtml +
+        `<span class="prep-drug-route">${drug.route}</span>`;
+
+      list.appendChild(row);
+    });
+
+    section.appendChild(list);
+    container.appendChild(section);
+  }
+}
+
+function togglePrepRow(idx) {
+  const row = document.getElementById('prepRow_' + idx);
+  const chk = document.getElementById('prepChk_' + idx);
+  if (row) row.classList.toggle('checked', chk && chk.checked);
+}
+
+function updatePrepCalc(idx) {
+  const input = document.getElementById('prepDose_' + idx);
+  const calcEl = document.getElementById('prepCalc_' + idx);
+  if (!input || !calcEl) return;
+
+  const dosePerKg = parseFloat(input.value) || 0;
+  const conc = parseFloat(input.dataset.conc);
+  const unit = input.dataset.unit;
+  const w = state.patient.weight;
+  const doseMg = dosePerKg * w;
+  const volMl = doseMg / conc;
+
+  const volDisp = volMl < 0.01 ? volMl.toFixed(4) : volMl < 0.1 ? volMl.toFixed(3) : volMl.toFixed(2);
+  calcHtml = `<strong>${volDisp} mL</strong><br><span class="calc-detail">${doseMg < 0.01 ? doseMg.toFixed(4) : doseMg.toFixed(2)}${unit.replace('/kg','')}</span>`;
+  calcEl.innerHTML = calcHtml;
+}
+
+function completeDrugPrep() {
+  // Log selected drugs
+  const checks = document.querySelectorAll('[id^="prepChk_"]');
+  const selected = [];
+  checks.forEach(chk => {
+    if (chk.checked) {
+      const row = chk.closest('.prep-drug-row');
+      const name = row.querySelector('.prep-drug-name')?.textContent || '';
+      const calc = row.querySelector('.prep-drug-calc')?.textContent || '';
+      selected.push(`${name} ${calc.replace(/\n/g,' ').trim()}`);
+    }
+  });
+
+  document.getElementById('drugPrepScreen').style.display = 'none';
+  startMonitoring();
+
+  if (selected.length > 0) {
+    addLog(`💉 薬剤準備: ${selected.join(', ')}`);
+  }
+}
+
+function skipDrugPrep() {
+  document.getElementById('drugPrepScreen').style.display = 'none';
+  startMonitoring();
+}
+
+function startMonitoring() {
+  state.sessionStart = new Date();
+
+  document.getElementById('dispId').textContent = state.patient.id;
+  document.getElementById('dispName').textContent = state.patient.name;
+  const sp = state.patient.species;
+  document.getElementById('dispSpecies').textContent = (SPECIES_LABELS[sp]||sp) + ' ' + (SPECIES_EMOJI[sp]||'');
+  const weight = state.patient.weight;
+  document.getElementById('dispWeight').textContent = weight < 1 ? (weight*1000).toFixed(0)+'g' : weight.toFixed(1)+'kg';
+  const sexMap = { male:'♂', female:'♀', unknown:'?' };
+  document.getElementById('dispSex').textContent = sexMap[state.patient.sex] || '-';
+  const procBadge = document.getElementById('dispProcedure');
+  procBadge.textContent = state.patient.procedure;
+  procBadge.title = state.patient.procedure;
+  if (state.patient.notes) {
+    const notesBadge = document.getElementById('dispNotes');
+    notesBadge.style.display = 'block';
+    notesBadge.title = state.patient.notes;
+  }
+
+  buildEmergencyDrugs(); updateCRI(); resetTimer();
+  state.elapsedInterval = setInterval(updateElapsed, 1000);
+  initChart();
+  document.getElementById('mainApp').style.display = 'block';
+
+  let logMsg = 'セッション開始';
+  if (state.patient.surgeon) logMsg += ` | 執刀医: ${state.patient.surgeon}`;
+  if (state.patient.anesthetist) logMsg += ` | 麻酔: ${state.patient.anesthetist}`;
+  addLog(logMsg);
+  if (state.patient.notes) addLog(`⚠ 備考: ${state.patient.notes}`);
+}
+
+function showNotesPopup() {
+  if (!state.patient.notes) return;
+  const c = document.getElementById('alertContainer');
+  const o = document.createElement('div'); o.className='notes-overlay';
+  o.innerHTML = `<div class="notes-popup"><h3>⚠ 備考・注意事項</h3><p>${state.patient.notes}</p><button onclick="this.closest('.notes-overlay').remove()">閉じる</button></div>`;
+  c.appendChild(o);
+}
+
+// ===================================================================
+//  MANUAL VITAL INPUT
+// ===================================================================
+function applyManualVitals() {
+  const get = id => { const v = document.getElementById(id).value; return v !== '' ? parseFloat(v) : null; };
+  const hr = get('mvHR'), spo2 = get('mvSpO2'), rr = get('mvRR'), etco2 = get('mvEtCO2');
+  const sys = get('mvSys'), dia = get('mvDia'), temp = get('mvTemp'), iso = get('mvIso');
+
+  if ([hr,spo2,rr,etco2,sys,dia,temp,iso].every(v => v === null)) { return; }
+
+  // Carry forward from current display for unfilled fields
+  const cur = id => parseInt(document.getElementById(id).textContent) || 0;
+  const curF = id => parseFloat(document.getElementById(id).textContent) || 0;
+  const fSys = sys ?? cur('valSys'), fDia = dia ?? cur('valDia');
+  const mean = (fSys && fDia) ? Math.round(fDia + (fSys - fDia) / 3) : cur('valMean');
+
+  const d = {
+    hr: hr ?? cur('valHR'),
+    spo2: spo2 ?? cur('valSpO2'),
+    rr: rr ?? cur('valRR'),
+    etco2: etco2 ?? cur('valEtCO2'),
+    sys: fSys, dia: fDia, mean,
+    temp: temp ?? curF('valTemp'),
+    iso: iso ?? curF('valIso'),
+  };
+
+  applyVitalData(d, null, true);
+  // Clear inputs
+  ['mvHR','mvSpO2','mvRR','mvEtCO2','mvSys','mvDia','mvTemp','mvIso'].forEach(id => document.getElementById(id).value = '');
+  resetTimer();
+}
+
+// ===================================================================
+//  ELAPSED / TIMER / ANNOUNCE / SPEAK
+// ===================================================================
+function updateElapsed() {
+  if (!state.sessionStart) return;
+  const d = Math.floor((Date.now()-state.sessionStart)/1000);
+  document.getElementById('dispElapsed').textContent = `経過 ${String(Math.floor(d/3600)).padStart(2,'0')}:${String(Math.floor((d%3600)/60)).padStart(2,'0')}:${String(d%60).padStart(2,'0')}`;
+}
+function resetTimer() {
+  state.timerRemaining=300; if(state.timerInterval) clearInterval(state.timerInterval);
+  state.timerInterval=setInterval(tickTimer,1000); updateTimerDisplay();
+}
+function tickTimer() {
+  state.timerRemaining--; if(state.timerRemaining<=0){state.timerRemaining=0;clearInterval(state.timerInterval);speak('モニター撮影の時間です');}
+  updateTimerDisplay();
+}
+function updateTimerDisplay() {
+  const t=state.timerRemaining, pct=(t/300)*100, bar=document.getElementById('timerBar');
+  bar.style.width=pct+'%'; bar.classList.remove('warning','critical','danger');
+  if(pct<=10)bar.classList.add('danger');else if(pct<=30)bar.classList.add('critical');else if(pct<=50)bar.classList.add('warning');
+  document.getElementById('timerText').textContent=`${Math.floor(t/60)}:${String(t%60).padStart(2,'0')}`;
+  const tt=document.getElementById('timerText');
+  if(pct<=10)tt.style.color='var(--accent-red)';else if(pct<=30)tt.style.color='var(--accent-orange)';else if(pct<=50)tt.style.color='var(--accent-yellow)';else tt.style.color='var(--text-primary)';
+}
+function startAnnounce(type) {
+  if(state.announceType===type){clearInterval(state.announceInterval);state.announceType=null;state.announceStart=null;document.getElementById('btnInduction').classList.remove('active');document.getElementById('btnIncision').classList.remove('active');document.getElementById('announceStatus').textContent='-';return;}
+  state.announceType=type;state.announceStart=Date.now();
+  document.getElementById('btnInduction').classList.toggle('active',type==='induction');
+  document.getElementById('btnIncision').classList.toggle('active',type==='incision');
+  if(state.announceInterval)clearInterval(state.announceInterval);state.announceInterval=setInterval(checkAnnounce,1000);
+  const l=type==='induction'?'導入':'切皮'; addLog(`${l} タイマー開始`); updateAnnounceStatus();
+}
+function checkAnnounce() {
+  if(!state.announceStart)return; updateAnnounceStatus();
+  const e=Math.floor((Date.now()-state.announceStart)/1000);
+  if(e>0&&e%1800===0){const m=e/60,l=state.announceType==='induction'?'導入':'切皮';speak(`${l}から${m}分経過`);addLog(`🔊 ${l}から${m}分経過`);}
+}
+function updateAnnounceStatus() {
+  if(!state.announceStart)return;const e=Math.floor((Date.now()-state.announceStart)/1000);
+  const l=state.announceType==='induction'?'導入':'切皮';
+  document.getElementById('announceStatus').textContent=`${l}から ${Math.floor(e/60)}:${String(e%60).padStart(2,'0')} 経過`;
+}
+function speak(text){if('speechSynthesis' in window){const u=new SpeechSynthesisUtterance(text);u.lang='ja-JP';u.rate=1.0;speechSynthesis.speak(u);}}
+
+// ===================================================================
+//  CRI
+// ===================================================================
+function adjustCRI(d){state.criRate=Math.max(0,Math.round((state.criRate+d)*10)/10);document.getElementById('criRate').textContent=state.criRate.toFixed(1);updateCRI();}
+function updateCRI(){
+  const dk=document.getElementById('criDrug').value;
+  const sp=state.patient.species||'dog'; const dd=(DRUG_MASTER[sp]||DRUG_MASTER.dog).cri[dk];
+  const w=state.patient.weight||1,r=state.criRate;let c=0,u=dd.targetUnit;
+  if(u.includes('/min'))c=(r*dd.conc)/60/w;else c=(r*dd.conc)/w;
+  document.getElementById('criRate').textContent=state.criRate.toFixed(1);
+  document.getElementById('criConverted').textContent=c.toFixed(3);
+  document.getElementById('criConvertedUnit').textContent=u;
+}
+
+// ===================================================================
+//  EMERGENCY DRUGS
+// ===================================================================
+function buildEmergencyDrugs(){
+  const g=document.getElementById('emergGrid');g.innerHTML='';
+  const sp=state.patient.species; const drugs=(DRUG_MASTER[sp]||DRUG_MASTER.dog).emergency;
+  const w=state.patient.weight;
+  drugs.forEach(drug=>{
+    const vol=(drug.dosePerKg*w)/drug.conc; const btn=document.createElement('button');
+    btn.className='btn-emerg';
+    btn.innerHTML=`<div class="drug-name">${drug.name}</div><div class="drug-dose">${vol<0.01?vol.toFixed(3):vol.toFixed(2)} mL</div><div class="drug-detail">${drug.dosePerKg}${drug.doseUnit}×${w<1?(w*1000).toFixed(0)+'g':w+'kg'}</div>`;
+    btn.onclick=()=>{btn.classList.add('used');addLog(`💉 ${drug.name} ${vol.toFixed(2)}mL 投与`);};
+    g.appendChild(btn);
+  });
+}
+
+// ===================================================================
+//  EVENT / DRUG RECORDING
+// ===================================================================
+function recordEvent(btn){
+  if(!btn||btn.classList.contains('recorded'))return;
+  const name=btn.dataset.event,now=new Date(),ts=now.toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'});
+  btn.classList.add('recorded');btn.innerHTML=`${name}<span class="event-time">${ts}</span>`;
+  state.events.push({name,time:now});addLog(`📋 ${name} (${ts})`);
+}
+function recordDrugAdmin(){
+  const name=document.getElementById('drugAdminName').value;
+  const dose=document.getElementById('drugAdminDose').value.trim();
+  const route=document.getElementById('drugAdminRoute').value;
+  if(!name){alert('薬剤を選択してください');return;}
+  addLog(`💊 ${name} ${dose} ${route}`);
+  document.getElementById('drugAdminDose').value='';
+}
+
+// ===================================================================
+//  VOICE INPUT
+// ===================================================================
+function toggleVoice(){
+  if(!('webkitSpeechRecognition' in window)&&!('SpeechRecognition' in window)){alert('音声認識非対応');return;}
+  if(state.voiceActive){state.voiceActive=false;state.recognition?.stop();document.getElementById('btnVoice').classList.remove('recording');document.getElementById('voiceLabel').textContent='音声入力開始';return;}
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;state.recognition=new SR();state.recognition.lang='ja-JP';state.recognition.continuous=true;state.recognition.interimResults=false;
+  state.recognition.onresult=(e)=>{for(let i=e.resultIndex;i<e.results.length;i++){if(e.results[i].isFinal){const t=e.results[i][0].transcript,tm=new Date().toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit',second:'2-digit'});document.getElementById('voiceLog').innerHTML=`<p><span class="log-time">${tm}</span>${t}</p>`+document.getElementById('voiceLog').innerHTML;addLog(`🎤 "${t}"`);}}};
+  state.recognition.onerror=()=>{state.voiceActive=false;document.getElementById('btnVoice').classList.remove('recording');document.getElementById('voiceLabel').textContent='音声入力開始';};
+  state.recognition.onend=()=>{if(state.voiceActive)state.recognition.start();};
+  state.recognition.start();state.voiceActive=true;document.getElementById('btnVoice').classList.add('recording');document.getElementById('voiceLabel').textContent='録音中... タップで停止';
+}
+
+// ===================================================================
+//  CHART
+// ===================================================================
+let vitalChart=null;
+function initChart(){
+  const ctx=document.getElementById('vitalChart').getContext('2d');
+  const predPlugin={id:'predZone',afterDraw(ch){
+    const lb=ch.data.labels;if(lb.length<2)return;const li=lb.length-2,pi=lb.length-1;
+    const xs=ch.scales.x,ys=ch.scales.y;if(!xs||li<0)return;
+    const x0=xs.getPixelForValue(li),x1=xs.getPixelForValue(pi),yt=ys.top,yb=ys.bottom,c=ch.ctx;
+    c.save();c.fillStyle='rgba(59,130,246,0.05)';c.fillRect(x0,yt,x1-x0,yb-yt);
+    c.strokeStyle='rgba(59,130,246,0.3)';c.lineWidth=1;c.setLineDash([4,4]);c.beginPath();c.moveTo(x1,yt);c.lineTo(x1,yb);c.stroke();
+    c.fillStyle='rgba(59,130,246,0.5)';c.font='10px -apple-system,sans-serif';c.textAlign='center';c.fillText('次回計測',x1,yt+12);c.restore();
+  }};
+  vitalChart=new Chart(ctx,{type:'line',data:{labels:[],datasets:[
+    {label:'HR',data:[],borderColor:'#ef4444',backgroundColor:'rgba(239,68,68,0.1)',tension:0.3,pointRadius:3,borderWidth:2},
+    {label:'SpO2',data:[],borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,0.1)',tension:0.3,pointRadius:3,borderWidth:2},
+    {label:'RR',data:[],borderColor:'#f59e0b',backgroundColor:'rgba(245,158,11,0.1)',tension:0.3,pointRadius:3,borderWidth:2},
+    {label:'EtCO2',data:[],borderColor:'#8b5cf6',backgroundColor:'rgba(139,92,246,0.1)',tension:0.3,pointRadius:3,borderWidth:2},
+    {label:'MAP',data:[],borderColor:'#10b981',backgroundColor:'rgba(16,185,129,0.1)',tension:0.3,pointRadius:3,borderWidth:2},
+  ]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{position:'top',labels:{color:'#8892a8',usePointStyle:true,pointStyle:'circle',padding:12,font:{size:10,weight:'600'}}}},scales:{x:{grid:{color:'rgba(42,53,80,0.5)'},ticks:{color:'#5a6478',font:{size:9}}},y:{grid:{color:'rgba(42,53,80,0.5)'},ticks:{color:'#5a6478',font:{size:9}},min:0,max:200}},animation:{duration:400}},plugins:[predPlugin]});
+}
+function addVitalToChart(d){
+  const t=new Date().toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'});state.timeLabels.push(t);
+  state.vitals.hr.push(d.hr);state.vitals.spo2.push(d.spo2);state.vitals.rr.push(d.rr);state.vitals.etco2.push(d.etco2);state.vitals.mean.push(d.mean);
+  const M=30;if(state.timeLabels.length>M){state.timeLabels.shift();state.vitals.hr.shift();state.vitals.spo2.shift();state.vitals.rr.shift();state.vitals.etco2.shift();state.vitals.mean.shift();}
+  const pl=[...state.timeLabels,'+5min'];
+  vitalChart.data.labels=pl;
+  vitalChart.data.datasets[0].data=[...state.vitals.hr,null];
+  vitalChart.data.datasets[1].data=[...state.vitals.spo2,null];
+  vitalChart.data.datasets[2].data=[...state.vitals.rr,null];
+  vitalChart.data.datasets[3].data=[...state.vitals.etco2,null];
+  vitalChart.data.datasets[4].data=[...state.vitals.mean,null];
+  vitalChart.update();
+}
+
+// ===================================================================
+//  CAMERA CAPTURE (Mock) + Thumbnail
+// ===================================================================
+function generateMockThumbnail(d) {
+  const c = document.createElement('canvas');
+  c.width = 160; c.height = 100;
+  const ctx = c.getContext('2d');
+  // Dark background
+  ctx.fillStyle = '#1a1a2e'; ctx.fillRect(0,0,160,100);
+  // Green waveform simulation
+  ctx.strokeStyle = '#00ff88'; ctx.lineWidth = 1.5; ctx.beginPath();
+  for (let x = 0; x < 160; x++) { ctx.lineTo(x, 30 + Math.sin(x*0.15)*12 + Math.random()*4); }
+  ctx.stroke();
+  // Vitals text
+  ctx.fillStyle = '#ef4444'; ctx.font = 'bold 14px sans-serif'; ctx.fillText(`HR ${d.hr}`, 8, 68);
+  ctx.fillStyle = '#3b82f6'; ctx.fillText(`SpO2 ${d.spo2}`, 80, 68);
+  ctx.fillStyle = '#10b981'; ctx.font = 'bold 12px sans-serif'; ctx.fillText(`${d.sys}/${d.dia}`, 8, 90);
+  ctx.fillStyle = '#f59e0b'; ctx.fillText(`T${d.temp}`, 90, 90);
+  return c.toDataURL('image/jpeg', 0.5);
+}
+
+function storeThumbnail(dataUrl) {
+  const id = Date.now();
+  state.capturedImages.push({ id, timestamp: new Date(), dataUrl, notes: '' });
+  if (state.capturedImages.length > state.maxCapturedImages) {
+    state.capturedImages.shift();
+  }
+  return id;
+}
+
+function handleCameraCapture(){
+  const btn=document.getElementById('btnCapture');btn.classList.add('capturing');btn.innerHTML='<span class="icon">⏳</span><span>解析中...</span>';
+  setTimeout(()=>{
+    const d=generateMockVitals(state.patient.species);
+    const thumbUrl = generateMockThumbnail(d);
+    const captureId = storeThumbnail(thumbUrl);
+    applyVitalData(d, captureId, false);
+    btn.classList.remove('capturing');btn.innerHTML='<span class="icon">📸</span><span>モニター撮影</span>';
+    resetTimer();
+  },1500);
+}
+
+function generateMockVitals(sp){
+  const bases={cat:{hr:160,spo2:98,rr:20,etco2:38,sys:120,dia:70,temp:37.5,iso:1.5},dog:{hr:100,spo2:98,rr:14,etco2:40,sys:120,dia:75,temp:38.0,iso:1.5},rabbit:{hr:220,spo2:97,rr:40,etco2:35,sys:100,dia:60,temp:38.5,iso:2.0},ferret:{hr:250,spo2:97,rr:30,etco2:36,sys:110,dia:65,temp:38.0,iso:2.0},guinea_pig:{hr:280,spo2:96,rr:50,etco2:34,sys:90,dia:55,temp:38.0,iso:2.0},hamster:{hr:350,spo2:96,rr:60,etco2:32,sys:80,dia:50,temp:37.0,iso:2.5},bird:{hr:300,spo2:95,rr:25,etco2:35,sys:130,dia:80,temp:40.0,iso:2.0},reptile:{hr:30,spo2:90,rr:6,etco2:30,sys:80,dia:50,temp:28.0,iso:2.0}};
+  const b=bases[sp]||bases.dog;
+  const r=(v,rng)=>Math.round(v+(Math.random()-0.5)*rng);
+  const rf=(v,rng)=>+(v+(Math.random()-0.5)*rng).toFixed(1);
+  const sys=r(b.sys,40),dia=r(b.dia,30);
+  return{hr:r(b.hr,40),spo2:Math.min(100,r(b.spo2,6)),rr:Math.max(1,r(b.rr,10)),etco2:r(b.etco2,15),sys,dia,mean:Math.round(dia+(sys-dia)/3),temp:rf(b.temp,2),iso:rf(b.iso,0.8)};
+}
+
+function applyVitalData(d, captureId, isManual){
+  document.getElementById('valHR').textContent=d.hr;document.getElementById('valSpO2').textContent=d.spo2;
+  document.getElementById('valRR').textContent=d.rr;document.getElementById('valEtCO2').textContent=d.etco2;
+  document.getElementById('valSys').textContent=d.sys;document.getElementById('valDia').textContent=d.dia;
+  document.getElementById('valMean').textContent=d.mean;document.getElementById('valTemp').textContent=d.temp;
+  document.getElementById('valIso').textContent=d.iso;
+  addVitalToChart(d);
+  state.vitals.sys.push(d.sys);state.vitals.dia.push(d.dia);state.vitals.temp.push(d.temp);
+  const prefix = isManual ? '✏️' : '📊';
+  addLog(`${prefix} HR:${d.hr} SpO2:${d.spo2} RR:${d.rr} EtCO2:${d.etco2} BP:${d.sys}/${d.dia}(${d.mean}) T:${d.temp}`, captureId || null);
+  checkAlarms(d);
+}
+
+// ===================================================================
+//  ALARMS
+// ===================================================================
+function checkAlarms(d){
+  if(d.mean<60){document.getElementById('vitalBP').classList.add('alert');showAlert('低血圧警告',`MAP ${d.mean} mmHg\n昇圧剤の投与を検討してください。`);}else{document.getElementById('vitalBP').classList.remove('alert');}
+  if((d.sys-d.dia)<15){showAlert('脈圧異常',`脈圧: ${d.sys-d.dia}mmHg\nカフサイズを確認してください。`);}
+  if(d.spo2<90){document.getElementById('vitalSpO2').classList.add('alert');showAlert('SpO2低下',`SpO2: ${d.spo2}%`);}else{document.getElementById('vitalSpO2').classList.remove('alert');}
+  const hrLow=state.patient.species==='cat'?100:state.patient.species==='rabbit'?150:60;
+  document.getElementById('vitalHR').classList.toggle('alert',d.hr<hrLow);
+  document.getElementById('vitalEtCO2').classList.toggle('alert',d.etco2>50||d.etco2<25);
+  document.getElementById('vitalTemp').classList.toggle('alert',d.temp<(state.patient.species==='reptile'?22:36));
+}
+function showAlert(t,m){
+  const c=document.getElementById('alertContainer'),o=document.createElement('div');o.className='alert-overlay';
+  o.innerHTML=`<div class="alert-box"><div class="alert-icon">🚨</div><div class="alert-title">${t}</div><div class="alert-msg">${m.replace(/\n/g,'<br>')}</div><button class="btn-dismiss" onclick="this.closest('.alert-overlay').remove()">確認</button></div>`;
+  c.appendChild(o);speak(t);
+}
+
+// ===================================================================
+//  LOG (with thumbnail + edit support)
+// ===================================================================
+function addLog(m, captureId) {
+  const l = document.getElementById('eventLog');
+  if (!l) return;
+  const t = new Date().toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const logId = 'log_' + Date.now() + '_' + Math.random().toString(36).substr(2,4);
+
+  let thumbHtml = '';
+  if (captureId) {
+    const img = state.capturedImages.find(c => c.id === captureId);
+    if (img) thumbHtml = `<img src="${img.dataUrl}" class="log-thumb" loading="lazy">`;
+  }
+
+  state.logEntries[logId] = { text: m, captureId: captureId || null, note: '' };
+
+  const entry = document.createElement('div');
+  entry.className = 'log-entry';
+  entry.id = logId;
+  entry.onclick = () => editLogEntry(logId);
+  entry.innerHTML = `${thumbHtml}<span class="log-time">${t}</span><span class="log-text">${m}<span class="log-note" id="note_${logId}"></span></span>`;
+  l.insertBefore(entry, l.firstChild);
+}
+
+function editLogEntry(logId) {
+  const entry = state.logEntries[logId];
+  if (!entry) return;
+
+  const c = document.getElementById('alertContainer');
+  const o = document.createElement('div'); o.className='log-edit-overlay';
+
+  let imgHtml = '';
+  if (entry.captureId) {
+    const img = state.capturedImages.find(c => c.id === entry.captureId);
+    if (img) imgHtml = `<img src="${img.dataUrl}" class="log-edit-img">`;
+  }
+
+  o.innerHTML = `<div class="log-edit-popup">
+    <h3>📝 ログ追記・編集</h3>
+    ${imgHtml}
+    <div class="log-edit-text">${entry.text}</div>
+    <textarea id="logEditNote" placeholder="追記メモを入力...">${entry.note}</textarea>
+    <div class="btn-row">
+      <button class="btn-cancel" onclick="this.closest('.log-edit-overlay').remove()">キャンセル</button>
+      <button class="btn-save" onclick="saveLogNote('${logId}')">保存</button>
+    </div>
+  </div>`;
+  c.appendChild(o);
+
+  // Focus textarea
+  setTimeout(() => document.getElementById('logEditNote')?.focus(), 100);
+}
+
+function saveLogNote(logId) {
+  const note = document.getElementById('logEditNote')?.value?.trim() || '';
+  if (state.logEntries[logId]) {
+    state.logEntries[logId].note = note;
+  }
+  const noteEl = document.getElementById('note_' + logId);
+  if (noteEl) {
+    noteEl.textContent = note ? ` [${note}]` : '';
+  }
+  document.querySelector('.log-edit-overlay')?.remove();
+}
+
+// ===================================================================
+//  MONITOR CALIBRATION
+// ===================================================================
+const CALIB_PARAMS = [
+  { key: 'HR', label: 'HR (心拍数)', color: '#ef4444' },
+  { key: 'SPO2', label: 'SpO2', color: '#3b82f6' },
+  { key: 'RR', label: 'RR (呼吸数)', color: '#f59e0b' },
+  { key: 'ETCO2', label: 'EtCO2', color: '#8b5cf6' },
+  { key: 'BP', label: '血圧 (BP)', color: '#10b981' },
+  { key: 'TEMP', label: '体温', color: '#06b6d4' },
+  { key: 'ISO', label: 'ISO', color: '#94a3b8' },
+];
+
+const calibState = {
+  imageDataUrl: null,
+  boxes: [],  // { id, param, x, y, w, h } — in % relative to image
+  profiles: [],  // { id, name, imageDataUrl, boxes, createdAt }
+  activeProfileId: null,
+  dragState: null,  // { boxId, type:'move'|'resize', startX, startY, origBox }
+  nextBoxId: 1,
+};
+
+// Load profiles from localStorage on init
+function loadCalibProfiles() {
+  try {
+    const saved = localStorage.getItem('vetanes_calib_profiles');
+    if (saved) {
+      calibState.profiles = JSON.parse(saved);
+      calibState.nextBoxId = Math.max(1, ...calibState.profiles.flatMap(p => p.boxes.map(b => b.id + 1)));
+    }
+    const activeId = localStorage.getItem('vetanes_calib_active');
+    if (activeId) calibState.activeProfileId = activeId;
+  } catch(e) { console.warn('Calib profile load error:', e); }
+}
+
+function saveCalibProfilesToStorage() {
+  try {
+    localStorage.setItem('vetanes_calib_profiles', JSON.stringify(calibState.profiles));
+    if (calibState.activeProfileId) localStorage.setItem('vetanes_calib_active', calibState.activeProfileId);
+  } catch(e) { console.warn('Calib profile save error:', e); }
+}
+
+function openCalibration() {
+  loadCalibProfiles();
+  renderCalibProfiles();
+  // If active profile, load it
+  if (calibState.activeProfileId) {
+    const prof = calibState.profiles.find(p => p.id === calibState.activeProfileId);
+    if (prof) {
+      loadProfileIntoEditor(prof);
+    }
+  }
+  document.getElementById('calibrationScreen').style.display = 'flex';
+}
+
+function closeCalibration() {
+  document.getElementById('calibrationScreen').style.display = 'none';
+  removeParamDropdown();
+}
+
+function captureCalibImage() {
+  // Use camera API or mock
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.capture = 'environment';
+  input.onchange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      calibState.imageDataUrl = ev.target.result;
+      showCalibImage(ev.target.result);
+    };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+function showCalibImage(dataUrl) {
+  const img = document.getElementById('calibImage');
+  const ph = document.getElementById('calibPlaceholder');
+  const overlay = document.getElementById('calibOverlay');
+  const area = document.getElementById('calibImageArea');
+
+  img.src = dataUrl;
+  img.style.display = 'block';
+  ph.style.display = 'none';
+  overlay.style.display = 'block';
+  area.classList.add('has-image');
+
+  document.getElementById('btnAddBox').style.display = 'block';
+
+  // If no boxes, add default ones
+  if (calibState.boxes.length === 0) {
+    addDefaultBoxes();
+  }
+  renderAllBoxes();
+  renderBoxList();
+}
+
+function addDefaultBoxes() {
+  calibState.boxes = [
+    { id: calibState.nextBoxId++, param: 'HR', x: 5, y: 5, w: 20, h: 15 },
+    { id: calibState.nextBoxId++, param: 'SPO2', x: 5, y: 25, w: 20, h: 15 },
+    { id: calibState.nextBoxId++, param: 'BP', x: 30, y: 5, w: 25, h: 15 },
+    { id: calibState.nextBoxId++, param: 'ETCO2', x: 30, y: 25, w: 20, h: 15 },
+    { id: calibState.nextBoxId++, param: 'RR', x: 60, y: 5, w: 20, h: 15 },
+    { id: calibState.nextBoxId++, param: 'TEMP', x: 60, y: 25, w: 20, h: 15 },
+  ];
+}
+
+function addCalibBox() {
+  if (!calibState.imageDataUrl) return;
+  // Find unused param
+  const usedParams = calibState.boxes.map(b => b.param);
+  const available = CALIB_PARAMS.filter(p => !usedParams.includes(p.key));
+  const param = available.length > 0 ? available[0].key : 'HR';
+
+  calibState.boxes.push({
+    id: calibState.nextBoxId++,
+    param, x: 40, y: 40, w: 18, h: 12,
+  });
+  renderAllBoxes();
+  renderBoxList();
+}
+
+function deleteCalibBox(boxId) {
+  calibState.boxes = calibState.boxes.filter(b => b.id !== boxId);
+  renderAllBoxes();
+  renderBoxList();
+  removeParamDropdown();
+}
+
+function renderAllBoxes() {
+  const overlay = document.getElementById('calibOverlay');
+  // Remove old boxes (keep dropdown if present)
+  overlay.querySelectorAll('.calib-box').forEach(el => el.remove());
+
+  calibState.boxes.forEach(box => {
+    const el = document.createElement('div');
+    el.className = 'calib-box';
+    el.dataset.param = box.param;
+    el.dataset.boxId = box.id;
+    el.style.left = box.x + '%';
+    el.style.top = box.y + '%';
+    el.style.width = box.w + '%';
+    el.style.height = box.h + '%';
+
+    const paramInfo = CALIB_PARAMS.find(p => p.key === box.param) || CALIB_PARAMS[0];
+
+    el.innerHTML = `
+      <span class="box-label" onclick="showParamDropdown(event, ${box.id})">${paramInfo.label}</span>
+      <span class="box-delete" onclick="deleteCalibBox(${box.id})">✕</span>
+      <span class="box-resize" data-box-id="${box.id}"></span>
+    `;
+
+    // Touch/mouse events for dragging
+    el.addEventListener('pointerdown', (e) => startBoxDrag(e, box.id, 'move'));
+    el.querySelector('.box-resize').addEventListener('pointerdown', (e) => {
+      e.stopPropagation();
+      startBoxDrag(e, box.id, 'resize');
+    });
+
+    overlay.appendChild(el);
+  });
+}
+
+function startBoxDrag(e, boxId, type) {
+  e.preventDefault();
+  const overlay = document.getElementById('calibOverlay');
+  const rect = overlay.getBoundingClientRect();
+  const box = calibState.boxes.find(b => b.id === boxId);
+  if (!box) return;
+
+  calibState.dragState = {
+    boxId, type,
+    startX: e.clientX, startY: e.clientY,
+    origBox: { ...box },
+    overlayW: rect.width, overlayH: rect.height,
+  };
+
+  const onMove = (ev) => handleBoxDrag(ev);
+  const onUp = () => {
+    document.removeEventListener('pointermove', onMove);
+    document.removeEventListener('pointerup', onUp);
+    calibState.dragState = null;
+    renderBoxList();
+  };
+
+  document.addEventListener('pointermove', onMove);
+  document.addEventListener('pointerup', onUp);
+}
+
+function handleBoxDrag(e) {
+  const ds = calibState.dragState;
+  if (!ds) return;
+
+  const dx = ((e.clientX - ds.startX) / ds.overlayW) * 100;
+  const dy = ((e.clientY - ds.startY) / ds.overlayH) * 100;
+  const box = calibState.boxes.find(b => b.id === ds.boxId);
+  if (!box) return;
+
+  if (ds.type === 'move') {
+    box.x = Math.max(0, Math.min(100 - box.w, ds.origBox.x + dx));
+    box.y = Math.max(0, Math.min(100 - box.h, ds.origBox.y + dy));
+  } else {
+    box.w = Math.max(5, Math.min(100 - box.x, ds.origBox.w + dx));
+    box.h = Math.max(4, Math.min(100 - box.y, ds.origBox.h + dy));
+  }
+
+  // Update DOM directly for performance
+  const el = document.querySelector(`.calib-box[data-box-id="${ds.boxId}"]`);
+  if (el) {
+    el.style.left = box.x + '%';
+    el.style.top = box.y + '%';
+    el.style.width = box.w + '%';
+    el.style.height = box.h + '%';
+  }
+}
+
+function showParamDropdown(e, boxId) {
+  e.stopPropagation();
+  removeParamDropdown();
+
+  const box = calibState.boxes.find(b => b.id === boxId);
+  if (!box) return;
+
+  const dd = document.createElement('div');
+  dd.className = 'calib-param-select';
+  dd.id = 'calibParamDropdown';
+
+  CALIB_PARAMS.forEach(p => {
+    const btn = document.createElement('button');
+    btn.innerHTML = `<span class="param-dot" style="background:${p.color}"></span>${p.label}`;
+    btn.onclick = (ev) => {
+      ev.stopPropagation();
+      box.param = p.key;
+      renderAllBoxes();
+      renderBoxList();
+      removeParamDropdown();
+    };
+    dd.appendChild(btn);
+  });
+
+  // Position near the clicked label
+  const overlay = document.getElementById('calibOverlay');
+  const overlayRect = overlay.getBoundingClientRect();
+  const labelRect = e.target.getBoundingClientRect();
+  dd.style.left = (labelRect.left - overlayRect.left) + 'px';
+  dd.style.top = (labelRect.bottom - overlayRect.top + 4) + 'px';
+
+  overlay.appendChild(dd);
+
+  // Close on outside click
+  setTimeout(() => {
+    document.addEventListener('pointerdown', closeDDHandler, { once: true });
+  }, 50);
+}
+
+function closeDDHandler(e) {
+  const dd = document.getElementById('calibParamDropdown');
+  if (dd && !dd.contains(e.target)) {
+    removeParamDropdown();
+  }
+}
+
+function removeParamDropdown() {
+  document.getElementById('calibParamDropdown')?.remove();
+}
+
+function renderBoxList() {
+  const list = document.getElementById('calibBoxList');
+  if (calibState.boxes.length === 0) {
+    list.innerHTML = '<div style="color:var(--text-muted);font-size:12px;padding:8px;">リファレンス画像を撮影後、<br>枠を追加してください</div>';
+    return;
+  }
+  list.innerHTML = '';
+  calibState.boxes.forEach(box => {
+    const paramInfo = CALIB_PARAMS.find(p => p.key === box.param) || CALIB_PARAMS[0];
+    const item = document.createElement('div');
+    item.className = 'calib-box-item';
+    item.innerHTML = `
+      <span class="param-dot" style="background:${paramInfo.color}"></span>
+      <span class="param-name">${paramInfo.label}</span>
+      <span class="param-coords">${Math.round(box.x)},${Math.round(box.y)} ${Math.round(box.w)}×${Math.round(box.h)}</span>
+    `;
+    list.appendChild(item);
+  });
+}
+
+// ===== PROFILE SAVE/LOAD =====
+function saveCalibProfile() {
+  const nameInput = document.getElementById('calibProfileName');
+  const name = nameInput.value.trim() || `プロファイル ${calibState.profiles.length + 1}`;
+
+  if (!calibState.imageDataUrl) {
+    alert('リファレンス画像を撮影してください');
+    return;
+  }
+  if (calibState.boxes.length === 0) {
+    alert('読取枠を追加してください');
+    return;
+  }
+
+  // Compress image for storage
+  const compImg = compressCalibImage(calibState.imageDataUrl, 320, 200);
+
+  const profile = {
+    id: 'prof_' + Date.now(),
+    name,
+    imageDataUrl: compImg,
+    boxes: JSON.parse(JSON.stringify(calibState.boxes)),
+    createdAt: new Date().toISOString(),
+  };
+
+  calibState.profiles.push(profile);
+  calibState.activeProfileId = profile.id;
+  saveCalibProfilesToStorage();
+  renderCalibProfiles();
+  nameInput.value = '';
+}
+
+function compressCalibImage(dataUrl, maxW, maxH) {
+  const img = new Image();
+  img.src = dataUrl;
+  const c = document.createElement('canvas');
+  // Estimate aspect ratio from default
+  let w = maxW, h = maxH;
+  if (img.naturalWidth && img.naturalHeight) {
+    const ratio = img.naturalWidth / img.naturalHeight;
+    if (ratio > maxW / maxH) { w = maxW; h = Math.round(maxW / ratio); }
+    else { h = maxH; w = Math.round(maxH * ratio); }
+  }
+  c.width = w; c.height = h;
+  const ctx = c.getContext('2d');
+  ctx.drawImage(img, 0, 0, w, h);
+  return c.toDataURL('image/jpeg', 0.5);
+}
+
+function loadProfileIntoEditor(profile) {
+  calibState.imageDataUrl = profile.imageDataUrl;
+  calibState.boxes = JSON.parse(JSON.stringify(profile.boxes));
+  calibState.activeProfileId = profile.id;
+  // Ensure nextBoxId is higher than any existing
+  const maxId = Math.max(0, ...calibState.boxes.map(b => b.id));
+  calibState.nextBoxId = Math.max(calibState.nextBoxId, maxId + 1);
+
+  showCalibImage(profile.imageDataUrl);
+  document.getElementById('calibProfileName').value = profile.name;
+  renderCalibProfiles();
+}
+
+function deleteCalibProfile(profId) {
+  calibState.profiles = calibState.profiles.filter(p => p.id !== profId);
+  if (calibState.activeProfileId === profId) {
+    calibState.activeProfileId = null;
+  }
+  saveCalibProfilesToStorage();
+  renderCalibProfiles();
+}
+
+function renderCalibProfiles() {
+  const list = document.getElementById('calibProfileList');
+  if (!list) return;
+  list.innerHTML = '';
+
+  calibState.profiles.forEach(prof => {
+    const item = document.createElement('div');
+    item.className = 'calib-profile-item' + (calibState.activeProfileId === prof.id ? ' active' : '');
+    item.innerHTML = `
+      <span class="profile-name">${prof.name}</span>
+      <span class="profile-count">${prof.boxes.length}枠</span>
+      <span class="profile-delete" onclick="event.stopPropagation(); deleteCalibProfile('${prof.id}')">🗑</span>
+    `;
+    item.onclick = () => {
+      loadProfileIntoEditor(prof);
+      calibState.activeProfileId = prof.id;
+      saveCalibProfilesToStorage();
+    };
+    list.appendChild(item);
+  });
+}
+
+// Get active calibration profile for use during capture
+function getActiveCalibProfile() {
+  if (!calibState.activeProfileId) return null;
+  return calibState.profiles.find(p => p.id === calibState.activeProfileId) || null;
+}
+
+// Init: load profiles on startup
+document.addEventListener('DOMContentLoaded', () => {
+  loadCalibProfiles();
+});
+</script>
+</body>
+</html>
