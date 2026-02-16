@@ -980,6 +980,7 @@
   <div class="settings-tab-bar">
     <button class="settings-tab active" data-tab="tabMonitor" id="tabBtnMonitor">📐 モニター設定</button>
     <button class="settings-tab" data-tab="tabDrugMaster" id="tabBtnDrugMaster">💊 薬剤マスタ</button>
+    <button class="settings-tab" data-tab="tabApiSettings" id="tabBtnApi">🔑 AI読取設定</button>
   </div>
 
   <!-- Tab 1: Monitor Calibration -->
@@ -1032,6 +1033,58 @@
       <div class="dm-scroll" id="dmDrugListArea"></div>
       <div class="dm-save-bar">
         <button class="btn-dm-save" id="btnDmSave">💾 薬剤マスタを保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab 3: API Settings -->
+  <div class="settings-tab-content" id="tabApiSettings">
+    <div style="padding:20px; max-width:560px; margin:0 auto;">
+      <div style="text-align:center; margin-bottom:20px;">
+        <div style="font-size:40px; margin-bottom:8px;">🤖</div>
+        <h3 style="font-size:16px; margin-bottom:4px;">AI モニター読取設定</h3>
+        <p style="font-size:12px; color:var(--text-secondary);">Claude APIを使ってモニター画像からバイタルを自動読取します</p>
+      </div>
+
+      <div style="background:var(--bg-secondary); border:1px solid var(--border); border-radius:10px; padding:16px; margin-bottom:16px;">
+        <label style="font-size:13px; font-weight:600; color:var(--text-primary); display:block; margin-bottom:8px;">🔑 Anthropic API キー</label>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <input type="password" id="inputApiKey" placeholder="sk-ant-api03-..." style="flex:1; padding:10px 12px; background:var(--bg-card); border:1px solid var(--border); border-radius:8px; color:var(--text-primary); font-size:14px; font-family:monospace;">
+          <button type="button" onclick="toggleApiKeyVisibility()" style="width:44px; height:44px; background:var(--bg-card); border:1px solid var(--border); border-radius:8px; color:var(--text-secondary); font-size:18px; cursor:pointer;" id="btnToggleKey">👁</button>
+        </div>
+        <p style="font-size:11px; color:var(--text-muted); margin-top:6px;">※ キーはこの端末のブラウザにのみ保存されます（外部送信はAPI通信のみ）</p>
+      </div>
+
+      <div style="background:var(--bg-secondary); border:1px solid var(--border); border-radius:10px; padding:16px; margin-bottom:16px;">
+        <label style="font-size:13px; font-weight:600; color:var(--text-primary); display:block; margin-bottom:8px;">🧠 モデル選択</label>
+        <select id="selectApiModel" style="width:100%; padding:10px 12px; background:var(--bg-card); border:1px solid var(--border); border-radius:8px; color:var(--text-primary); font-size:14px;">
+          <option value="claude-haiku">Claude Haiku（高速・低コスト ≈¥0.5/回）推奨</option>
+          <option value="claude-sonnet">Claude Sonnet（高精度 ≈¥3/回）</option>
+        </select>
+      </div>
+
+      <div style="background:var(--bg-secondary); border:1px solid var(--border); border-radius:10px; padding:16px; margin-bottom:16px;">
+        <label style="font-size:13px; font-weight:600; color:var(--text-primary); display:block; margin-bottom:8px;">📋 動作モード</label>
+        <div style="display:flex; gap:8px;">
+          <button type="button" class="api-mode-btn active" id="btnModeAI" onclick="setApiMode('ai')" style="flex:1; padding:10px; background:rgba(16,185,129,0.15); border:2px solid var(--accent-green); border-radius:8px; color:var(--accent-green); font-size:13px; font-weight:700; cursor:pointer;">🤖 AI読取</button>
+          <button type="button" class="api-mode-btn" id="btnModeDemo" onclick="setApiMode('demo')" style="flex:1; padding:10px; background:var(--bg-card); border:2px solid var(--border); border-radius:8px; color:var(--text-secondary); font-size:13px; font-weight:600; cursor:pointer;">🎲 デモモード</button>
+        </div>
+        <p style="font-size:11px; color:var(--text-muted); margin-top:6px;" id="apiModeDesc">モニター撮影時にAIがバイタル値を読み取ります（APIキー必須）</p>
+      </div>
+
+      <button type="button" onclick="saveApiSettings()" style="width:100%; padding:14px; background:linear-gradient(135deg, var(--accent-green), #059669); border:none; border-radius:10px; color:white; font-size:16px; font-weight:700; cursor:pointer; min-height:48px;">💾 API設定を保存</button>
+
+      <button type="button" onclick="testApiConnection()" id="btnTestApi" style="width:100%; padding:12px; margin-top:8px; background:var(--bg-secondary); border:1px solid var(--accent-blue); border-radius:10px; color:var(--accent-blue); font-size:14px; font-weight:600; cursor:pointer; min-height:44px;">🔍 接続テスト</button>
+      <div id="apiTestResult" style="margin-top:8px; padding:10px; border-radius:8px; font-size:12px; display:none;"></div>
+
+      <div style="margin-top:20px; padding:16px; background:rgba(59,130,246,0.08); border:1px solid rgba(59,130,246,0.2); border-radius:10px;">
+        <div style="font-size:13px; font-weight:700; color:var(--accent-blue); margin-bottom:8px;">💡 APIキーの取得方法</div>
+        <ol style="font-size:11px; color:var(--text-secondary); padding-left:18px; line-height:1.8;">
+          <li><a href="https://console.anthropic.com/" target="_blank" style="color:var(--accent-blue);">console.anthropic.com</a> にアクセス</li>
+          <li>アカウント作成（無料）→ クレジット購入（$5〜）</li>
+          <li>Settings → API Keys → Create Key</li>
+          <li>生成されたキー（sk-ant-...）をコピーして上に貼り付け</li>
+        </ol>
       </div>
     </div>
   </div>
@@ -1227,6 +1280,10 @@ const state = {
   capturedImages: [],  // { id, timestamp, dataUrl, notes }
   maxCapturedImages: 20,
   logEntries: {},      // logId -> { text, captureId, note }
+  // V5: API settings
+  apiKey: '',
+  apiModel: 'claude-haiku',
+  apiMode: 'ai',  // 'ai' or 'demo'
 };
 
 // ===================================================================
@@ -1978,40 +2035,366 @@ function storeThumbnail(dataUrl) {
 }
 
 function handleCameraCapture(){
-  const btn=document.getElementById('btnCapture');
-  // カメラで撮影
-  const input = document.createElement('input');
+  var btn = document.getElementById('btnCapture');
+  var input = document.createElement('input');
   input.type = 'file';
   input.accept = 'image/*';
   input.capture = 'environment';
-  input.onchange = (e) => {
-    const file = e.target.files[0];
+  input.onchange = function(e) {
+    var file = e.target.files[0];
     if (!file) return;
-    btn.classList.add('capturing');btn.innerHTML='<span class="icon">⏳</span><span>解析中...</span>';
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      // 撮影画像からサムネイル生成
-      const img = new Image();
-      img.onload = () => {
-        const thumbCanvas = document.createElement('canvas');
+    btn.classList.add('capturing');
+    btn.innerHTML = '<span class="icon">⏳</span><span>解析中...</span>';
+    var reader = new FileReader();
+    reader.onload = function(ev) {
+      var fullDataUrl = ev.target.result;
+      // サムネイル生成
+      var img = new Image();
+      img.onload = function() {
+        var thumbCanvas = document.createElement('canvas');
         thumbCanvas.width = 160; thumbCanvas.height = 100;
-        const tCtx = thumbCanvas.getContext('2d');
+        var tCtx = thumbCanvas.getContext('2d');
         tCtx.drawImage(img, 0, 0, 160, 100);
-        const thumbUrl = thumbCanvas.toDataURL('image/jpeg', 0.5);
-        const captureId = storeThumbnail(thumbUrl);
+        var thumbUrl = thumbCanvas.toDataURL('image/jpeg', 0.5);
+        var captureId = storeThumbnail(thumbUrl);
 
-        // TODO: ここでOCR/AI APIを呼んでバイタルを読み取る
-        // 現在はデモ値を生成
-        const d = generateMockVitals(state.patient.species);
-        applyVitalData(d, captureId, false);
-        btn.classList.remove('capturing');btn.innerHTML='<span class="icon">📸</span><span>モニター撮影</span>';
-        resetTimer();
+        // API送信用にリサイズ（通信量削減: 最大768px）
+        var apiCanvas = document.createElement('canvas');
+        var scale = Math.min(768 / img.width, 768 / img.height, 1);
+        apiCanvas.width = Math.round(img.width * scale);
+        apiCanvas.height = Math.round(img.height * scale);
+        var aCtx = apiCanvas.getContext('2d');
+        aCtx.drawImage(img, 0, 0, apiCanvas.width, apiCanvas.height);
+        var apiDataUrl = apiCanvas.toDataURL('image/jpeg', 0.8);
+
+        // APIモード判定
+        if (state.apiMode === 'ai' && state.apiKey) {
+          callClaudeVision(apiDataUrl, captureId, btn);
+        } else {
+          // デモモード
+          var d = generateMockVitals(state.patient.species);
+          applyVitalData(d, captureId, false);
+          btn.classList.remove('capturing');
+          btn.innerHTML = '<span class="icon">📸</span><span>モニター撮影</span>';
+          resetTimer();
+          if (state.apiMode === 'ai' && !state.apiKey) {
+            addLog('⚠ APIキー未設定 → デモ値を使用');
+          }
+        }
       };
-      img.src = ev.target.result;
+      img.src = fullDataUrl;
     };
     reader.readAsDataURL(file);
   };
   input.click();
+}
+
+// ===================================================================
+//  CLAUDE VISION API
+// ===================================================================
+function getApiModelId() {
+  if (state.apiModel === 'claude-sonnet') return 'claude-sonnet-4-20250514';
+  return 'claude-haiku-4-20250414';
+}
+
+function callClaudeVision(imageDataUrl, captureId, btn) {
+  // base64部分を抽出
+  var parts = imageDataUrl.split(',');
+  var mediaType = 'image/jpeg';
+  var mtMatch = parts[0].match(/data:([^;]+)/);
+  if (mtMatch) mediaType = mtMatch[1];
+  var base64Data = parts[1];
+
+  var modelId = getApiModelId();
+  var prompt = 'この画像は動物病院の麻酔モニター画面です。表示されている数値を読み取ってください。\n' +
+    '必ず以下のJSON形式のみで回答してください。他のテキストは不要です。\n' +
+    '読み取れない項目はnullにしてください。\n' +
+    '{"hr":数値,"spo2":数値,"rr":数値,"etco2":数値,"sys":数値,"dia":数値,"temp":数値,"iso":数値}\n' +
+    '- hr: 心拍数(bpm)\n- spo2: 酸素飽和度(%)\n- rr: 呼吸数\n- etco2: 終末呼気CO2(mmHg)\n' +
+    '- sys: 収縮期血圧(mmHg)\n- dia: 拡張期血圧(mmHg)\n- temp: 体温(℃)\n- iso: イソフルラン濃度(%)';
+
+  var body = JSON.stringify({
+    model: modelId,
+    max_tokens: 256,
+    messages: [{
+      role: 'user',
+      content: [
+        {
+          type: 'image',
+          source: {
+            type: 'base64',
+            media_type: mediaType,
+            data: base64Data
+          }
+        },
+        {
+          type: 'text',
+          text: prompt
+        }
+      ]
+    }]
+  });
+
+  var xhr = new XMLHttpRequest();
+  xhr.open('POST', 'https://api.anthropic.com/v1/messages', true);
+  xhr.setRequestHeader('Content-Type', 'application/json');
+  xhr.setRequestHeader('x-api-key', state.apiKey);
+  xhr.setRequestHeader('anthropic-version', '2023-06-01');
+  xhr.setRequestHeader('anthropic-dangerous-direct-browser-access', 'true');
+  xhr.timeout = 30000;
+
+  xhr.onload = function() {
+    btn.classList.remove('capturing');
+    btn.innerHTML = '<span class="icon">📸</span><span>モニター撮影</span>';
+
+    if (xhr.status === 200) {
+      try {
+        var resp = JSON.parse(xhr.responseText);
+        var text = '';
+        if (resp.content && resp.content.length > 0) {
+          text = resp.content[0].text || '';
+        }
+        var vitals = parseVitalsFromAI(text);
+        if (vitals) {
+          applyVitalData(vitals, captureId, false);
+          addLog('🤖 AI読取成功 (model: ' + modelId.split('-').slice(0,2).join('-') + ')');
+        } else {
+          addLog('⚠ AI応答のパース失敗 → デモ値使用');
+          var d = generateMockVitals(state.patient.species);
+          applyVitalData(d, captureId, false);
+        }
+      } catch(e) {
+        addLog('⚠ AI応答エラー: ' + e.message);
+        var d = generateMockVitals(state.patient.species);
+        applyVitalData(d, captureId, false);
+      }
+    } else {
+      var errMsg = 'HTTP ' + xhr.status;
+      try {
+        var errBody = JSON.parse(xhr.responseText);
+        if (errBody.error && errBody.error.message) errMsg = errBody.error.message;
+      } catch(e2) {}
+      addLog('⚠ API エラー: ' + errMsg + ' → デモ値使用');
+      var d = generateMockVitals(state.patient.species);
+      applyVitalData(d, captureId, false);
+    }
+    resetTimer();
+  };
+
+  xhr.onerror = function() {
+    btn.classList.remove('capturing');
+    btn.innerHTML = '<span class="icon">📸</span><span>モニター撮影</span>';
+    addLog('⚠ API通信失敗（ネットワークエラー）→ デモ値使用');
+    var d = generateMockVitals(state.patient.species);
+    applyVitalData(d, captureId, false);
+    resetTimer();
+  };
+
+  xhr.ontimeout = function() {
+    btn.classList.remove('capturing');
+    btn.innerHTML = '<span class="icon">📸</span><span>モニター撮影</span>';
+    addLog('⚠ API タイムアウト → デモ値使用');
+    var d = generateMockVitals(state.patient.species);
+    applyVitalData(d, captureId, false);
+    resetTimer();
+  };
+
+  xhr.send(body);
+}
+
+function parseVitalsFromAI(text) {
+  // AI応答からJSONを抽出
+  try {
+    // ```json ... ``` を除去
+    var cleaned = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+    // JSONオブジェクト部分を抽出
+    var jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) return null;
+    var obj = JSON.parse(jsonMatch[0]);
+
+    // 数値の妥当性チェック＋デフォルト補完
+    var hr = (typeof obj.hr === 'number' && obj.hr > 0 && obj.hr < 500) ? Math.round(obj.hr) : null;
+    var spo2 = (typeof obj.spo2 === 'number' && obj.spo2 > 0 && obj.spo2 <= 100) ? Math.round(obj.spo2) : null;
+    var rr = (typeof obj.rr === 'number' && obj.rr > 0 && obj.rr < 200) ? Math.round(obj.rr) : null;
+    var etco2 = (typeof obj.etco2 === 'number' && obj.etco2 > 0 && obj.etco2 < 150) ? Math.round(obj.etco2) : null;
+    var sys = (typeof obj.sys === 'number' && obj.sys > 0 && obj.sys < 400) ? Math.round(obj.sys) : null;
+    var dia = (typeof obj.dia === 'number' && obj.dia > 0 && obj.dia < 300) ? Math.round(obj.dia) : null;
+    var temp = (typeof obj.temp === 'number' && obj.temp > 15 && obj.temp < 45) ? +obj.temp.toFixed(1) : null;
+    var iso = (typeof obj.iso === 'number' && obj.iso >= 0 && obj.iso < 10) ? +obj.iso.toFixed(1) : null;
+
+    // 少なくとも2項目以上読めていれば成功とする
+    var count = [hr, spo2, rr, etco2, sys, dia, temp, iso].filter(function(v) { return v !== null; }).length;
+    if (count < 2) return null;
+
+    // null項目は前回値で補完
+    var lastHr = state.vitals.hr.length > 0 ? state.vitals.hr[state.vitals.hr.length - 1] : 0;
+    var lastSpo2 = state.vitals.spo2.length > 0 ? state.vitals.spo2[state.vitals.spo2.length - 1] : 0;
+    var lastRr = state.vitals.rr.length > 0 ? state.vitals.rr[state.vitals.rr.length - 1] : 0;
+    var lastEtco2 = state.vitals.etco2.length > 0 ? state.vitals.etco2[state.vitals.etco2.length - 1] : 0;
+    var lastSys = state.vitals.sys.length > 0 ? state.vitals.sys[state.vitals.sys.length - 1] : 0;
+    var lastDia = state.vitals.dia.length > 0 ? state.vitals.dia[state.vitals.dia.length - 1] : 0;
+    var lastTemp = state.vitals.temp.length > 0 ? state.vitals.temp[state.vitals.temp.length - 1] : 0;
+
+    var finalSys = sys !== null ? sys : lastSys;
+    var finalDia = dia !== null ? dia : lastDia;
+    var mean = (finalSys > 0 && finalDia > 0) ? Math.round(finalDia + (finalSys - finalDia) / 3) : 0;
+
+    return {
+      hr: hr !== null ? hr : lastHr,
+      spo2: spo2 !== null ? spo2 : lastSpo2,
+      rr: rr !== null ? rr : lastRr,
+      etco2: etco2 !== null ? etco2 : lastEtco2,
+      sys: finalSys,
+      dia: finalDia,
+      mean: mean,
+      temp: temp !== null ? temp : lastTemp,
+      iso: iso !== null ? iso : 0
+    };
+  } catch(e) {
+    return null;
+  }
+}
+
+// ===================================================================
+//  API SETTINGS MANAGEMENT
+// ===================================================================
+function loadApiSettings() {
+  try {
+    var key = localStorage.getItem('vetanes_api_key');
+    var model = localStorage.getItem('vetanes_api_model');
+    var mode = localStorage.getItem('vetanes_api_mode');
+    if (key) state.apiKey = key;
+    if (model) state.apiModel = model;
+    if (mode) state.apiMode = mode;
+  } catch(e) { console.warn('API settings load error:', e); }
+}
+
+function saveApiSettings() {
+  var keyInput = document.getElementById('inputApiKey');
+  var modelSelect = document.getElementById('selectApiModel');
+  if (keyInput) state.apiKey = keyInput.value.trim();
+  if (modelSelect) state.apiModel = modelSelect.value;
+  try {
+    localStorage.setItem('vetanes_api_key', state.apiKey);
+    localStorage.setItem('vetanes_api_model', state.apiModel);
+    localStorage.setItem('vetanes_api_mode', state.apiMode);
+  } catch(e) {}
+  alert('API設定を保存しました ✅');
+}
+
+function restoreApiSettingsUI() {
+  var keyInput = document.getElementById('inputApiKey');
+  var modelSelect = document.getElementById('selectApiModel');
+  if (keyInput && state.apiKey) keyInput.value = state.apiKey;
+  if (modelSelect && state.apiModel) modelSelect.value = state.apiModel;
+  setApiMode(state.apiMode);
+}
+
+function setApiMode(mode) {
+  state.apiMode = mode;
+  var btnAI = document.getElementById('btnModeAI');
+  var btnDemo = document.getElementById('btnModeDemo');
+  var desc = document.getElementById('apiModeDesc');
+  if (mode === 'ai') {
+    if (btnAI) { btnAI.style.background = 'rgba(16,185,129,0.15)'; btnAI.style.borderColor = 'var(--accent-green)'; btnAI.style.color = 'var(--accent-green)'; }
+    if (btnDemo) { btnDemo.style.background = 'var(--bg-card)'; btnDemo.style.borderColor = 'var(--border)'; btnDemo.style.color = 'var(--text-secondary)'; }
+    if (desc) desc.textContent = 'モニター撮影時にAIがバイタル値を読み取ります（APIキー必須）';
+  } else {
+    if (btnDemo) { btnDemo.style.background = 'rgba(245,158,11,0.15)'; btnDemo.style.borderColor = 'var(--accent-yellow)'; btnDemo.style.color = 'var(--accent-yellow)'; }
+    if (btnAI) { btnAI.style.background = 'var(--bg-card)'; btnAI.style.borderColor = 'var(--border)'; btnAI.style.color = 'var(--text-secondary)'; }
+    if (desc) desc.textContent = 'ランダムなデモ値を生成します（APIキー不要）';
+  }
+  try { localStorage.setItem('vetanes_api_mode', mode); } catch(e) {}
+}
+
+function toggleApiKeyVisibility() {
+  var input = document.getElementById('inputApiKey');
+  var btn = document.getElementById('btnToggleKey');
+  if (!input) return;
+  if (input.type === 'password') {
+    input.type = 'text';
+    if (btn) btn.textContent = '🙈';
+  } else {
+    input.type = 'password';
+    if (btn) btn.textContent = '👁';
+  }
+}
+
+function testApiConnection() {
+  var resultEl = document.getElementById('apiTestResult');
+  var keyInput = document.getElementById('inputApiKey');
+  var key = keyInput ? keyInput.value.trim() : '';
+  if (!key) {
+    if (resultEl) {
+      resultEl.style.display = 'block';
+      resultEl.style.background = 'rgba(239,68,68,0.1)';
+      resultEl.style.color = 'var(--accent-red)';
+      resultEl.textContent = '❌ APIキーを入力してください';
+    }
+    return;
+  }
+
+  if (resultEl) {
+    resultEl.style.display = 'block';
+    resultEl.style.background = 'rgba(59,130,246,0.1)';
+    resultEl.style.color = 'var(--accent-blue)';
+    resultEl.textContent = '⏳ 接続テスト中...';
+  }
+
+  var modelSelect = document.getElementById('selectApiModel');
+  var modelVal = modelSelect ? modelSelect.value : 'claude-haiku';
+  var modelId = modelVal === 'claude-sonnet' ? 'claude-sonnet-4-20250514' : 'claude-haiku-4-20250414';
+
+  var body = JSON.stringify({
+    model: modelId,
+    max_tokens: 32,
+    messages: [{ role: 'user', content: 'Reply with only: OK' }]
+  });
+
+  var xhr = new XMLHttpRequest();
+  xhr.open('POST', 'https://api.anthropic.com/v1/messages', true);
+  xhr.setRequestHeader('Content-Type', 'application/json');
+  xhr.setRequestHeader('x-api-key', key);
+  xhr.setRequestHeader('anthropic-version', '2023-06-01');
+  xhr.setRequestHeader('anthropic-dangerous-direct-browser-access', 'true');
+  xhr.timeout = 15000;
+
+  xhr.onload = function() {
+    if (!resultEl) return;
+    resultEl.style.display = 'block';
+    if (xhr.status === 200) {
+      resultEl.style.background = 'rgba(16,185,129,0.1)';
+      resultEl.style.color = 'var(--accent-green)';
+      resultEl.textContent = '✅ 接続成功！API が正常に動作しています（model: ' + modelId + '）';
+    } else {
+      var errMsg = 'HTTP ' + xhr.status;
+      try {
+        var errBody = JSON.parse(xhr.responseText);
+        if (errBody.error && errBody.error.message) errMsg = errBody.error.message;
+      } catch(e2) {}
+      resultEl.style.background = 'rgba(239,68,68,0.1)';
+      resultEl.style.color = 'var(--accent-red)';
+      resultEl.textContent = '❌ エラー: ' + errMsg;
+    }
+  };
+
+  xhr.onerror = function() {
+    if (!resultEl) return;
+    resultEl.style.display = 'block';
+    resultEl.style.background = 'rgba(239,68,68,0.1)';
+    resultEl.style.color = 'var(--accent-red)';
+    resultEl.textContent = '❌ ネットワークエラー（CORSの可能性あり）';
+  };
+
+  xhr.ontimeout = function() {
+    if (!resultEl) return;
+    resultEl.style.display = 'block';
+    resultEl.style.background = 'rgba(239,68,68,0.1)';
+    resultEl.style.color = 'var(--accent-red)';
+    resultEl.textContent = '❌ タイムアウト（15秒）';
+  };
+
+  xhr.send(body);
 }
 
 function generateMockVitals(sp){
@@ -2202,6 +2585,7 @@ function switchSettingsTab(tabId) {
   if (btn) btn.classList.add('active');
   if (content) content.classList.add('active');
   if (tabId === 'tabDrugMaster') renderDrugMasterEditor();
+  if (tabId === 'tabApiSettings') restoreApiSettingsUI();
 }
 
 function captureCalibImage() {
@@ -2864,6 +3248,7 @@ function closeReport() {
 document.addEventListener('DOMContentLoaded', () => {
   try { loadCalibProfiles(); } catch(e) { console.warn('init calib error:', e); }
   try { loadDrugMasterFromStorage(); } catch(e) { console.warn('init drug master error:', e); }
+  try { loadApiSettings(); } catch(e) { console.warn('init api settings error:', e); }
 
   // Close settings button
   const btnClose = document.getElementById('btnCloseSettings');
