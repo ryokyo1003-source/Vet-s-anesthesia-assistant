@@ -46,11 +46,21 @@
     background: var(--bg-primary);
     display: flex; align-items: center; justify-content: center;
   }
+  .startup-wrapper {
+    display: flex; flex-direction: column; align-items: center;
+    width: 720px; max-height: 96vh; gap: 0;
+  }
   .startup-card {
     background: var(--bg-card); border: 1px solid var(--border);
-    border-radius: 20px; padding: 32px 36px;
-    width: 720px; max-height: 92vh;
+    border-radius: 20px 20px 0 0; padding: 32px 36px 24px;
+    width: 100%;
     overflow-y: auto; -webkit-overflow-scrolling: touch;
+    flex: 1; min-height: 0;
+  }
+  .startup-bottom-bar {
+    width: 100%; padding: 8px 36px 20px;
+    background: var(--bg-card); border: 1px solid var(--border); border-top: none;
+    border-radius: 0 0 20px 20px; flex-shrink: 0;
   }
   .startup-card h1 {
     font-size: 30px; font-weight: 700; margin-bottom: 4px;
@@ -91,14 +101,17 @@
   .form-row-3 .form-group { flex: 1; }
 
   /* Sex toggle */
-  .sex-toggle { display: flex; gap: 8px; }
+  .sex-toggle { display: flex; gap: 6px; flex-wrap: wrap; }
   .sex-toggle button {
-    flex: 1; padding: 10px; border-radius: 10px; font-size: 15px; font-weight: 700;
+    flex: 1 1 auto; min-width: 80px; padding: 10px 6px; border-radius: 10px; font-size: 13px; font-weight: 700;
     cursor: pointer; border: 1px solid var(--border); background: var(--bg-secondary);
     color: var(--text-secondary); transition: all 0.2s; min-height: 44px;
+    -webkit-tap-highlight-color: rgba(59,130,246,0.15);
   }
   .sex-toggle button.active-male { background: rgba(59,130,246,0.2); border-color: var(--accent-blue); color: var(--accent-blue); }
   .sex-toggle button.active-female { background: rgba(236,72,153,0.2); border-color: var(--accent-pink); color: var(--accent-pink); }
+  .sex-toggle button.active-castrated { background: rgba(6,182,212,0.2); border-color: var(--accent-cyan); color: var(--accent-cyan); }
+  .sex-toggle button.active-spayed { background: rgba(249,115,22,0.2); border-color: var(--accent-orange); color: var(--accent-orange); }
   .sex-toggle button.active-unknown { background: rgba(139,92,246,0.2); border-color: var(--accent-purple); color: var(--accent-purple); }
 
   .btn-start {
@@ -733,6 +746,7 @@
 
 <!-- ========== STARTUP SCREEN ========== -->
 <div id="startupScreen">
+  <div class="startup-wrapper">
   <div class="startup-card">
     <h1>🩺 VetAnes</h1>
     <p class="sub">獣医麻酔管理アシスタント</p>
@@ -800,7 +814,9 @@
       <label>性別</label>
       <div class="sex-toggle" id="sexToggle">
         <button type="button" data-sex="male" onclick="setSex('male')">♂ オス</button>
+        <button type="button" data-sex="castrated" onclick="setSex('castrated')">♂ 去勢オス</button>
         <button type="button" data-sex="female" onclick="setSex('female')">♀ メス</button>
+        <button type="button" data-sex="spayed" onclick="setSex('spayed')">♀ 避妊メス</button>
         <button type="button" data-sex="unknown" onclick="setSex('unknown')">不明</button>
       </div>
     </div>
@@ -810,7 +826,10 @@
     </div>
 
     <button class="btn-start" onclick="startSession()">麻酔セッション開始</button>
-    <button class="btn-monitor-settings" id="btnOpenSettings">⚙️ 設定（モニター / 薬剤マスタ）</button>
+  </div>
+  <div class="startup-bottom-bar">
+    <button class="btn-monitor-settings" id="btnOpenSettings" ontouchstart="this._ts=1" onclick="openSettings()">⚙️ 設定（モニター / 薬剤マスタ）</button>
+  </div>
   </div>
 </div>
 
@@ -1299,9 +1318,10 @@ const PREMED_CATEGORY_LABELS = {
 // ===================================================================
 function setSex(sex) {
   state.selectedSex = sex;
+  const classMap = { male:'active-male', castrated:'active-castrated', female:'active-female', spayed:'active-spayed', unknown:'active-unknown' };
   document.querySelectorAll('#sexToggle button').forEach(b => {
-    b.classList.remove('active-male','active-female','active-unknown');
-    if (b.dataset.sex === sex) b.classList.add(sex === 'male' ? 'active-male' : sex === 'female' ? 'active-female' : 'active-unknown');
+    b.classList.remove('active-male','active-female','active-castrated','active-spayed','active-unknown');
+    if (b.dataset.sex === sex) b.classList.add(classMap[sex] || 'active-unknown');
   });
 }
 
@@ -2403,36 +2423,13 @@ document.addEventListener('DOMContentLoaded', () => {
   try { loadCalibProfiles(); } catch(e) { console.warn('init calib error:', e); }
   try { loadDrugMasterFromStorage(); } catch(e) { console.warn('init drug master error:', e); }
 
-  // Settings button — use addEventListener for iPad Safari compatibility
-  const btnOpen = document.getElementById('btnOpenSettings');
-  if (btnOpen) {
-    btnOpen.addEventListener('click', function(e) {
-      e.preventDefault(); e.stopPropagation();
-      openSettings();
-    });
-    btnOpen.addEventListener('touchend', function(e) {
-      e.preventDefault(); e.stopPropagation();
-      openSettings();
-    }, { passive: false });
-  }
-
-  // Close settings
+  // Close settings button
   const btnClose = document.getElementById('btnCloseSettings');
-  if (btnClose) {
-    btnClose.addEventListener('click', function(e) { e.preventDefault(); closeSettings(); });
-    btnClose.addEventListener('touchend', function(e) { e.preventDefault(); closeSettings(); }, { passive: false });
-  }
+  if (btnClose) btnClose.addEventListener('click', () => closeSettings());
 
   // Tab buttons
   document.querySelectorAll('.settings-tab').forEach(tab => {
-    tab.addEventListener('click', function(e) {
-      e.preventDefault();
-      switchSettingsTab(this.dataset.tab);
-    });
-    tab.addEventListener('touchend', function(e) {
-      e.preventDefault();
-      switchSettingsTab(this.dataset.tab);
-    }, { passive: false });
+    tab.addEventListener('click', function() { switchSettingsTab(this.dataset.tab); });
   });
 
   // Drug master species selector
@@ -2441,17 +2438,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Drug master save
   const btnDmSave = document.getElementById('btnDmSave');
-  if (btnDmSave) {
-    btnDmSave.addEventListener('click', function(e) { e.preventDefault(); saveDrugMaster(); });
-    btnDmSave.addEventListener('touchend', function(e) { e.preventDefault(); saveDrugMaster(); }, { passive: false });
-  }
+  if (btnDmSave) btnDmSave.addEventListener('click', () => saveDrugMaster());
 
   // Drug master reset
   const btnDmReset = document.getElementById('btnDmReset');
-  if (btnDmReset) {
-    btnDmReset.addEventListener('click', function(e) { e.preventDefault(); resetDrugMasterSpecies(); });
-    btnDmReset.addEventListener('touchend', function(e) { e.preventDefault(); resetDrugMasterSpecies(); }, { passive: false });
-  }
+  if (btnDmReset) btnDmReset.addEventListener('click', () => resetDrugMasterSpecies());
 });
 </script>
 </body>
