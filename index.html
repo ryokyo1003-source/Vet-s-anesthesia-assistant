@@ -743,7 +743,7 @@
   <div class="startup-card">
     <div class="startup-title-row">
       <h1>🩺 VetAnes</h1>
-      <button class="btn-settings-gear" id="btnOpenSettings" onclick="openSettings()">⚙️</button>
+      <a href="javascript:void(0)" id="btnOpenSettings" style="display:flex;align-items:center;justify-content:center;width:48px;height:48px;border-radius:12px;background:var(--bg-secondary);border:1px solid var(--border);color:var(--accent-yellow);font-size:22px;text-decoration:none;flex-shrink:0;cursor:pointer;" onclick="try{openSettings()}catch(e){alert('ERR:'+e.message)}">⚙️</a>
     </div>
     <p class="sub">獣医麻酔管理アシスタント</p>
 
@@ -1459,8 +1459,10 @@ function completeDrugPrep() {
   checks.forEach(chk => {
     if (chk.checked) {
       const row = chk.closest('.prep-drug-row');
-      const name = row.querySelector('.prep-drug-name')?.textContent || '';
-      const calc = row.querySelector('.prep-drug-calc')?.textContent || '';
+      var nameEl = row.querySelector('.prep-drug-name');
+      var calcEl = row.querySelector('.prep-drug-calc');
+      const name = nameEl ? nameEl.textContent : '';
+      const calc = calcEl ? calcEl.textContent : '';
       selected.push(`${name} ${calc.replace(/\n/g,' ').trim()}`);
     }
   });
@@ -1647,7 +1649,7 @@ function recordDrugAdmin(){
 // ===================================================================
 function toggleVoice(){
   if(!('webkitSpeechRecognition' in window)&&!('SpeechRecognition' in window)){alert('音声認識非対応');return;}
-  if(state.voiceActive){state.voiceActive=false;state.recognition?.stop();document.getElementById('btnVoice').classList.remove('recording');document.getElementById('voiceLabel').textContent='音声入力開始';return;}
+  if(state.voiceActive){state.voiceActive=false;if(state.recognition)state.recognition.stop();document.getElementById('btnVoice').classList.remove('recording');document.getElementById('voiceLabel').textContent='音声入力開始';return;}
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;state.recognition=new SR();state.recognition.lang='ja-JP';state.recognition.continuous=true;state.recognition.interimResults=false;
   state.recognition.onresult=(e)=>{for(let i=e.resultIndex;i<e.results.length;i++){if(e.results[i].isFinal){const t=e.results[i][0].transcript,tm=new Date().toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit',second:'2-digit'});document.getElementById('voiceLog').innerHTML=`<p><span class="log-time">${tm}</span>${t}</p>`+document.getElementById('voiceLog').innerHTML;addLog(`🎤 "${t}"`);}}};
   state.recognition.onerror=()=>{state.voiceActive=false;document.getElementById('btnVoice').classList.remove('recording');document.getElementById('voiceLabel').textContent='音声入力開始';};
@@ -1849,19 +1851,21 @@ function editLogEntry(logId) {
   c.appendChild(o);
 
   // Focus textarea
-  setTimeout(() => document.getElementById('logEditNote')?.focus(), 100);
+  setTimeout(function() { var el = document.getElementById('logEditNote'); if(el) el.focus(); }, 100);
 }
 
 function saveLogNote(logId) {
-  const note = document.getElementById('logEditNote')?.value?.trim() || '';
+  var noteEl2 = document.getElementById('logEditNote');
+  var note = (noteEl2 && noteEl2.value) ? noteEl2.value.trim() : '';
   if (state.logEntries[logId]) {
     state.logEntries[logId].note = note;
   }
-  const noteEl = document.getElementById('note_' + logId);
+  var noteEl = document.getElementById('note_' + logId);
   if (noteEl) {
-    noteEl.textContent = note ? ` [${note}]` : '';
+    noteEl.textContent = note ? ' [' + note + ']' : '';
   }
-  document.querySelector('.log-edit-overlay')?.remove();
+  var overlay = document.querySelector('.log-edit-overlay');
+  if (overlay) overlay.remove();
 }
 
 // ===================================================================
@@ -1892,8 +1896,9 @@ function loadCalibProfiles() {
     const saved = localStorage.getItem('vetanes_calib_profiles');
     if (saved) {
       calibState.profiles = JSON.parse(saved) || [];
-      const allIds = calibState.profiles.flatMap(p => (p.boxes || []).map(b => b.id + 1));
-      calibState.nextBoxId = allIds.length > 0 ? Math.max(1, ...allIds) : 1;
+      var allIds = [];
+      calibState.profiles.forEach(function(p) { (p.boxes || []).forEach(function(b) { allIds.push(b.id + 1); }); });
+      calibState.nextBoxId = allIds.length > 0 ? Math.max.apply(null, [1].concat(allIds)) : 1;
     }
     const activeId = localStorage.getItem('vetanes_calib_active');
     if (activeId) calibState.activeProfileId = activeId;
@@ -1908,18 +1913,20 @@ function saveCalibProfilesToStorage() {
 }
 
 function openSettings(tabId) {
+  // Show screen FIRST, then load data
+  var screen = document.getElementById('settingsScreen');
+  if (!screen) { alert('settingsScreen not found'); return; }
+  screen.style.display = 'flex';
   try {
     loadCalibProfiles();
     renderCalibProfiles();
     if (calibState.activeProfileId) {
-      const prof = calibState.profiles.find(p => p.id === calibState.activeProfileId);
+      var prof = calibState.profiles.find(function(p) { return p.id === calibState.activeProfileId; });
       if (prof) loadProfileIntoEditor(prof);
     }
-    document.getElementById('settingsScreen').style.display = 'flex';
     if (tabId) switchSettingsTab(tabId);
   } catch(e) {
     console.error('openSettings error:', e);
-    alert('設定画面を開けませんでした: ' + e.message);
   }
 }
 // Backward-compatible alias
@@ -2154,7 +2161,8 @@ function closeDDHandler(e) {
 }
 
 function removeParamDropdown() {
-  document.getElementById('calibParamDropdown')?.remove();
+  var dd = document.getElementById('calibParamDropdown');
+  if (dd) dd.remove();
 }
 
 function renderBoxList() {
