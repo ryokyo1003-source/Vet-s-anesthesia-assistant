@@ -745,6 +745,141 @@
     .panel-section { padding: 8px; }
     .chart-container { min-height: 120px; }
   }
+
+  /* ===== REPORT SCREEN ===== */
+  #reportScreen {
+    position: fixed; inset: 0; z-index: 1200;
+    background: rgba(0,0,0,0.85);
+    display: none; align-items: flex-start; justify-content: center;
+    overflow-y: auto; -webkit-overflow-scrolling: touch;
+    padding: 20px;
+  }
+  .report-wrapper {
+    background: #fff; color: #1a1a1a; width: 210mm; max-width: 100%;
+    margin: 0 auto; border-radius: 8px; overflow: hidden;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+  }
+  .report-actions {
+    display: flex; gap: 12px; padding: 16px 24px;
+    background: var(--bg-card); border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; z-index: 5;
+  }
+  .report-actions button {
+    padding: 10px 24px; border: none; border-radius: 8px;
+    font-size: 15px; font-weight: 700; cursor: pointer; min-height: 44px;
+  }
+  .btn-report-print {
+    background: linear-gradient(135deg, var(--accent-blue), #2563eb);
+    color: white; flex: 1;
+  }
+  .btn-report-close {
+    background: var(--bg-secondary); color: var(--text-primary); min-width: 100px;
+  }
+  .report-content {
+    padding: 24px 32px;
+    font-family: 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Yu Gothic', sans-serif;
+    font-size: 11px; line-height: 1.6;
+  }
+  .report-header {
+    text-align: center; border-bottom: 2px solid #333; padding-bottom: 12px; margin-bottom: 16px;
+  }
+  .report-header h1 { font-size: 20px; margin-bottom: 4px; letter-spacing: 2px; }
+  .report-header .report-subtitle { font-size: 12px; color: #666; }
+  .report-patient-table {
+    width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 11px;
+  }
+  .report-patient-table td {
+    border: 1px solid #ccc; padding: 4px 8px;
+  }
+  .report-patient-table .label-cell {
+    background: #f0f0f0; font-weight: 700; width: 80px; white-space: nowrap;
+  }
+  .report-section-title {
+    font-size: 13px; font-weight: 700; background: #333; color: #fff;
+    padding: 4px 10px; margin: 16px 0 8px 0; border-radius: 3px;
+  }
+  .report-chart-img {
+    width: 100%; max-height: 200px; object-fit: contain;
+    border: 1px solid #ddd; border-radius: 4px; margin-bottom: 8px;
+  }
+  .report-timeline {
+    width: 100%; border-collapse: collapse; font-size: 10px; margin-bottom: 8px;
+  }
+  .report-timeline th {
+    background: #e8e8e8; border: 1px solid #ccc; padding: 3px 6px; text-align: left;
+  }
+  .report-timeline td {
+    border: 1px solid #ccc; padding: 3px 6px;
+  }
+  .report-timeline tr:nth-child(even) td { background: #f8f8f8; }
+  .report-drug-table {
+    width: 100%; border-collapse: collapse; font-size: 10px; margin-bottom: 8px;
+  }
+  .report-drug-table th {
+    background: #e8e8e8; border: 1px solid #ccc; padding: 3px 6px; text-align: left;
+  }
+  .report-drug-table td {
+    border: 1px solid #ccc; padding: 3px 6px;
+  }
+  .report-drug-table tr:nth-child(even) td { background: #f8f8f8; }
+  .report-vitals-table {
+    width: 100%; border-collapse: collapse; font-size: 9px; margin-bottom: 8px;
+  }
+  .report-vitals-table th {
+    background: #e8e8e8; border: 1px solid #ccc; padding: 2px 4px; text-align: center;
+    font-size: 9px;
+  }
+  .report-vitals-table td {
+    border: 1px solid #ccc; padding: 2px 4px; text-align: center;
+  }
+  .report-vitals-table tr:nth-child(even) td { background: #f8f8f8; }
+  .report-footer {
+    margin-top: 24px; padding-top: 12px; border-top: 1px solid #ccc;
+    display: flex; gap: 40px; justify-content: flex-end;
+  }
+  .report-sig-block {
+    text-align: center; min-width: 140px;
+  }
+  .report-sig-line {
+    border-bottom: 1px solid #333; height: 40px; margin-bottom: 4px;
+  }
+  .report-sig-label { font-size: 10px; color: #666; }
+  .report-notes-area {
+    width: 100%; min-height: 50px; border: 1px solid #ccc; border-radius: 3px;
+    padding: 6px; margin-top: 4px; font-size: 10px; color: #444;
+  }
+  .btn-end-anesthesia {
+    width: 100%; padding: 12px;
+    background: linear-gradient(135deg, #dc2626, #991b1b);
+    border: 2px solid #ef4444; border-radius: 10px;
+    color: white; font-size: 16px; font-weight: 700;
+    cursor: pointer; min-height: 48px;
+    letter-spacing: 1px;
+  }
+  .btn-end-anesthesia:active { opacity: 0.8; }
+
+  /* ===== PRINT STYLES ===== */
+  @media print {
+    body { overflow: visible !important; height: auto !important; background: white !important; }
+    #startupScreen, #drugPrepScreen, #settingsScreen, #mainApp,
+    #alertContainer, .report-actions { display: none !important; }
+    #reportScreen {
+      position: static !important; background: none !important;
+      display: block !important; padding: 0 !important; overflow: visible !important;
+    }
+    .report-wrapper {
+      box-shadow: none !important; border-radius: 0 !important;
+      width: 100% !important; max-width: none !important;
+    }
+    .report-content { padding: 10mm 12mm !important; }
+    .report-header h1 { font-size: 18pt !important; }
+    .report-chart-img { max-height: 180px !important; }
+    .report-section-title { background: #333 !important; color: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .report-patient-table .label-cell { background: #f0f0f0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .report-timeline th, .report-drug-table th, .report-vitals-table th { background: #e8e8e8 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .report-timeline tr:nth-child(even) td, .report-drug-table tr:nth-child(even) td, .report-vitals-table tr:nth-child(even) td { background: #f8f8f8 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    @page { size: A4 portrait; margin: 8mm; }
+  }
 </style>
 </head>
 <body>
@@ -1045,6 +1180,11 @@
         <div class="voice-log" id="voiceLog"></div>
       </div>
 
+      <!-- End Anesthesia -->
+      <div class="panel-section">
+        <button class="btn-end-anesthesia" onclick="endAnesthesia()">🏁 麻酔終了 → レポート作成</button>
+      </div>
+
       <!-- Log -->
       <div class="panel-section" style="flex:1; min-height:0;">
         <div class="panel-title">📝 記録ログ</div>
@@ -1055,6 +1195,19 @@
 </div>
 
 <div id="alertContainer"></div>
+
+<!-- ========== REPORT SCREEN ========== -->
+<div id="reportScreen">
+  <div class="report-wrapper">
+    <div class="report-actions">
+      <button class="btn-report-print" onclick="printReport()">🖨 PDF出力 / 印刷</button>
+      <button class="btn-report-close" onclick="closeReport()">閉じる</button>
+    </div>
+    <div class="report-content" id="reportContent">
+      <!-- Generated dynamically by generateReport() -->
+    </div>
+  </div>
+</div>
 
 <script>
 // ===================================================================
@@ -2531,6 +2684,178 @@ function resetDrugMasterSpecies() {
   }
   saveDrugMasterToStorage();
   renderDrugMasterEditor();
+}
+
+// ===================================================================
+//  POST-OP REPORT
+// ===================================================================
+function endAnesthesia() {
+  if (!confirm('麻酔を終了してレポートを作成しますか？')) return;
+
+  // Record end time
+  var endTime = new Date();
+  state.events.push({ name: '麻酔終了', time: endTime });
+  addLog('🏁 麻酔終了');
+
+  // Stop intervals
+  if (state.elapsedInterval) { clearInterval(state.elapsedInterval); state.elapsedInterval = null; }
+  if (state.timerInterval) { clearInterval(state.timerInterval); state.timerInterval = null; }
+  if (state.announceInterval) { clearInterval(state.announceInterval); state.announceInterval = null; }
+  if (state.voiceActive && state.recognition) { state.voiceActive = false; state.recognition.stop(); }
+
+  generateReport();
+}
+
+function generateReport() {
+  var content = document.getElementById('reportContent');
+  if (!content) return;
+
+  var p = state.patient;
+  var sp = p.species;
+  var spLabel = (SPECIES_LABELS[sp] || sp) + ' ' + (SPECIES_EMOJI[sp] || '');
+  var wDisp = p.weight < 1 ? (p.weight * 1000).toFixed(0) + 'g' : p.weight.toFixed(1) + 'kg';
+  var dateStr = p.date || new Date().toLocaleDateString('ja-JP');
+
+  // Sex display
+  var sexMap = { male: '♂ オス', castrated: '♂ 去勢オス', female: '♀ メス', spayed: '♀ 避妊メス', unknown: '不明' };
+  var sexDisp = sexMap[p.sex] || p.sex || '-';
+
+  // Duration
+  var durationStr = '-';
+  if (state.sessionStart) {
+    var endEvt = null;
+    for (var i = state.events.length - 1; i >= 0; i--) {
+      if (state.events[i].name === '麻酔終了') { endEvt = state.events[i]; break; }
+    }
+    var endTime = endEvt ? endEvt.time : new Date();
+    var durMs = endTime - state.sessionStart;
+    var durH = Math.floor(durMs / 3600000);
+    var durM = Math.floor((durMs % 3600000) / 60000);
+    durationStr = (durH > 0 ? durH + '時間' : '') + durM + '分';
+  }
+
+  // --- Header ---
+  var html = '';
+  html += '<div class="report-header">';
+  html += '<h1>麻酔記録</h1>';
+  html += '<div class="report-subtitle">Anesthesia Record — VetAnes</div>';
+  html += '</div>';
+
+  // --- Patient Info Table ---
+  html += '<table class="report-patient-table">';
+  html += '<tr><td class="label-cell">実施日</td><td>' + dateStr + '</td><td class="label-cell">患者ID</td><td>' + (p.id || '-') + '</td></tr>';
+  html += '<tr><td class="label-cell">患者名</td><td>' + (p.name || '-') + '</td><td class="label-cell">動物種</td><td>' + spLabel + '</td></tr>';
+  html += '<tr><td class="label-cell">体重</td><td>' + wDisp + '</td><td class="label-cell">年齢</td><td>' + (p.age || '-') + '</td></tr>';
+  html += '<tr><td class="label-cell">性別</td><td>' + sexDisp + '</td><td class="label-cell">麻酔時間</td><td>' + durationStr + '</td></tr>';
+  html += '<tr><td class="label-cell">執刀医</td><td>' + (p.surgeon || '-') + '</td><td class="label-cell">麻酔担当</td><td>' + (p.anesthetist || '-') + '</td></tr>';
+  html += '<tr><td class="label-cell">術式</td><td colspan="3">' + (p.procedure || '-') + '</td></tr>';
+  if (p.notes) {
+    html += '<tr><td class="label-cell">備考</td><td colspan="3">' + p.notes + '</td></tr>';
+  }
+  html += '</table>';
+
+  // --- Section A: Vital Graph ---
+  html += '<div class="report-section-title">A. バイタルサイン推移</div>';
+  var chartCanvas = document.getElementById('vitalChart');
+  if (chartCanvas) {
+    try {
+      var chartImg = chartCanvas.toDataURL('image/png');
+      html += '<img class="report-chart-img" src="' + chartImg + '" alt="Vital Chart">';
+    } catch(e) {
+      html += '<p style="color:#999;">チャート画像の取得に失敗しました</p>';
+    }
+  }
+
+  // --- Vital Data Table ---
+  if (state.timeLabels.length > 0) {
+    html += '<table class="report-vitals-table"><thead><tr><th>時刻</th><th>HR</th><th>SpO2</th><th>RR</th><th>EtCO2</th><th>MAP</th></tr></thead><tbody>';
+    for (var vi = 0; vi < state.timeLabels.length; vi++) {
+      var tl = state.timeLabels[vi];
+      if (tl === '+5min') continue;
+      html += '<tr>';
+      html += '<td>' + tl + '</td>';
+      html += '<td>' + (state.vitals.hr[vi] !== undefined ? state.vitals.hr[vi] : '-') + '</td>';
+      html += '<td>' + (state.vitals.spo2[vi] !== undefined ? state.vitals.spo2[vi] : '-') + '</td>';
+      html += '<td>' + (state.vitals.rr[vi] !== undefined ? state.vitals.rr[vi] : '-') + '</td>';
+      html += '<td>' + (state.vitals.etco2[vi] !== undefined ? state.vitals.etco2[vi] : '-') + '</td>';
+      html += '<td>' + (state.vitals.mean[vi] !== undefined ? state.vitals.mean[vi] : '-') + '</td>';
+      html += '</tr>';
+    }
+    html += '</tbody></table>';
+  }
+
+  // --- Section B: Anesthesia Timeline ---
+  html += '<div class="report-section-title">B. 麻酔タイムライン</div>';
+  if (state.events.length > 0) {
+    html += '<table class="report-timeline"><thead><tr><th style="width:80px;">時刻</th><th>イベント</th></tr></thead><tbody>';
+    for (var ei = 0; ei < state.events.length; ei++) {
+      var evt = state.events[ei];
+      var evtTime = evt.time instanceof Date ? evt.time.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }) : '-';
+      html += '<tr><td>' + evtTime + '</td><td>' + evt.name + '</td></tr>';
+    }
+    html += '</tbody></table>';
+  } else {
+    html += '<p style="color:#999; font-size:10px;">イベント記録なし</p>';
+  }
+
+  // --- Section C: Drug Administration Summary ---
+  html += '<div class="report-section-title">C. 薬剤投与記録</div>';
+  // Collect drug entries from log
+  var drugLogs = [];
+  var logIds = Object.keys(state.logEntries);
+  for (var li = 0; li < logIds.length; li++) {
+    var le = state.logEntries[logIds[li]];
+    if (le && le.text) {
+      if (le.text.indexOf('💊') === 0 || le.text.indexOf('💉') === 0) {
+        drugLogs.push(le.text);
+      }
+    }
+  }
+  if (drugLogs.length > 0) {
+    html += '<table class="report-drug-table"><thead><tr><th>投与内容</th><th>備考</th></tr></thead><tbody>';
+    for (var di = 0; di < drugLogs.length; di++) {
+      var dText = drugLogs[di].replace(/^[💊💉]\s*/, '');
+      html += '<tr><td>' + dText + '</td><td></td></tr>';
+    }
+    html += '</tbody></table>';
+  } else {
+    html += '<p style="color:#999; font-size:10px;">薬剤投与記録なし</p>';
+  }
+
+  // --- Section D: Full Log ---
+  html += '<div class="report-section-title">D. 全記録ログ</div>';
+  var allLogIds = Object.keys(state.logEntries);
+  if (allLogIds.length > 0) {
+    html += '<table class="report-timeline"><thead><tr><th style="width:80px;">No.</th><th>内容</th></tr></thead><tbody>';
+    // Reverse to chronological order (oldest first)
+    for (var ai = allLogIds.length - 1; ai >= 0; ai--) {
+      var aEntry = state.logEntries[allLogIds[ai]];
+      var noteStr = aEntry.note ? ' <em style="color:#b45309;">[' + aEntry.note + ']</em>' : '';
+      html += '<tr><td>' + (allLogIds.length - ai) + '</td><td>' + aEntry.text + noteStr + '</td></tr>';
+    }
+    html += '</tbody></table>';
+  }
+
+  // --- Section E: Notes ---
+  html += '<div class="report-section-title">E. 所見・コメント</div>';
+  html += '<div class="report-notes-area" contenteditable="true" id="reportNotesArea">ここに所見を記入...</div>';
+
+  // --- Footer: Signatures ---
+  html += '<div class="report-footer">';
+  html += '<div class="report-sig-block"><div class="report-sig-line"></div><div class="report-sig-label">執刀医: ' + (p.surgeon || '___________') + '</div></div>';
+  html += '<div class="report-sig-block"><div class="report-sig-line"></div><div class="report-sig-label">麻酔担当: ' + (p.anesthetist || '___________') + '</div></div>';
+  html += '</div>';
+
+  content.innerHTML = html;
+  document.getElementById('reportScreen').style.display = 'flex';
+}
+
+function printReport() {
+  window.print();
+}
+
+function closeReport() {
+  document.getElementById('reportScreen').style.display = 'none';
 }
 
 // ===================================================================
