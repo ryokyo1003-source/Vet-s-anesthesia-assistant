@@ -46,22 +46,25 @@
     background: var(--bg-primary);
     display: flex; align-items: center; justify-content: center;
   }
-  .startup-wrapper {
-    display: flex; flex-direction: column; align-items: center;
-    width: 720px; max-height: 96vh; gap: 0;
-  }
   .startup-card {
     background: var(--bg-card); border: 1px solid var(--border);
-    border-radius: 20px 20px 0 0; padding: 32px 36px 24px;
-    width: 100%;
+    border-radius: 20px; padding: 32px 36px;
+    width: 720px; max-height: 92vh;
     overflow-y: auto; -webkit-overflow-scrolling: touch;
-    flex: 1; min-height: 0;
   }
-  .startup-bottom-bar {
-    width: 100%; padding: 8px 36px 20px;
-    background: var(--bg-card); border: 1px solid var(--border); border-top: none;
-    border-radius: 0 0 20px 20px; flex-shrink: 0;
+  .startup-title-row {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 4px;
   }
+  .btn-settings-gear {
+    width: 48px; height: 48px; border-radius: 12px;
+    background: var(--bg-secondary); border: 1px solid var(--border);
+    color: var(--accent-yellow); font-size: 22px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; -webkit-tap-highlight-color: rgba(245,158,11,0.3);
+    transition: background 0.15s;
+  }
+  .btn-settings-gear:active { background: var(--bg-card-hover); }
   .startup-card h1 {
     font-size: 30px; font-weight: 700; margin-bottom: 4px;
     background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
@@ -639,16 +642,7 @@
   }
   .calib-profile-name-input:focus { border-color: var(--accent-blue); }
 
-  /* Settings button on startup */
-  .btn-monitor-settings {
-    display: flex; align-items: center; justify-content: center; gap: 8px;
-    width: 100%; padding: 12px; margin-top: 8px;
-    background: var(--bg-secondary); border: 1px solid var(--border);
-    border-radius: 12px; color: var(--accent-yellow);
-    font-size: 14px; font-weight: 600; cursor: pointer; min-height: 50px;
-    -webkit-tap-highlight-color: rgba(245,158,11,0.2);
-  }
-  .btn-monitor-settings:active { background: var(--bg-card-hover); }
+  /* (Settings button is now .btn-settings-gear in title row) */
 
   /* ===== DRUG MASTER EDITOR ===== */
   .dm-editor {
@@ -746,9 +740,11 @@
 
 <!-- ========== STARTUP SCREEN ========== -->
 <div id="startupScreen">
-  <div class="startup-wrapper">
   <div class="startup-card">
-    <h1>🩺 VetAnes</h1>
+    <div class="startup-title-row">
+      <h1>🩺 VetAnes</h1>
+      <button class="btn-settings-gear" id="btnOpenSettings" onclick="openSettings()">⚙️</button>
+    </div>
     <p class="sub">獣医麻酔管理アシスタント</p>
 
     <!-- 施術情報 -->
@@ -826,10 +822,6 @@
     </div>
 
     <button class="btn-start" onclick="startSession()">麻酔セッション開始</button>
-  </div>
-  <div class="startup-bottom-bar">
-    <button class="btn-monitor-settings" id="btnOpenSettings" ontouchstart="this._ts=1" onclick="openSettings()">⚙️ 設定（モニター / 薬剤マスタ）</button>
-  </div>
   </div>
 </div>
 
