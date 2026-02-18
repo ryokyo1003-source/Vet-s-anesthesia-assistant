@@ -1043,13 +1043,13 @@
       <div style="text-align:center; margin-bottom:20px;">
         <div style="font-size:40px; margin-bottom:8px;">🤖</div>
         <h3 style="font-size:16px; margin-bottom:4px;">AI モニター読取設定</h3>
-        <p style="font-size:12px; color:var(--text-secondary);">Claude APIを使ってモニター画像からバイタルを自動読取します</p>
+        <p style="font-size:12px; color:var(--text-secondary);">Gemini APIを使ってモニター画像からバイタルを自動読取します</p>
       </div>
 
       <div style="background:var(--bg-secondary); border:1px solid var(--border); border-radius:10px; padding:16px; margin-bottom:16px;">
-        <label style="font-size:13px; font-weight:600; color:var(--text-primary); display:block; margin-bottom:8px;">🔑 Anthropic API キー</label>
+        <label style="font-size:13px; font-weight:600; color:var(--text-primary); display:block; margin-bottom:8px;">🔑 Google AI (Gemini) API キー</label>
         <div style="display:flex; gap:8px; align-items:center;">
-          <input type="password" id="inputApiKey" placeholder="sk-ant-api03-..." style="flex:1; padding:10px 12px; background:var(--bg-card); border:1px solid var(--border); border-radius:8px; color:var(--text-primary); font-size:14px; font-family:monospace;">
+          <input type="password" id="inputApiKey" placeholder="AIzaSy..." style="flex:1; padding:10px 12px; background:var(--bg-card); border:1px solid var(--border); border-radius:8px; color:var(--text-primary); font-size:14px; font-family:monospace;">
           <button type="button" onclick="toggleApiKeyVisibility()" style="width:44px; height:44px; background:var(--bg-card); border:1px solid var(--border); border-radius:8px; color:var(--text-secondary); font-size:18px; cursor:pointer;" id="btnToggleKey">👁</button>
         </div>
         <p style="font-size:11px; color:var(--text-muted); margin-top:6px;">※ キーはこの端末のブラウザにのみ保存されます（外部送信はAPI通信のみ）</p>
@@ -1058,8 +1058,8 @@
       <div style="background:var(--bg-secondary); border:1px solid var(--border); border-radius:10px; padding:16px; margin-bottom:16px;">
         <label style="font-size:13px; font-weight:600; color:var(--text-primary); display:block; margin-bottom:8px;">🧠 モデル選択</label>
         <select id="selectApiModel" style="width:100%; padding:10px 12px; background:var(--bg-card); border:1px solid var(--border); border-radius:8px; color:var(--text-primary); font-size:14px;">
-          <option value="claude-haiku">Claude Haiku（高速・低コスト ≈¥0.5/回）推奨</option>
-          <option value="claude-sonnet">Claude Sonnet（高精度 ≈¥3/回）</option>
+          <option value="gemini-flash">Gemini 2.0 Flash（高速・最安 ≈¥0.1/回）推奨</option>
+          <option value="gemini-pro">Gemini 2.5 Pro（最高精度 ≈¥1/回）</option>
         </select>
       </div>
 
@@ -1080,10 +1080,10 @@
       <div style="margin-top:20px; padding:16px; background:rgba(59,130,246,0.08); border:1px solid rgba(59,130,246,0.2); border-radius:10px;">
         <div style="font-size:13px; font-weight:700; color:var(--accent-blue); margin-bottom:8px;">💡 APIキーの取得方法</div>
         <ol style="font-size:11px; color:var(--text-secondary); padding-left:18px; line-height:1.8;">
-          <li><a href="https://console.anthropic.com/" target="_blank" style="color:var(--accent-blue);">console.anthropic.com</a> にアクセス</li>
-          <li>アカウント作成（無料）→ クレジット購入（$5〜）</li>
-          <li>Settings → API Keys → Create Key</li>
-          <li>生成されたキー（sk-ant-...）をコピーして上に貼り付け</li>
+          <li><a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--accent-blue);">aistudio.google.com/apikey</a> にアクセス</li>
+          <li>Googleアカウントでログイン</li>
+          <li>「APIキーを作成」をクリック</li>
+          <li>生成されたキー（AIzaSy...）をコピーして上に貼り付け</li>
         </ol>
       </div>
     </div>
@@ -1169,18 +1169,8 @@
       <!-- CRI -->
       <div class="panel-section">
         <div class="panel-title">💊 CRI 計算機</div>
-        <select class="cri-select" id="criDrug" onchange="updateCRI()">
-          <option value="fentanyl">フェンタニル (50μg/mL)</option>
-          <option value="ketamine">ケタミン (50mg/mL)</option>
-          <option value="lidocaine">リドカイン (20mg/mL)</option>
-          <option value="remifentanil">レミフェンタニル (20μg/mL)</option>
-          <option value="morphine">モルヒネ (10mg/mL)</option>
-        </select>
-        <div class="cri-control">
-          <div class="cri-btn-group"><button class="cri-btn" onclick="adjustCRI(-1)">−1</button><button class="cri-btn fine" onclick="adjustCRI(-0.1)">−.1</button></div>
-          <div class="cri-display"><div class="rate" id="criRate">1.0</div><div class="rate-unit">mL/hr</div><div class="converted" id="criConverted">-</div><div class="converted-unit" id="criConvertedUnit">μg/kg/min</div></div>
-          <div class="cri-btn-group"><button class="cri-btn" onclick="adjustCRI(1)">＋1</button><button class="cri-btn fine" onclick="adjustCRI(0.1)">＋.1</button></div>
-        </div>
+        <select class="cri-select" id="criDrug" onchange="updateCRI()"></select>
+        <div id="criCalcPanel" style="margin-top:8px;"></div>
       </div>
 
       <!-- Events -->
@@ -1282,7 +1272,7 @@ const state = {
   logEntries: {},      // logId -> { text, captureId, note }
   // V5: API settings
   apiKey: '',
-  apiModel: 'claude-haiku',
+  apiModel: 'gemini-flash',
   apiMode: 'ai',  // 'ai' or 'demo'
 };
 
@@ -1311,17 +1301,70 @@ const DRUG_MASTER_DEFAULT = {
     { name:'ドキサプラム', conc:20, unit:'mg/mL', dosePerKg:1, doseUnit:'mg/kg' },
     { name:'リドカイン', conc:20, unit:'mg/mL', dosePerKg:2, doseUnit:'mg/kg' },
   ],
-  cri: {
-    fentanyl:{ conc:50, concUnit:'μg/mL', targetUnit:'μg/kg/min' },
-    ketamine:{ conc:50, concUnit:'mg/mL', targetUnit:'mg/kg/hr' },
-    lidocaine:{ conc:20, concUnit:'mg/mL', targetUnit:'mg/kg/hr' },
-    remifentanil:{ conc:20, concUnit:'μg/mL', targetUnit:'μg/kg/min' },
-    morphine:{ conc:10, concUnit:'mg/mL', targetUnit:'mg/kg/hr' },
-  }
+};
+
+// ===================================================================
+//  CRI MASTER DATA (per species, Excel worksheet準拠)
+// ===================================================================
+// calcType: 'simple' = mL/hr直結（フェンタニル・プロポフォール等）
+//           'infusion' = 輸液パック混注方式（ドパミン・ドブタミン・ケタミン・リドカイン・メトクロプラミド等）
+// rateUnit: 投与速度の単位
+// conc: 原液濃度, concUnit: 原液濃度単位
+// rateMin/rateMax: 推奨範囲, rateDefault: デフォルト
+// diluted: 希釈後の濃度情報（あれば）
+var CRI_MASTER = {
+  dog: [
+    { key:'fentanyl', name:'フェンタニル', conc:50, concUnit:'μg/mL', diluted:{ conc:10, concUnit:'μg/mL', note:'5倍希釈 (生食4mL+原液1mL)' }, calcType:'simple', rateUnit:'μg/kg/hr', rateMin:1, rateMax:5, rateDefault:2 },
+    { key:'ketamine', name:'ケタミン', conc:50, concUnit:'mg/mL', calcType:'infusion', rateUnit:'μg/kg/min', rateMin:2, rateMax:10, rateDefault:2 },
+    { key:'dopamine', name:'ドパミン', conc:20, concUnit:'mg/mL', calcType:'infusion', rateUnit:'μg/kg/min', rateMin:2, rateMax:8, rateDefault:5 },
+    { key:'dobutamine', name:'ドブタミン', conc:20, concUnit:'mg/mL', calcType:'infusion', rateUnit:'μg/kg/min', rateMin:5, rateMax:15, rateDefault:10 },
+    { key:'propofol', name:'プロポフォール（発作重積）', conc:10, concUnit:'mg/mL', calcType:'simple', rateUnit:'mg/kg/min', rateMin:0.05, rateMax:0.2, rateDefault:0.1 },
+    { key:'lidocaine', name:'リドカイン', conc:20, concUnit:'mg/mL', calcType:'infusion', rateUnit:'μg/kg/min', rateMin:50, rateMax:100, rateDefault:50 },
+    { key:'morphine', name:'モルヒネ', conc:10, concUnit:'mg/mL', calcType:'simple', rateUnit:'mg/kg/hr', rateMin:0.1, rateMax:0.3, rateDefault:0.1 },
+  ],
+  cat: [
+    { key:'fentanyl', name:'フェンタニル', conc:50, concUnit:'μg/mL', diluted:{ conc:10, concUnit:'μg/mL', note:'5倍希釈 (生食4mL+原液1mL)' }, calcType:'simple', rateUnit:'μg/kg/hr', rateMin:1, rateMax:4, rateDefault:2 },
+    { key:'ketamine', name:'ケタミン', conc:50, concUnit:'mg/mL', calcType:'infusion', rateUnit:'μg/kg/min', rateMin:2, rateMax:10, rateDefault:2 },
+    { key:'dopamine', name:'ドパミン', conc:20, concUnit:'mg/mL', calcType:'infusion', rateUnit:'μg/kg/min', rateMin:2, rateMax:8, rateDefault:5 },
+    { key:'dobutamine', name:'ドブタミン', conc:20, concUnit:'mg/mL', calcType:'infusion', rateUnit:'μg/kg/min', rateMin:5, rateMax:15, rateDefault:10 },
+    { key:'propofol', name:'プロポフォール（発作重積）', conc:10, concUnit:'mg/mL', calcType:'simple', rateUnit:'mg/kg/min', rateMin:0.05, rateMax:0.2, rateDefault:0.1 },
+    { key:'morphine', name:'モルヒネ', conc:10, concUnit:'mg/mL', calcType:'simple', rateUnit:'mg/kg/hr', rateMin:0.05, rateMax:0.1, rateDefault:0.05 },
+  ],
+  rabbit: [
+    { key:'lidocaine', name:'リドカイン', conc:20, concUnit:'mg/mL', calcType:'infusion', rateUnit:'μg/kg/min', rateMin:50, rateMax:100, rateDefault:50 },
+    { key:'metoclopramide', name:'メトクロプラミド', conc:5, concUnit:'mg/mL', calcType:'infusion', rateUnit:'mg/kg/day', rateMin:1, rateMax:2, rateDefault:1 },
+    { key:'dopamine', name:'ドパミン', conc:20, concUnit:'mg/mL', calcType:'infusion', rateUnit:'μg/kg/min', rateMin:2, rateMax:8, rateDefault:5 },
+  ],
+  ferret: [
+    { key:'lidocaine', name:'リドカイン', conc:20, concUnit:'mg/mL', calcType:'infusion', rateUnit:'μg/kg/min', rateMin:50, rateMax:100, rateDefault:50 },
+    { key:'metoclopramide', name:'メトクロプラミド', conc:5, concUnit:'mg/mL', calcType:'infusion', rateUnit:'mg/kg/day', rateMin:1, rateMax:2, rateDefault:1 },
+    { key:'dopamine', name:'ドパミン', conc:20, concUnit:'mg/mL', calcType:'infusion', rateUnit:'μg/kg/min', rateMin:2, rateMax:8, rateDefault:5 },
+  ],
+  guinea_pig: [
+    { key:'lidocaine', name:'リドカイン', conc:20, concUnit:'mg/mL', calcType:'infusion', rateUnit:'μg/kg/min', rateMin:50, rateMax:100, rateDefault:50 },
+    { key:'metoclopramide', name:'メトクロプラミド', conc:5, concUnit:'mg/mL', calcType:'infusion', rateUnit:'mg/kg/day', rateMin:1, rateMax:2, rateDefault:1 },
+    { key:'dopamine', name:'ドパミン', conc:20, concUnit:'mg/mL', calcType:'infusion', rateUnit:'μg/kg/min', rateMin:2, rateMax:8, rateDefault:5 },
+  ],
+  hamster: [
+    { key:'lidocaine', name:'リドカイン', conc:20, concUnit:'mg/mL', calcType:'infusion', rateUnit:'μg/kg/min', rateMin:50, rateMax:100, rateDefault:50 },
+    { key:'metoclopramide', name:'メトクロプラミド', conc:5, concUnit:'mg/mL', calcType:'infusion', rateUnit:'mg/kg/day', rateMin:1, rateMax:2, rateDefault:1 },
+    { key:'dopamine', name:'ドパミン', conc:20, concUnit:'mg/mL', calcType:'infusion', rateUnit:'μg/kg/min', rateMin:2, rateMax:8, rateDefault:5 },
+  ],
+  bird: [
+    { key:'lidocaine', name:'リドカイン', conc:20, concUnit:'mg/mL', calcType:'infusion', rateUnit:'μg/kg/min', rateMin:50, rateMax:100, rateDefault:50 },
+    { key:'dopamine', name:'ドパミン', conc:20, concUnit:'mg/mL', calcType:'infusion', rateUnit:'μg/kg/min', rateMin:2, rateMax:8, rateDefault:5 },
+  ],
+  reptile: [
+    { key:'dopamine', name:'ドパミン', conc:20, concUnit:'mg/mL', calcType:'infusion', rateUnit:'μg/kg/min', rateMin:2, rateMax:8, rateDefault:5 },
+  ],
+  other: [
+    { key:'dopamine', name:'ドパミン', conc:20, concUnit:'mg/mL', calcType:'infusion', rateUnit:'μg/kg/min', rateMin:2, rateMax:8, rateDefault:5 },
+    { key:'lidocaine', name:'リドカイン', conc:20, concUnit:'mg/mL', calcType:'infusion', rateUnit:'μg/kg/min', rateMin:50, rateMax:100, rateDefault:50 },
+  ],
 };
 
 const DRUG_MASTER = {
-  dog: { ...DRUG_MASTER_DEFAULT },
+  dog: { emergency: DRUG_MASTER_DEFAULT.emergency },
   cat: {
     emergency: [
       { name:'アトロピン', conc:0.5, unit:'mg/mL', dosePerKg:0.02, doseUnit:'mg/kg' },
@@ -1331,15 +1374,14 @@ const DRUG_MASTER = {
       { name:'ドキサプラム', conc:20, unit:'mg/mL', dosePerKg:1, doseUnit:'mg/kg' },
       { name:'フルマゼニル', conc:0.1, unit:'mg/mL', dosePerKg:0.01, doseUnit:'mg/kg' },
     ],
-    cri: DRUG_MASTER_DEFAULT.cri,
   },
-  rabbit: { ...DRUG_MASTER_DEFAULT },
-  ferret: { ...DRUG_MASTER_DEFAULT },
-  guinea_pig: { ...DRUG_MASTER_DEFAULT },
-  hamster: { ...DRUG_MASTER_DEFAULT },
-  bird: { ...DRUG_MASTER_DEFAULT },
-  reptile: { ...DRUG_MASTER_DEFAULT },
-  other: { ...DRUG_MASTER_DEFAULT },
+  rabbit: { emergency: DRUG_MASTER_DEFAULT.emergency },
+  ferret: { emergency: DRUG_MASTER_DEFAULT.emergency },
+  guinea_pig: { emergency: DRUG_MASTER_DEFAULT.emergency },
+  hamster: { emergency: DRUG_MASTER_DEFAULT.emergency },
+  bird: { emergency: DRUG_MASTER_DEFAULT.emergency },
+  reptile: { emergency: DRUG_MASTER_DEFAULT.emergency },
+  other: { emergency: DRUG_MASTER_DEFAULT.emergency },
 };
 
 // ===================================================================
@@ -1811,7 +1853,7 @@ function startMonitoring() {
     notesBadge.title = state.patient.notes;
   }
 
-  buildEmergencyDrugs(); updateCRI(); resetTimer();
+  buildEmergencyDrugs(); buildCriDrugSelect(); resetTimer();
   state.elapsedInterval = setInterval(updateElapsed, 1000);
   initChart();
   document.getElementById('mainApp').style.display = 'block';
@@ -1908,17 +1950,217 @@ function updateAnnounceStatus() {
 function speak(text){if('speechSynthesis' in window){const u=new SpeechSynthesisUtterance(text);u.lang='ja-JP';u.rate=1.0;speechSynthesis.speak(u);}}
 
 // ===================================================================
-//  CRI
+//  CRI (Excel worksheet準拠)
 // ===================================================================
-function adjustCRI(d){state.criRate=Math.max(0,Math.round((state.criRate+d)*10)/10);document.getElementById('criRate').textContent=state.criRate.toFixed(1);updateCRI();}
-function updateCRI(){
-  const dk=document.getElementById('criDrug').value;
-  const sp=state.patient.species||'dog'; const dd=(DRUG_MASTER[sp]||DRUG_MASTER.dog).cri[dk];
-  const w=state.patient.weight||1,r=state.criRate;let c=0,u=dd.targetUnit;
-  if(u.includes('/min'))c=(r*dd.conc)/60/w;else c=(r*dd.conc)/w;
-  document.getElementById('criRate').textContent=state.criRate.toFixed(1);
-  document.getElementById('criConverted').textContent=c.toFixed(3);
-  document.getElementById('criConvertedUnit').textContent=u;
+function buildCriDrugSelect() {
+  var sel = document.getElementById('criDrug');
+  if (!sel) return;
+  sel.innerHTML = '';
+  var sp = state.patient.species || 'dog';
+  var drugs = CRI_MASTER[sp] || CRI_MASTER.dog;
+  drugs.forEach(function(d, i) {
+    var opt = document.createElement('option');
+    opt.value = i;
+    var label = d.name + ' (' + d.conc + d.concUnit;
+    if (d.diluted) label += ' → 希釈' + d.diluted.conc + d.diluted.concUnit;
+    label += ')';
+    opt.textContent = label;
+    sel.appendChild(opt);
+  });
+  updateCRI();
+}
+
+function updateCRI() {
+  var sel = document.getElementById('criDrug');
+  var panel = document.getElementById('criCalcPanel');
+  if (!sel || !panel) return;
+  var sp = state.patient.species || 'dog';
+  var drugs = CRI_MASTER[sp] || CRI_MASTER.dog;
+  var idx = parseInt(sel.value) || 0;
+  if (idx < 0 || idx >= drugs.length) idx = 0;
+  var d = drugs[idx];
+  var w = state.patient.weight || 1;
+
+  var html = '';
+
+  if (d.calcType === 'simple') {
+    // === Simple CRI (フェンタニル、プロポフォール、モルヒネ等) ===
+    var useConc = d.diluted ? d.diluted.conc : d.conc;
+    var useConcUnit = d.diluted ? d.diluted.concUnit : d.concUnit;
+
+    // 希釈情報
+    if (d.diluted) {
+      html += '<div style="background:rgba(6,182,212,0.1);border:1px solid rgba(6,182,212,0.3);border-radius:6px;padding:6px 8px;margin-bottom:6px;font-size:11px;color:var(--accent-cyan);">';
+      html += '💧 ' + d.diluted.note + ' → <strong>' + d.diluted.conc + ' ' + d.diluted.concUnit + '</strong>';
+      html += '</div>';
+    }
+
+    html += '<div style="font-size:11px;color:var(--text-secondary);margin-bottom:4px;">推奨: ' + d.rateMin + '〜' + d.rateMax + ' ' + d.rateUnit + '</div>';
+
+    // 投与速度テーブル
+    html += '<table style="width:100%;border-collapse:collapse;font-size:11px;">';
+    html += '<thead><tr><th style="text-align:left;padding:3px 6px;border-bottom:1px solid var(--border);color:var(--text-secondary);">' + d.rateUnit + '</th>';
+    html += '<th style="text-align:right;padding:3px 6px;border-bottom:1px solid var(--border);color:var(--text-secondary);">mL/hr</th></tr></thead><tbody>';
+
+    var steps = generateRateSteps(d);
+    steps.forEach(function(rate) {
+      var mlhr = calcSimpleMlHr(rate, d.rateUnit, useConc, useConcUnit, w);
+      var isDefault = (rate === d.rateDefault);
+      var style = isDefault ? 'background:rgba(59,130,246,0.12);font-weight:700;' : '';
+      html += '<tr style="' + style + '"><td style="padding:3px 6px;border-bottom:1px solid rgba(42,53,80,0.3);">' + rate + '</td>';
+      html += '<td style="padding:3px 6px;border-bottom:1px solid rgba(42,53,80,0.3);text-align:right;font-family:monospace;"><strong>' + mlhr.toFixed(3) + '</strong></td></tr>';
+    });
+    html += '</tbody></table>';
+
+  } else {
+    // === Infusion bag CRI (ドパミン、ドブタミン、ケタミン、リドカイン、メトクロプラミド) ===
+    // Excelワークシート方式: 輸液パックに薬剤を添加
+    var fluidVol = 50;  // デフォルト輸液量(mL)
+    if (w >= 10) fluidVol = 250;
+    else if (w >= 5) fluidVol = 100;
+
+    var fluidRate = 10; // デフォルト点滴流量(mL/hr)
+    if (w >= 10) fluidRate = 20;
+    else if (w >= 3) fluidRate = 8;
+    else if (w >= 1) fluidRate = 5;
+    else fluidRate = 2;
+
+    html += '<div style="font-size:11px;color:var(--text-secondary);margin-bottom:4px;">推奨: ' + d.rateMin + '〜' + d.rateMax + ' ' + d.rateUnit + '</div>';
+
+    // 入力フォーム
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:6px;">';
+    html += '<div style="font-size:10px;"><label style="color:var(--text-muted);">輸液量(mL)</label><input type="number" id="criFluidVol" value="' + fluidVol + '" min="1" step="1" style="width:100%;padding:4px;background:var(--bg-card);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:12px;" onchange="recalcInfusionCRI()"></div>';
+    html += '<div style="font-size:10px;"><label style="color:var(--text-muted);">点滴流量(mL/hr)</label><input type="number" id="criFluidRate" value="' + fluidRate + '" min="0.1" step="0.1" style="width:100%;padding:4px;background:var(--bg-card);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:12px;" onchange="recalcInfusionCRI()"></div>';
+    html += '</div>';
+
+    // 速度テーブル
+    html += '<table style="width:100%;border-collapse:collapse;font-size:11px;">';
+    html += '<thead><tr><th style="text-align:left;padding:3px 6px;border-bottom:1px solid var(--border);color:var(--text-secondary);">' + d.rateUnit + '</th>';
+    html += '<th style="text-align:right;padding:3px 6px;border-bottom:1px solid var(--border);color:var(--text-secondary);">添加量(mL)</th></tr></thead><tbody>';
+
+    var steps2 = generateRateSteps(d);
+    steps2.forEach(function(rate) {
+      var addMl = calcInfusionAddMl(rate, d.rateUnit, d.conc, d.concUnit, w, fluidVol, fluidRate);
+      var isDefault = (rate === d.rateDefault);
+      var style = isDefault ? 'background:rgba(59,130,246,0.12);font-weight:700;' : '';
+      html += '<tr style="' + style + '" class="cri-infusion-row" data-rate="' + rate + '"><td style="padding:3px 6px;border-bottom:1px solid rgba(42,53,80,0.3);">' + rate + '</td>';
+      html += '<td style="padding:3px 6px;border-bottom:1px solid rgba(42,53,80,0.3);text-align:right;font-family:monospace;" class="cri-add-ml"><strong>' + addMl.toFixed(3) + '</strong></td></tr>';
+    });
+    html += '</tbody></table>';
+
+    html += '<div style="margin-top:6px;padding:6px 8px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);border-radius:6px;font-size:10px;color:var(--accent-yellow);">';
+    html += '📋 選んだ速度の添加量を輸液パックに混注 → 設定した流量(mL/hr)で投与';
+    html += '</div>';
+  }
+
+  panel.innerHTML = html;
+}
+
+function generateRateSteps(d) {
+  var steps = [];
+  var range = d.rateMax - d.rateMin;
+  var step = 1;
+  if (range <= 1) step = 0.05;
+  else if (range <= 5) step = 0.5;
+  else if (range <= 20) step = 1;
+  else if (range <= 50) step = 5;
+  else step = 10;
+
+  for (var r = d.rateMin; r <= d.rateMax + step * 0.01; r += step) {
+    var rounded = Math.round(r * 1000) / 1000;
+    steps.push(rounded);
+  }
+  // rateDefaultが含まれていなければ追加してソート
+  var hasDefault = false;
+  for (var s = 0; s < steps.length; s++) {
+    if (Math.abs(steps[s] - d.rateDefault) < 0.001) { hasDefault = true; break; }
+  }
+  if (!hasDefault) {
+    steps.push(d.rateDefault);
+    steps.sort(function(a, b) { return a - b; });
+  }
+  return steps;
+}
+
+// Simple CRI: 投与速度 → mL/hr
+function calcSimpleMlHr(rate, rateUnit, conc, concUnit, w) {
+  // 単位統一: rateを"量/時間"に変換し、conc(量/mL)で割る
+  // rateUnit例: μg/kg/hr, mg/kg/min, mg/kg/hr
+  var amountPerHr = 0; // 原薬のconcUnit換算での量/hr/kg
+
+  if (rateUnit.indexOf('/min') >= 0) {
+    amountPerHr = rate * 60; // → /hr
+  } else if (rateUnit.indexOf('/hr') >= 0 || rateUnit.indexOf('/hour') >= 0) {
+    amountPerHr = rate;
+  } else if (rateUnit.indexOf('/day') >= 0) {
+    amountPerHr = rate / 24;
+  } else {
+    amountPerHr = rate; // fallback
+  }
+
+  // μg/mg変換
+  var rateIsMicro = rateUnit.indexOf('μg') >= 0;
+  var concIsMicro = concUnit.indexOf('μg') >= 0;
+  if (rateIsMicro && !concIsMicro) amountPerHr = amountPerHr / 1000; // μg→mg
+  if (!rateIsMicro && concIsMicro) amountPerHr = amountPerHr * 1000; // mg→μg
+
+  return (amountPerHr * w) / conc; // mL/hr
+}
+
+// Infusion CRI: Excel方式 — 輸液パックに添加するmL数を算出
+// 計算: addMl = (rate × w × fluidVol) / (fluidRate × conc × unitFactor)
+function calcInfusionAddMl(rate, rateUnit, conc, concUnit, w, fluidVol, fluidRate) {
+  // rate(投与速度, e.g. 5 μg/kg/min) から
+  // 1時間あたりの必要量(mg/hr)を計算
+  var amountPerHr = 0;
+
+  if (rateUnit.indexOf('/min') >= 0) {
+    amountPerHr = rate * 60;
+  } else if (rateUnit.indexOf('/hr') >= 0 || rateUnit.indexOf('/hour') >= 0) {
+    amountPerHr = rate;
+  } else if (rateUnit.indexOf('/day') >= 0) {
+    amountPerHr = rate / 24;
+  } else {
+    amountPerHr = rate;
+  }
+
+  // μg→mg変換
+  var rateIsMicro = rateUnit.indexOf('μg') >= 0;
+  var concIsMg = concUnit.indexOf('mg') >= 0;
+  if (rateIsMicro && concIsMg) amountPerHr = amountPerHr / 1000;
+
+  // 1時間の必要量(mg) = amountPerHr * w
+  var mgPerHr = amountPerHr * w;
+
+  // 輸液パック中の必要濃度(mg/mL) = mgPerHr / fluidRate
+  var needConcMgMl = mgPerHr / (fluidRate || 1);
+
+  // 添加量(mL) = needConcMgMl * fluidVol / conc
+  var addMl = needConcMgMl * fluidVol / conc;
+  return addMl;
+}
+
+function recalcInfusionCRI() {
+  var fluidVolEl = document.getElementById('criFluidVol');
+  var fluidRateEl = document.getElementById('criFluidRate');
+  if (!fluidVolEl || !fluidRateEl) return;
+  var fluidVol = parseFloat(fluidVolEl.value) || 50;
+  var fluidRate = parseFloat(fluidRateEl.value) || 10;
+
+  var sp = state.patient.species || 'dog';
+  var drugs = CRI_MASTER[sp] || CRI_MASTER.dog;
+  var sel = document.getElementById('criDrug');
+  var idx = parseInt(sel.value) || 0;
+  var d = drugs[idx];
+  var w = state.patient.weight || 1;
+
+  var rows = document.querySelectorAll('.cri-infusion-row');
+  rows.forEach(function(row) {
+    var rate = parseFloat(row.dataset.rate);
+    var addMl = calcInfusionAddMl(rate, d.rateUnit, d.conc, d.concUnit, w, fluidVol, fluidRate);
+    var td = row.querySelector('.cri-add-ml');
+    if (td) td.innerHTML = '<strong>' + addMl.toFixed(3) + '</strong>';
+  });
 }
 
 // ===================================================================
@@ -2069,7 +2311,7 @@ function handleCameraCapture(){
 
         // APIモード判定
         if (state.apiMode === 'ai' && state.apiKey) {
-          callClaudeVision(apiDataUrl, captureId, btn);
+          callGeminiVision(apiDataUrl, captureId, btn);
         } else {
           // デモモード
           var d = generateMockVitals(state.patient.species);
@@ -2090,22 +2332,22 @@ function handleCameraCapture(){
 }
 
 // ===================================================================
-//  CLAUDE VISION API
+//  GEMINI VISION API
 // ===================================================================
-function getApiModelId() {
-  if (state.apiModel === 'claude-sonnet') return 'claude-sonnet-4-20250514';
-  return 'claude-haiku-4-20250414';
+function getGeminiModelId() {
+  if (state.apiModel === 'gemini-pro') return 'gemini-2.5-pro-preview-06-05';
+  return 'gemini-2.0-flash';
 }
 
-function callClaudeVision(imageDataUrl, captureId, btn) {
+function callGeminiVision(imageDataUrl, captureId, btn) {
   // base64部分を抽出
   var parts = imageDataUrl.split(',');
-  var mediaType = 'image/jpeg';
+  var mimeType = 'image/jpeg';
   var mtMatch = parts[0].match(/data:([^;]+)/);
-  if (mtMatch) mediaType = mtMatch[1];
+  if (mtMatch) mimeType = mtMatch[1];
   var base64Data = parts[1];
 
-  var modelId = getApiModelId();
+  var modelId = getGeminiModelId();
   var prompt = 'この画像は動物病院の麻酔モニター画面です。表示されている数値を読み取ってください。\n' +
     '必ず以下のJSON形式のみで回答してください。他のテキストは不要です。\n' +
     '読み取れない項目はnullにしてください。\n' +
@@ -2113,34 +2355,31 @@ function callClaudeVision(imageDataUrl, captureId, btn) {
     '- hr: 心拍数(bpm)\n- spo2: 酸素飽和度(%)\n- rr: 呼吸数\n- etco2: 終末呼気CO2(mmHg)\n' +
     '- sys: 収縮期血圧(mmHg)\n- dia: 拡張期血圧(mmHg)\n- temp: 体温(℃)\n- iso: イソフルラン濃度(%)';
 
+  var apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/' + modelId + ':generateContent?key=' + encodeURIComponent(state.apiKey);
+
   var body = JSON.stringify({
-    model: modelId,
-    max_tokens: 256,
-    messages: [{
-      role: 'user',
-      content: [
+    contents: [{
+      parts: [
         {
-          type: 'image',
-          source: {
-            type: 'base64',
-            media_type: mediaType,
+          inline_data: {
+            mime_type: mimeType,
             data: base64Data
           }
         },
         {
-          type: 'text',
           text: prompt
         }
       ]
-    }]
+    }],
+    generationConfig: {
+      maxOutputTokens: 256,
+      temperature: 0.1
+    }
   });
 
   var xhr = new XMLHttpRequest();
-  xhr.open('POST', 'https://api.anthropic.com/v1/messages', true);
+  xhr.open('POST', apiUrl, true);
   xhr.setRequestHeader('Content-Type', 'application/json');
-  xhr.setRequestHeader('x-api-key', state.apiKey);
-  xhr.setRequestHeader('anthropic-version', '2023-06-01');
-  xhr.setRequestHeader('anthropic-dangerous-direct-browser-access', 'true');
   xhr.timeout = 30000;
 
   xhr.onload = function() {
@@ -2151,13 +2390,16 @@ function callClaudeVision(imageDataUrl, captureId, btn) {
       try {
         var resp = JSON.parse(xhr.responseText);
         var text = '';
-        if (resp.content && resp.content.length > 0) {
-          text = resp.content[0].text || '';
+        if (resp.candidates && resp.candidates.length > 0) {
+          var parts2 = resp.candidates[0].content && resp.candidates[0].content.parts;
+          if (parts2 && parts2.length > 0) {
+            text = parts2[0].text || '';
+          }
         }
         var vitals = parseVitalsFromAI(text);
         if (vitals) {
           applyVitalData(vitals, captureId, false);
-          addLog('🤖 AI読取成功 (model: ' + modelId.split('-').slice(0,2).join('-') + ')');
+          addLog('🤖 AI読取成功 (' + modelId + ')');
         } else {
           addLog('⚠ AI応答のパース失敗 → デモ値使用');
           var d = generateMockVitals(state.patient.species);
@@ -2342,21 +2584,19 @@ function testApiConnection() {
   }
 
   var modelSelect = document.getElementById('selectApiModel');
-  var modelVal = modelSelect ? modelSelect.value : 'claude-haiku';
-  var modelId = modelVal === 'claude-sonnet' ? 'claude-sonnet-4-20250514' : 'claude-haiku-4-20250414';
+  var modelVal = modelSelect ? modelSelect.value : 'gemini-flash';
+  var modelId = modelVal === 'gemini-pro' ? 'gemini-2.5-pro-preview-06-05' : 'gemini-2.0-flash';
+
+  var apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/' + modelId + ':generateContent?key=' + encodeURIComponent(key);
 
   var body = JSON.stringify({
-    model: modelId,
-    max_tokens: 32,
-    messages: [{ role: 'user', content: 'Reply with only: OK' }]
+    contents: [{ parts: [{ text: 'Reply with only: OK' }] }],
+    generationConfig: { maxOutputTokens: 16 }
   });
 
   var xhr = new XMLHttpRequest();
-  xhr.open('POST', 'https://api.anthropic.com/v1/messages', true);
+  xhr.open('POST', apiUrl, true);
   xhr.setRequestHeader('Content-Type', 'application/json');
-  xhr.setRequestHeader('x-api-key', key);
-  xhr.setRequestHeader('anthropic-version', '2023-06-01');
-  xhr.setRequestHeader('anthropic-dangerous-direct-browser-access', 'true');
   xhr.timeout = 15000;
 
   xhr.onload = function() {
@@ -2383,7 +2623,7 @@ function testApiConnection() {
     resultEl.style.display = 'block';
     resultEl.style.background = 'rgba(239,68,68,0.1)';
     resultEl.style.color = 'var(--accent-red)';
-    resultEl.textContent = '❌ ネットワークエラー（CORSの可能性あり）';
+    resultEl.textContent = '❌ ネットワークエラー';
   };
 
   xhr.ontimeout = function() {
