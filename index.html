@@ -256,6 +256,43 @@
     background: rgba(139,92,246,0.15); color: var(--accent-purple);
     text-transform: uppercase; min-width: 30px; text-align: center;
   }
+  /* CRI in prep screen */
+  .prep-cri-card {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 14px; margin-bottom: 10px;
+  }
+  .prep-cri-title {
+    display: flex; align-items: center; gap: 8px; cursor: pointer;
+    font-size: 14px; font-weight: 700; color: var(--accent-purple);
+    padding: 8px 12px; background: rgba(139,92,246,0.08); border-radius: 10px;
+    margin-bottom: 10px; user-select: none;
+  }
+  .prep-cri-title .arrow { transition: transform 0.2s; }
+  .prep-cri-title.collapsed .arrow { transform: rotate(-90deg); }
+  .prep-cri-body.hidden { display: none; }
+  .prep-cri-drug-select {
+    width: 100%; padding: 10px 38px 10px 12px;
+    background: var(--bg-secondary); border: 1px solid var(--border);
+    border-radius: 10px; color: var(--text-primary); font-size: 13px;
+    margin-bottom: 8px; outline: none;
+    -webkit-appearance: none; appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='%238892a8'%3E%3Cpath d='M6 8L0 0h12z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 12px center;
+  }
+  .prep-cri-result {
+    font-size: 11px; line-height: 1.6;
+  }
+  .prep-cri-result table {
+    width: 100%; border-collapse: collapse;
+  }
+  .prep-cri-result th {
+    text-align: left; padding: 4px 8px;
+    border-bottom: 1px solid var(--border); color: var(--text-secondary); font-size: 11px;
+  }
+  .prep-cri-result td {
+    padding: 4px 8px; border-bottom: 1px solid rgba(42,53,80,0.3); font-size: 11px;
+  }
+  .prep-cri-result tr.cri-default { background: rgba(59,130,246,0.12); font-weight: 700; }
   .btn-prep-done {
     width: 100%; padding: 16px;
     background: linear-gradient(135deg, var(--accent-green), #059669);
@@ -1220,6 +1257,10 @@
     <p class="sub" style="color:var(--text-secondary); margin-bottom:12px; font-size:13px;">体重から投与量・シリンジ準備量を自動計算</p>
     <div class="prep-patient-bar" id="prepPatientBar"></div>
     <div id="prepDrugList"></div>
+
+    <!-- CRI Calculator in Prep Screen -->
+    <div id="prepCriSection" style="margin-top:16px;"></div>
+
     <button class="btn-prep-done" onclick="completeDrugPrep()">✅ 準備完了 → モニタリング開始</button>
     <button class="btn-prep-skip" onclick="skipDrugPrep()">スキップ（準備済み）</button>
   </div>
@@ -1844,6 +1885,7 @@ function showDrugPrepScreen() {
     (state.patient.procedure !== '-' ? `<span style="color:var(--text-secondary)">${state.patient.procedure}</span>` : '');
 
   buildPrepDrugList(sp, w);
+  buildPrepCriSection(sp, w);
   document.getElementById('drugPrepScreen').style.display = 'flex';
 }
 
@@ -2227,6 +2269,146 @@ function setupTouchDrag(listEl) {
     touchItem = null;
     touchClone = null;
   }, { passive: true });
+}
+
+// ===================================================================
+//  DRUG PREP: CRI CALCULATOR SECTION
+// ===================================================================
+function buildPrepCriSection(species, weight) {
+  var container = document.getElementById('prepCriSection');
+  if (!container) return;
+  var drugs = CRI_MASTER[species] || CRI_MASTER.dog;
+  if (!drugs || drugs.length === 0) {
+    container.innerHTML = '';
+    return;
+  }
+
+  var html = '<div class="prep-cri-card">';
+  html += '<div class="prep-cri-title" onclick="this.classList.toggle(\'collapsed\');this.nextElementSibling.classList.toggle(\'hidden\')">';
+  html += '<span class="arrow">▼</span> 💊 CRI 計算（持続点滴）';
+  html += '</div>';
+  html += '<div class="prep-cri-body">';
+
+  // Drug selector
+  html += '<select class="prep-cri-drug-select" id="prepCriDrugSelect" onchange="updatePrepCri()">';
+  drugs.forEach(function(d, i) {
+    var label = d.name + ' (' + d.conc + d.concUnit;
+    if (d.diluted) label += ' → 希釈' + d.diluted.conc + d.diluted.concUnit;
+    label += ')';
+    html += '<option value="' + i + '">' + label + '</option>';
+  });
+  html += '</select>';
+
+  // Result area
+  html += '<div id="prepCriResult" class="prep-cri-result"></div>';
+
+  html += '</div></div>';
+  container.innerHTML = html;
+
+  // Initial calc
+  updatePrepCri();
+}
+
+function updatePrepCri() {
+  var sel = document.getElementById('prepCriDrugSelect');
+  var resultEl = document.getElementById('prepCriResult');
+  if (!sel || !resultEl) return;
+
+  var sp = state.patient.species || 'dog';
+  var drugs = CRI_MASTER[sp] || CRI_MASTER.dog;
+  var idx = parseInt(sel.value) || 0;
+  if (idx < 0 || idx >= drugs.length) idx = 0;
+  var d = drugs[idx];
+  var w = state.patient.weight || 1;
+
+  var html = '';
+
+  if (d.calcType === 'simple') {
+    var useConc = d.diluted ? d.diluted.conc : d.conc;
+    var useConcUnit = d.diluted ? d.diluted.concUnit : d.concUnit;
+
+    if (d.diluted) {
+      html += '<div style="background:rgba(6,182,212,0.1);border:1px solid rgba(6,182,212,0.3);border-radius:6px;padding:6px 8px;margin-bottom:8px;font-size:11px;color:var(--accent-cyan);">';
+      html += '💧 ' + d.diluted.note + ' → <strong>' + d.diluted.conc + ' ' + d.diluted.concUnit + '</strong>';
+      html += '</div>';
+    }
+
+    html += '<div style="font-size:11px;color:var(--text-secondary);margin-bottom:6px;">推奨: ' + d.rateMin + '〜' + d.rateMax + ' ' + d.rateUnit + '</div>';
+
+    html += '<table><thead><tr><th>' + d.rateUnit + '</th><th style="text-align:right;">mL/hr</th></tr></thead><tbody>';
+    var steps = generateRateSteps(d);
+    steps.forEach(function(rate) {
+      var mlhr = calcSimpleMlHr(rate, d.rateUnit, useConc, useConcUnit, w);
+      var isDefault = (Math.abs(rate - d.rateDefault) < 0.001);
+      html += '<tr' + (isDefault ? ' class="cri-default"' : '') + '>';
+      html += '<td>' + rate + '</td>';
+      html += '<td style="text-align:right;font-family:monospace;">' + mlhr.toFixed(3) + '</td>';
+      html += '</tr>';
+    });
+    html += '</tbody></table>';
+
+  } else {
+    // Infusion bag method
+    var fluidVol = 50;
+    if (w >= 10) fluidVol = 250;
+    else if (w >= 5) fluidVol = 100;
+
+    var fluidRate = 10;
+    if (w >= 10) fluidRate = 20;
+    else if (w >= 3) fluidRate = 8;
+    else if (w >= 1) fluidRate = 5;
+    else fluidRate = 2;
+
+    html += '<div style="font-size:11px;color:var(--text-secondary);margin-bottom:6px;">推奨: ' + d.rateMin + '〜' + d.rateMax + ' ' + d.rateUnit + '</div>';
+
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;">';
+    html += '<div style="font-size:10px;"><label style="color:var(--text-muted);">輸液量(mL)</label>';
+    html += '<input type="number" id="prepCriFluidVol" value="' + fluidVol + '" min="1" step="1" style="width:100%;padding:5px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);font-size:12px;" onchange="recalcPrepCriInfusion()" oninput="recalcPrepCriInfusion()"></div>';
+    html += '<div style="font-size:10px;"><label style="color:var(--text-muted);">点滴流量(mL/hr)</label>';
+    html += '<input type="number" id="prepCriFluidRate" value="' + fluidRate + '" min="0.1" step="0.1" style="width:100%;padding:5px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);font-size:12px;" onchange="recalcPrepCriInfusion()" oninput="recalcPrepCriInfusion()"></div>';
+    html += '</div>';
+
+    html += '<table><thead><tr><th>' + d.rateUnit + '</th><th style="text-align:right;">添加量(mL)</th></tr></thead><tbody>';
+    var steps2 = generateRateSteps(d);
+    steps2.forEach(function(rate) {
+      var addMl = calcInfusionAddMl(rate, d.rateUnit, d.conc, d.concUnit, w, fluidVol, fluidRate);
+      var isDefault = (Math.abs(rate - d.rateDefault) < 0.001);
+      html += '<tr class="prep-cri-infusion-row' + (isDefault ? ' cri-default' : '') + '" data-rate="' + rate + '">';
+      html += '<td>' + rate + '</td>';
+      html += '<td style="text-align:right;font-family:monospace;" class="prep-cri-add-ml">' + addMl.toFixed(3) + '</td>';
+      html += '</tr>';
+    });
+    html += '</tbody></table>';
+
+    html += '<div style="margin-top:6px;padding:6px 8px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);border-radius:6px;font-size:10px;color:var(--accent-yellow);">';
+    html += '📋 選んだ速度の添加量を輸液パックに混注 → 設定した流量(mL/hr)で投与';
+    html += '</div>';
+  }
+
+  resultEl.innerHTML = html;
+}
+
+function recalcPrepCriInfusion() {
+  var fluidVolEl = document.getElementById('prepCriFluidVol');
+  var fluidRateEl = document.getElementById('prepCriFluidRate');
+  if (!fluidVolEl || !fluidRateEl) return;
+  var fluidVol = parseFloat(fluidVolEl.value) || 50;
+  var fluidRate = parseFloat(fluidRateEl.value) || 10;
+
+  var sp = state.patient.species || 'dog';
+  var drugs = CRI_MASTER[sp] || CRI_MASTER.dog;
+  var sel = document.getElementById('prepCriDrugSelect');
+  var idx = parseInt(sel.value) || 0;
+  var d = drugs[idx];
+  var w = state.patient.weight || 1;
+
+  var rows = document.querySelectorAll('.prep-cri-infusion-row');
+  rows.forEach(function(row) {
+    var rate = parseFloat(row.dataset.rate);
+    var addMl = calcInfusionAddMl(rate, d.rateUnit, d.conc, d.concUnit, w, fluidVol, fluidRate);
+    var td = row.querySelector('.prep-cri-add-ml');
+    if (td) td.textContent = addMl.toFixed(3);
+  });
 }
 
 function completeDrugPrep() {
