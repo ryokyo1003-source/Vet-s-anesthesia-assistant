@@ -199,6 +199,58 @@
     min-width: 80px; text-align: right;
   }
   .prep-drug-calc .calc-detail { font-size: 10px; color: var(--text-secondary); font-weight: 400; }
+  .prep-drug-actions-row {
+    display: flex; gap: 4px; flex-shrink: 0; margin-left: auto;
+  }
+  .prep-btn-edit, .prep-btn-delete {
+    width: 30px; height: 30px; border-radius: 6px; border: none;
+    font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; -webkit-tap-highlight-color: transparent;
+  }
+  .prep-btn-edit { background: rgba(59,130,246,0.12); color: var(--accent-blue); }
+  .prep-btn-edit:active { background: rgba(59,130,246,0.25); }
+  .prep-btn-delete { background: rgba(239,68,68,0.1); color: var(--accent-red); }
+  .prep-btn-delete:active { background: rgba(239,68,68,0.2); }
+  .prep-add-drug-btn {
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    width: 100%; padding: 8px; margin-top: 4px;
+    background: var(--bg-secondary); border: 1px dashed var(--accent-cyan);
+    border-radius: 8px; color: var(--accent-cyan);
+    font-size: 12px; font-weight: 600; cursor: pointer; min-height: 36px;
+  }
+  .prep-add-drug-btn:active { background: var(--bg-card-hover); }
+  /* Edit modal */
+  .prep-edit-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 1600; animation: fadeIn 0.2s;
+  }
+  .prep-edit-popup {
+    background: var(--bg-card); border: 1px solid var(--accent-blue);
+    border-radius: 16px; padding: 20px; max-width: 480px; width: 92%;
+  }
+  .prep-edit-popup h3 { color: var(--accent-blue); margin-bottom: 14px; font-size: 15px; }
+  .prep-edit-field { margin-bottom: 10px; }
+  .prep-edit-field label {
+    display: block; font-size: 11px; font-weight: 700;
+    color: var(--text-muted); margin-bottom: 3px; letter-spacing: 0.3px;
+  }
+  .prep-edit-field input, .prep-edit-field select {
+    width: 100%; padding: 10px 12px;
+    background: var(--bg-secondary); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text-primary); font-size: 14px;
+    outline: none; -webkit-appearance: none; appearance: none;
+  }
+  .prep-edit-field input:focus, .prep-edit-field select:focus { border-color: var(--accent-blue); }
+  .prep-edit-row { display: flex; gap: 8px; }
+  .prep-edit-row .prep-edit-field { flex: 1; }
+  .prep-edit-btns { display: flex; gap: 8px; margin-top: 14px; }
+  .prep-edit-btns button {
+    flex: 1; padding: 12px; border: none; border-radius: 8px;
+    font-weight: 700; cursor: pointer; min-height: 44px; font-size: 14px;
+  }
+  .prep-edit-save { background: var(--accent-blue); color: white; }
+  .prep-edit-cancel { background: var(--bg-secondary); color: var(--text-secondary); border: 1px solid var(--border) !important; }
   .prep-drug-route {
     font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 6px;
     background: rgba(139,92,246,0.15); color: var(--accent-purple);
@@ -1802,8 +1854,8 @@ function buildPrepDrugList(species, weight) {
 
   let drugIdx = 0;
   for (const [catKey, catInfo] of Object.entries(PREMED_CATEGORY_LABELS)) {
-    const drugs = master[catKey];
-    if (!drugs || drugs.length === 0) continue;
+    const drugs = master[catKey] || [];
+    if (!master[catKey]) master[catKey] = [];
 
     const section = document.createElement('div');
     section.className = 'prep-category';
@@ -1852,7 +1904,11 @@ function buildPrepDrugList(species, weight) {
         (isInhale ? '' : `<input type="number" class="prep-drug-input" id="prepDose_${idx}" value="${defaultDose}" step="any" min="0" data-idx="${idx}" data-conc="${drug.conc}" data-unit="${drug.doseUnit}" onchange="updatePrepCalc(${idx})" oninput="updatePrepCalc(${idx})">`) +
         (isInhale ? '' : `<span class="prep-drug-unit">${drug.doseUnit}</span>`) +
         calcHtml +
-        `<span class="prep-drug-route">${drug.route}</span>`;
+        `<span class="prep-drug-route">${drug.route}</span>` +
+        `<span class="prep-drug-actions-row">` +
+          `<button class="prep-btn-edit" onclick="event.stopPropagation();openPrepDrugEdit('${catKey}',${drugIndexInCat})" title="編集">✏</button>` +
+          `<button class="prep-btn-delete" onclick="event.stopPropagation();deletePrepDrug('${catKey}',${drugIndexInCat})" title="削除">✕</button>` +
+        `</span>`;
 
       // Drag events
       row.addEventListener('dragstart', prepDragStart);
@@ -1865,12 +1921,123 @@ function buildPrepDrugList(species, weight) {
       list.appendChild(row);
     });
 
+    // Add drug button
+    const addBtn = document.createElement('button');
+    addBtn.className = 'prep-add-drug-btn';
+    addBtn.innerHTML = `＋ ${catInfo.label}を追加`;
+    addBtn.onclick = function() { openPrepDrugEdit(catKey, -1); };
+    list.appendChild(addBtn);
+
     // Touch drag support
     setupTouchDrag(list);
 
     section.appendChild(list);
     container.appendChild(section);
   }
+}
+
+// ===================================================================
+//  DRUG PREP: INLINE EDIT / ADD / DELETE
+// ===================================================================
+function openPrepDrugEdit(catKey, drugIndex) {
+  const sp = state.patient.species || 'dog';
+  const master = PREMED_MASTER[sp] || PREMED_MASTER.dog;
+  const isNew = drugIndex < 0;
+  const drug = isNew ? { name:'', conc:1, concUnit:'mg/mL', doseMin:0, doseMax:0, doseUnit:'mg/kg', route:'iv' } : master[catKey][drugIndex];
+  const catLabel = PREMED_CATEGORY_LABELS[catKey] ? PREMED_CATEGORY_LABELS[catKey].label : catKey;
+  const isInhale = drug.conc === null;
+
+  const overlay = document.createElement('div');
+  overlay.className = 'prep-edit-overlay';
+  overlay.innerHTML = `<div class="prep-edit-popup">
+    <h3>${isNew ? '➕ ' + catLabel + 'に薬剤追加' : '✏️ ' + drug.name + ' を編集'}</h3>
+    <div class="prep-edit-field">
+      <label>薬剤名</label>
+      <input type="text" id="peditName" value="${drug.name}" placeholder="薬剤名を入力">
+    </div>
+    <div class="prep-edit-row">
+      <div class="prep-edit-field">
+        <label>濃度</label>
+        <input type="number" id="peditConc" value="${isInhale ? '' : (drug.conc||'')}" step="any" placeholder="吸入薬は空">
+      </div>
+      <div class="prep-edit-field">
+        <label>濃度単位</label>
+        <input type="text" id="peditConcUnit" value="${drug.concUnit||'mg/mL'}" placeholder="mg/mL">
+      </div>
+    </div>
+    <div class="prep-edit-row">
+      <div class="prep-edit-field">
+        <label>最小用量</label>
+        <input type="number" id="peditDoseMin" value="${drug.doseMin}" step="any">
+      </div>
+      <div class="prep-edit-field">
+        <label>最大用量</label>
+        <input type="number" id="peditDoseMax" value="${drug.doseMax}" step="any">
+      </div>
+      <div class="prep-edit-field">
+        <label>用量単位</label>
+        <input type="text" id="peditDoseUnit" value="${drug.doseUnit}" placeholder="mg/kg">
+      </div>
+    </div>
+    <div class="prep-edit-field">
+      <label>投与経路</label>
+      <input type="text" id="peditRoute" value="${drug.route}" placeholder="iv, im, sc, po...">
+    </div>
+    <div class="prep-edit-btns">
+      <button class="prep-edit-cancel" onclick="this.closest('.prep-edit-overlay').remove()">キャンセル</button>
+      <button class="prep-edit-save" onclick="savePrepDrugEdit('${catKey}',${drugIndex})">${isNew ? '追加' : '保存'}</button>
+    </div>
+  </div>`;
+  document.getElementById('alertContainer').appendChild(overlay);
+  setTimeout(function() { var el = document.getElementById('peditName'); if(el) el.focus(); }, 100);
+}
+
+function savePrepDrugEdit(catKey, drugIndex) {
+  const sp = state.patient.species || 'dog';
+  if (!PREMED_MASTER[sp]) PREMED_MASTER[sp] = {};
+  if (!PREMED_MASTER[sp][catKey]) PREMED_MASTER[sp][catKey] = [];
+  const arr = PREMED_MASTER[sp][catKey];
+
+  const name = document.getElementById('peditName').value.trim();
+  if (!name) { alert('薬剤名を入力してください'); return; }
+
+  const concVal = document.getElementById('peditConc').value.trim();
+  const conc = concVal === '' ? null : parseFloat(concVal);
+  const concUnit = conc === null ? null : (document.getElementById('peditConcUnit').value.trim() || 'mg/mL');
+  const doseMin = parseFloat(document.getElementById('peditDoseMin').value) || 0;
+  const doseMax = parseFloat(document.getElementById('peditDoseMax').value) || 0;
+  const doseUnit = document.getElementById('peditDoseUnit').value.trim() || 'mg/kg';
+  const route = document.getElementById('peditRoute').value.trim() || 'iv';
+
+  const drugData = { name, conc, concUnit, doseMin, doseMax, doseUnit, route };
+
+  if (drugIndex < 0) {
+    arr.push(drugData);
+  } else {
+    arr[drugIndex] = drugData;
+  }
+
+  // Save & rebuild
+  saveDrugMasterToStorage();
+  buildPrepDrugList(sp, state.patient.weight);
+
+  // Close modal
+  var overlay = document.querySelector('.prep-edit-overlay');
+  if (overlay) overlay.remove();
+}
+
+function deletePrepDrug(catKey, drugIndex) {
+  const sp = state.patient.species || 'dog';
+  const master = PREMED_MASTER[sp] || PREMED_MASTER.dog;
+  const arr = master[catKey];
+  if (!arr || !arr[drugIndex]) return;
+
+  const name = arr[drugIndex].name;
+  if (!confirm(`「${name}」を削除しますか？`)) return;
+
+  arr.splice(drugIndex, 1);
+  saveDrugMasterToStorage();
+  buildPrepDrugList(sp, state.patient.weight);
 }
 
 function togglePrepRow(idx) {
