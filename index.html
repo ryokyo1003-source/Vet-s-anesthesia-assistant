@@ -909,7 +909,7 @@
   <div class="startup-card">
     <div class="startup-title-row">
       <h1>🩺 VetAnes</h1>
-      <button type="button" class="btn-settings-gear" onclick="document.getElementById('settingsScreen').style.display='flex'">⚙️</button>
+      <button type="button" class="btn-settings-gear" onclick="openSettings()">⚙️</button>
     </div>
     <p class="sub">獣医麻酔管理アシスタント</p>
 
@@ -1059,30 +1059,82 @@
 
   <!-- Tab 3: API Settings -->
   <div class="settings-tab-content" id="tabApiSettings">
-    <div style="padding:20px; max-width:560px; margin:0 auto;">
+    <div style="padding:20px; max-width:560px; margin:0 auto; overflow-y:auto; -webkit-overflow-scrolling:touch; max-height:calc(100vh - 120px);">
       <div style="text-align:center; margin-bottom:20px;">
         <div style="font-size:40px; margin-bottom:8px;">🤖</div>
         <h3 style="font-size:16px; margin-bottom:4px;">AI モニター読取設定</h3>
-        <p style="font-size:12px; color:var(--text-secondary);">Gemini APIを使ってモニター画像からバイタルを自動読取します</p>
+        <p style="font-size:12px; color:var(--text-secondary);">モニター画像からバイタルを自動読取します</p>
       </div>
 
+      <!-- AIプロバイダ選択 -->
       <div style="background:var(--bg-secondary); border:1px solid var(--border); border-radius:10px; padding:16px; margin-bottom:16px;">
-        <label style="font-size:13px; font-weight:600; color:var(--text-primary); display:block; margin-bottom:8px;">🔑 Google AI (Gemini) API キー</label>
-        <div style="display:flex; gap:8px; align-items:center;">
-          <input type="password" id="inputApiKey" placeholder="AIzaSy..." style="flex:1; padding:10px 12px; background:var(--bg-card); border:1px solid var(--border); border-radius:8px; color:var(--text-primary); font-size:14px; font-family:monospace;">
-          <button type="button" onclick="toggleApiKeyVisibility()" style="width:44px; height:44px; background:var(--bg-card); border:1px solid var(--border); border-radius:8px; color:var(--text-secondary); font-size:18px; cursor:pointer;" id="btnToggleKey">👁</button>
+        <label style="font-size:13px; font-weight:600; color:var(--text-primary); display:block; margin-bottom:8px;">🔌 AIプロバイダ</label>
+        <div style="display:flex; gap:8px;">
+          <button type="button" id="btnProvGemini" onclick="setApiProvider('gemini')" style="flex:1; padding:10px; border:2px solid var(--border); border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; background:var(--bg-card); color:var(--text-secondary);">
+            <div style="font-size:20px; margin-bottom:2px;">💎</div>Gemini
+          </button>
+          <button type="button" id="btnProvClaude" onclick="setApiProvider('claude')" style="flex:1; padding:10px; border:2px solid var(--border); border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; background:var(--bg-card); color:var(--text-secondary);">
+            <div style="font-size:20px; margin-bottom:2px;">🧠</div>Claude
+          </button>
         </div>
-        <p style="font-size:11px; color:var(--text-muted); margin-top:6px;">※ キーはこの端末のブラウザにのみ保存されます（外部送信はAPI通信のみ）</p>
       </div>
 
-      <div style="background:var(--bg-secondary); border:1px solid var(--border); border-radius:10px; padding:16px; margin-bottom:16px;">
-        <label style="font-size:13px; font-weight:600; color:var(--text-primary); display:block; margin-bottom:8px;">🧠 モデル選択</label>
-        <select id="selectApiModel" style="width:100%; padding:10px 12px; background:var(--bg-card); border:1px solid var(--border); border-radius:8px; color:var(--text-primary); font-size:14px;">
-          <option value="gemini-flash">Gemini 2.0 Flash（高速・最安 ≈¥0.1/回）推奨</option>
-          <option value="gemini-pro">Gemini 2.5 Pro（最高精度 ≈¥1/回）</option>
-        </select>
+      <!-- Gemini設定パネル -->
+      <div id="panelGemini">
+        <div style="background:var(--bg-secondary); border:1px solid var(--border); border-radius:10px; padding:16px; margin-bottom:16px;">
+          <label style="font-size:13px; font-weight:600; color:var(--text-primary); display:block; margin-bottom:8px;">🔑 Google AI (Gemini) API キー</label>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <input type="password" id="inputApiKey" placeholder="AIzaSy..." style="flex:1; padding:10px 12px; background:var(--bg-card); border:1px solid var(--border); border-radius:8px; color:var(--text-primary); font-size:14px; font-family:monospace;">
+            <button type="button" onclick="toggleKeyVisibility('inputApiKey','btnToggleKey')" style="width:44px; height:44px; background:var(--bg-card); border:1px solid var(--border); border-radius:8px; color:var(--text-secondary); font-size:18px; cursor:pointer;" id="btnToggleKey">👁</button>
+          </div>
+          <p style="font-size:11px; color:var(--text-muted); margin-top:6px;">※ キーはこの端末のブラウザにのみ保存されます</p>
+        </div>
+        <div style="background:var(--bg-secondary); border:1px solid var(--border); border-radius:10px; padding:16px; margin-bottom:16px;">
+          <label style="font-size:13px; font-weight:600; color:var(--text-primary); display:block; margin-bottom:8px;">🧠 Gemini モデル</label>
+          <select id="selectApiModel" style="width:100%; padding:10px 12px; background:var(--bg-card); border:1px solid var(--border); border-radius:8px; color:var(--text-primary); font-size:14px;">
+            <option value="gemini-flash">Gemini 2.0 Flash（高速・最安）推奨</option>
+            <option value="gemini-pro">Gemini 2.5 Pro（最高精度）</option>
+          </select>
+        </div>
+        <div style="margin-bottom:16px; padding:12px; background:rgba(59,130,246,0.08); border:1px solid rgba(59,130,246,0.2); border-radius:10px;">
+          <div style="font-size:12px; font-weight:700; color:var(--accent-blue); margin-bottom:6px;">💡 Gemini APIキーの取得</div>
+          <ol style="font-size:11px; color:var(--text-secondary); padding-left:18px; line-height:1.8;">
+            <li><a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--accent-blue);">aistudio.google.com/apikey</a> にアクセス</li>
+            <li>Googleアカウントでログイン → 「APIキーを作成」</li>
+            <li>生成されたキー（AIzaSy...）を上に貼り付け</li>
+          </ol>
+        </div>
       </div>
 
+      <!-- Claude設定パネル -->
+      <div id="panelClaude" style="display:none;">
+        <div style="background:var(--bg-secondary); border:1px solid var(--border); border-radius:10px; padding:16px; margin-bottom:16px;">
+          <label style="font-size:13px; font-weight:600; color:var(--text-primary); display:block; margin-bottom:8px;">🔑 Anthropic (Claude) API キー</label>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <input type="password" id="inputClaudeApiKey" placeholder="sk-ant-api03-..." style="flex:1; padding:10px 12px; background:var(--bg-card); border:1px solid var(--border); border-radius:8px; color:var(--text-primary); font-size:14px; font-family:monospace;">
+            <button type="button" onclick="toggleKeyVisibility('inputClaudeApiKey','btnToggleClaudeKey')" style="width:44px; height:44px; background:var(--bg-card); border:1px solid var(--border); border-radius:8px; color:var(--text-secondary); font-size:18px; cursor:pointer;" id="btnToggleClaudeKey">👁</button>
+          </div>
+          <p style="font-size:11px; color:var(--text-muted); margin-top:6px;">※ キーはこの端末のブラウザにのみ保存されます</p>
+        </div>
+        <div style="background:var(--bg-secondary); border:1px solid var(--border); border-radius:10px; padding:16px; margin-bottom:16px;">
+          <label style="font-size:13px; font-weight:600; color:var(--text-primary); display:block; margin-bottom:8px;">🧠 Claude モデル</label>
+          <select id="selectClaudeModel" style="width:100%; padding:10px 12px; background:var(--bg-card); border:1px solid var(--border); border-radius:8px; color:var(--text-primary); font-size:14px;">
+            <option value="claude-haiku">Claude Haiku 4.5（高速・低コスト）推奨</option>
+            <option value="claude-sonnet">Claude Sonnet 4（高精度・バランス型）</option>
+          </select>
+        </div>
+        <div style="margin-bottom:16px; padding:12px; background:rgba(139,92,246,0.08); border:1px solid rgba(139,92,246,0.2); border-radius:10px;">
+          <div style="font-size:12px; font-weight:700; color:var(--accent-purple); margin-bottom:6px;">💡 Claude APIキーの取得</div>
+          <ol style="font-size:11px; color:var(--text-secondary); padding-left:18px; line-height:1.8;">
+            <li><a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:var(--accent-purple);">console.anthropic.com</a> にアクセス</li>
+            <li>アカウント作成/ログイン → Settings → API Keys</li>
+            <li>「Create Key」でキーを生成</li>
+            <li>生成されたキー（sk-ant-...）を上に貼り付け</li>
+          </ol>
+        </div>
+      </div>
+
+      <!-- 動作モード（共通） -->
       <div style="background:var(--bg-secondary); border:1px solid var(--border); border-radius:10px; padding:16px; margin-bottom:16px;">
         <label style="font-size:13px; font-weight:600; color:var(--text-primary); display:block; margin-bottom:8px;">📋 動作モード</label>
         <div style="display:flex; gap:8px;">
@@ -1096,16 +1148,6 @@
 
       <button type="button" onclick="testApiConnection()" id="btnTestApi" style="width:100%; padding:12px; margin-top:8px; background:var(--bg-secondary); border:1px solid var(--accent-blue); border-radius:10px; color:var(--accent-blue); font-size:14px; font-weight:600; cursor:pointer; min-height:44px;">🔍 接続テスト</button>
       <div id="apiTestResult" style="margin-top:8px; padding:10px; border-radius:8px; font-size:12px; display:none;"></div>
-
-      <div style="margin-top:20px; padding:16px; background:rgba(59,130,246,0.08); border:1px solid rgba(59,130,246,0.2); border-radius:10px;">
-        <div style="font-size:13px; font-weight:700; color:var(--accent-blue); margin-bottom:8px;">💡 APIキーの取得方法</div>
-        <ol style="font-size:11px; color:var(--text-secondary); padding-left:18px; line-height:1.8;">
-          <li><a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--accent-blue);">aistudio.google.com/apikey</a> にアクセス</li>
-          <li>Googleアカウントでログイン</li>
-          <li>「APIキーを作成」をクリック</li>
-          <li>生成されたキー（AIzaSy...）をコピーして上に貼り付け</li>
-        </ol>
-      </div>
     </div>
   </div>
 </div>
@@ -1295,8 +1337,11 @@ const state = {
   maxCapturedImages: 20,
   logEntries: {},      // logId -> { text, captureId, note }
   // V5: API settings
+  apiProvider: 'gemini',  // 'gemini' or 'claude'
   apiKey: '',
   apiModel: 'gemini-flash',
+  claudeApiKey: '',
+  claudeModel: 'claude-haiku',  // 'claude-haiku' or 'claude-sonnet'
   apiMode: 'ai',  // 'ai' or 'demo'
 };
 
@@ -1697,11 +1742,7 @@ function setSex(sex) {
 // ===================================================================
 //  STARTUP
 // ===================================================================
-document.addEventListener('DOMContentLoaded', () => {
-  try {
-    document.getElementById('inputDate').value = new Date().toISOString().split('T')[0];
-  } catch(e) { console.warn('init date error:', e); }
-});
+// (日付初期化は末尾のDOMContentLoadedに統合済み)
 
 function startSession() {
   const name = document.getElementById('inputName').value.trim();
@@ -1825,7 +1866,7 @@ function updatePrepCalc(idx) {
   const volMl = doseMg / conc;
 
   const volDisp = volMl < 0.01 ? volMl.toFixed(4) : volMl < 0.1 ? volMl.toFixed(3) : volMl.toFixed(2);
-  calcHtml = `<strong>${volDisp} mL</strong><br><span class="calc-detail">${doseMg < 0.01 ? doseMg.toFixed(4) : doseMg.toFixed(2)}${unit.replace('/kg','')}</span>`;
+  const calcHtml = `<strong>${volDisp} mL</strong><br><span class="calc-detail">${doseMg < 0.01 ? doseMg.toFixed(4) : doseMg.toFixed(2)}${unit.replace('/kg','')}</span>`;
   calcEl.innerHTML = calcHtml;
 }
 
@@ -1866,7 +1907,7 @@ function startMonitoring() {
   document.getElementById('dispSpecies').textContent = (SPECIES_LABELS[sp]||sp) + ' ' + (SPECIES_EMOJI[sp]||'');
   const weight = state.patient.weight;
   document.getElementById('dispWeight').textContent = weight < 1 ? (weight*1000).toFixed(0)+'g' : weight.toFixed(1)+'kg';
-  const sexMap = { male:'♂', female:'♀', unknown:'?' };
+  const sexMap = { male:'♂', castrated:'♂去勢', female:'♀', spayed:'♀避妊', unknown:'?' };
   document.getElementById('dispSex').textContent = sexMap[state.patient.sex] || '-';
   const procBadge = document.getElementById('dispProcedure');
   procBadge.textContent = state.patient.procedure;
@@ -2263,8 +2304,8 @@ function initChart(){
 }
 function addVitalToChart(d){
   const t=new Date().toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'});state.timeLabels.push(t);
-  state.vitals.hr.push(d.hr);state.vitals.spo2.push(d.spo2);state.vitals.rr.push(d.rr);state.vitals.etco2_in.push(d.etco2_in);state.vitals.etco2_ex.push(d.etco2_ex);state.vitals.mean.push(d.mean);state.vitals.gas_in.push(d.gas_in);state.vitals.gas_ex.push(d.gas_ex);
-  const M=30;if(state.timeLabels.length>M){state.timeLabels.shift();state.vitals.hr.shift();state.vitals.spo2.shift();state.vitals.rr.shift();state.vitals.etco2_in.shift();state.vitals.etco2_ex.shift();state.vitals.mean.shift();state.vitals.gas_in.shift();state.vitals.gas_ex.shift();}
+  state.vitals.hr.push(d.hr);state.vitals.spo2.push(d.spo2);state.vitals.rr.push(d.rr);state.vitals.etco2_in.push(d.etco2_in);state.vitals.etco2_ex.push(d.etco2_ex);state.vitals.mean.push(d.mean);state.vitals.gas_in.push(d.gas_in);state.vitals.gas_ex.push(d.gas_ex);state.vitals.sys.push(d.sys);state.vitals.dia.push(d.dia);state.vitals.temp.push(d.temp);
+  const M=30;if(state.timeLabels.length>M){state.timeLabels.shift();state.vitals.hr.shift();state.vitals.spo2.shift();state.vitals.rr.shift();state.vitals.etco2_in.shift();state.vitals.etco2_ex.shift();state.vitals.mean.shift();state.vitals.gas_in.shift();state.vitals.gas_ex.shift();state.vitals.sys.shift();state.vitals.dia.shift();state.vitals.temp.shift();}
   const pl=[...state.timeLabels,'+5min'];
   vitalChart.data.labels=pl;
   vitalChart.data.datasets[0].data=[...state.vitals.hr,null];
@@ -2340,8 +2381,20 @@ function handleCameraCapture(){
         var apiDataUrl = apiCanvas.toDataURL('image/jpeg', 0.8);
 
         // APIモード判定
-        if (state.apiMode === 'ai' && state.apiKey) {
-          callGeminiVision(apiDataUrl, captureId, btn);
+        if (state.apiMode === 'ai') {
+          if (state.apiProvider === 'claude' && state.claudeApiKey) {
+            callClaudeVision(apiDataUrl, captureId, btn);
+          } else if (state.apiProvider === 'gemini' && state.apiKey) {
+            callGeminiVision(apiDataUrl, captureId, btn);
+          } else {
+            // APIキー未設定 → デモ値
+            var d = generateMockVitals(state.patient.species);
+            applyVitalData(d, captureId, false);
+            btn.classList.remove('capturing');
+            btn.innerHTML = '<span class="icon">📸</span><span>モニター撮影</span>';
+            resetTimer();
+            addLog('⚠ ' + (state.apiProvider === 'claude' ? 'Claude' : 'Gemini') + ' APIキー未設定 → デモ値を使用');
+          }
         } else {
           // デモモード
           var d = generateMockVitals(state.patient.species);
@@ -2349,9 +2402,6 @@ function handleCameraCapture(){
           btn.classList.remove('capturing');
           btn.innerHTML = '<span class="icon">📸</span><span>モニター撮影</span>';
           resetTimer();
-          if (state.apiMode === 'ai' && !state.apiKey) {
-            addLog('⚠ APIキー未設定 → デモ値を使用');
-          }
         }
       };
       img.src = fullDataUrl;
@@ -2476,6 +2526,125 @@ function callGeminiVision(imageDataUrl, captureId, btn) {
   xhr.send(body);
 }
 
+// ===================================================================
+//  CLAUDE VISION API
+// ===================================================================
+function getClaudeModelId() {
+  if (state.claudeModel === 'claude-sonnet') return 'claude-sonnet-4-20250514';
+  return 'claude-haiku-4-5-20251001';  // default: Haiku 4.5
+}
+
+function callClaudeVision(imageDataUrl, captureId, btn) {
+  var parts = imageDataUrl.split(',');
+  var mimeType = 'image/jpeg';
+  var mtMatch = parts[0].match(/data:([^;]+)/);
+  if (mtMatch) mimeType = mtMatch[1];
+  var base64Data = parts[1];
+
+  var modelId = getClaudeModelId();
+  var prompt = 'この画像は動物病院の麻酔モニター画面です。表示されている数値を読み取ってください。\n' +
+    '必ず以下のJSON形式のみで回答してください。他のテキストは不要です。\n' +
+    '読み取れない項目はnullにしてください。\n' +
+    '{"hr":数値,"spo2":数値,"rr":数値,"etco2_in":数値,"etco2_ex":数値,"sys":数値,"dia":数値,"temp":数値,"gas_in":数値,"gas_ex":数値}\n' +
+    '- hr: 心拍数(bpm)\n- spo2: 酸素飽和度(%)\n- rr: 呼吸数\n' +
+    '- etco2_in: 吸気CO2濃度(mmHg) ※InspCO2, FiCO2\n- etco2_ex: 呼気終末CO2濃度(mmHg) ※EtCO2\n' +
+    '- sys: 収縮期血圧(mmHg)\n- dia: 拡張期血圧(mmHg)\n- temp: 体温(℃)\n' +
+    '- gas_in: 吸入麻酔ガス吸気濃度(%) ※FiAA, FiIso, FiSev\n- gas_ex: 吸入麻酔ガス呼気濃度(%) ※EtAA, EtIso, EtSev';
+
+  var body = JSON.stringify({
+    model: modelId,
+    max_tokens: 300,
+    messages: [{
+      role: 'user',
+      content: [
+        {
+          type: 'image',
+          source: {
+            type: 'base64',
+            media_type: mimeType,
+            data: base64Data
+          }
+        },
+        {
+          type: 'text',
+          text: prompt
+        }
+      ]
+    }]
+  });
+
+  var xhr = new XMLHttpRequest();
+  xhr.open('POST', 'https://api.anthropic.com/v1/messages', true);
+  xhr.setRequestHeader('Content-Type', 'application/json');
+  xhr.setRequestHeader('x-api-key', state.claudeApiKey);
+  xhr.setRequestHeader('anthropic-version', '2023-06-01');
+  xhr.setRequestHeader('anthropic-dangerous-direct-browser-access', 'true');
+  xhr.timeout = 30000;
+
+  xhr.onload = function() {
+    btn.classList.remove('capturing');
+    btn.innerHTML = '<span class="icon">📸</span><span>モニター撮影</span>';
+
+    if (xhr.status === 200) {
+      try {
+        var resp = JSON.parse(xhr.responseText);
+        var text = '';
+        if (resp.content && resp.content.length > 0) {
+          for (var ci = 0; ci < resp.content.length; ci++) {
+            if (resp.content[ci].type === 'text') {
+              text = resp.content[ci].text;
+              break;
+            }
+          }
+        }
+        var vitals = parseVitalsFromAI(text);
+        if (vitals) {
+          applyVitalData(vitals, captureId, false);
+          addLog('🧠 Claude読取成功 (' + modelId + ')');
+        } else {
+          addLog('⚠ Claude応答のパース失敗 → デモ値使用');
+          var d = generateMockVitals(state.patient.species);
+          applyVitalData(d, captureId, false);
+        }
+      } catch(e) {
+        addLog('⚠ Claude応答エラー: ' + e.message);
+        var d = generateMockVitals(state.patient.species);
+        applyVitalData(d, captureId, false);
+      }
+    } else {
+      var errMsg = 'HTTP ' + xhr.status;
+      try {
+        var errBody = JSON.parse(xhr.responseText);
+        if (errBody.error && errBody.error.message) errMsg = errBody.error.message;
+      } catch(e2) {}
+      addLog('⚠ Claude API エラー: ' + errMsg + ' → デモ値使用');
+      var d = generateMockVitals(state.patient.species);
+      applyVitalData(d, captureId, false);
+    }
+    resetTimer();
+  };
+
+  xhr.onerror = function() {
+    btn.classList.remove('capturing');
+    btn.innerHTML = '<span class="icon">📸</span><span>モニター撮影</span>';
+    addLog('⚠ Claude API通信失敗（ネットワークエラー）→ デモ値使用');
+    var d = generateMockVitals(state.patient.species);
+    applyVitalData(d, captureId, false);
+    resetTimer();
+  };
+
+  xhr.ontimeout = function() {
+    btn.classList.remove('capturing');
+    btn.innerHTML = '<span class="icon">📸</span><span>モニター撮影</span>';
+    addLog('⚠ Claude API タイムアウト → デモ値使用');
+    var d = generateMockVitals(state.patient.species);
+    applyVitalData(d, captureId, false);
+    resetTimer();
+  };
+
+  xhr.send(body);
+}
+
 function parseVitalsFromAI(text) {
   // AI応答からJSONを抽出
   try {
@@ -2541,34 +2710,74 @@ function parseVitalsFromAI(text) {
 // ===================================================================
 function loadApiSettings() {
   try {
+    var provider = localStorage.getItem('vetanes_api_provider');
     var key = localStorage.getItem('vetanes_api_key');
     var model = localStorage.getItem('vetanes_api_model');
     var mode = localStorage.getItem('vetanes_api_mode');
+    var claudeKey = localStorage.getItem('vetanes_claude_api_key');
+    var claudeModel = localStorage.getItem('vetanes_claude_model');
+    if (provider) state.apiProvider = provider;
     if (key) state.apiKey = key;
     if (model) state.apiModel = model;
     if (mode) state.apiMode = mode;
+    if (claudeKey) state.claudeApiKey = claudeKey;
+    if (claudeModel) state.claudeModel = claudeModel;
   } catch(e) { console.warn('API settings load error:', e); }
 }
 
 function saveApiSettings() {
   var keyInput = document.getElementById('inputApiKey');
   var modelSelect = document.getElementById('selectApiModel');
+  var claudeKeyInput = document.getElementById('inputClaudeApiKey');
+  var claudeModelSelect = document.getElementById('selectClaudeModel');
   if (keyInput) state.apiKey = keyInput.value.trim();
   if (modelSelect) state.apiModel = modelSelect.value;
+  if (claudeKeyInput) state.claudeApiKey = claudeKeyInput.value.trim();
+  if (claudeModelSelect) state.claudeModel = claudeModelSelect.value;
   try {
+    localStorage.setItem('vetanes_api_provider', state.apiProvider);
     localStorage.setItem('vetanes_api_key', state.apiKey);
     localStorage.setItem('vetanes_api_model', state.apiModel);
     localStorage.setItem('vetanes_api_mode', state.apiMode);
+    localStorage.setItem('vetanes_claude_api_key', state.claudeApiKey);
+    localStorage.setItem('vetanes_claude_model', state.claudeModel);
   } catch(e) {}
-  alert('API設定を保存しました ✅');
+  var provName = state.apiProvider === 'claude' ? 'Claude' : 'Gemini';
+  alert('API設定を保存しました ✅ (プロバイダ: ' + provName + ')');
 }
 
 function restoreApiSettingsUI() {
   var keyInput = document.getElementById('inputApiKey');
   var modelSelect = document.getElementById('selectApiModel');
+  var claudeKeyInput = document.getElementById('inputClaudeApiKey');
+  var claudeModelSelect = document.getElementById('selectClaudeModel');
   if (keyInput && state.apiKey) keyInput.value = state.apiKey;
   if (modelSelect && state.apiModel) modelSelect.value = state.apiModel;
+  if (claudeKeyInput && state.claudeApiKey) claudeKeyInput.value = state.claudeApiKey;
+  if (claudeModelSelect && state.claudeModel) claudeModelSelect.value = state.claudeModel;
+  setApiProvider(state.apiProvider);
   setApiMode(state.apiMode);
+}
+
+function setApiProvider(provider) {
+  state.apiProvider = provider;
+  var btnGemini = document.getElementById('btnProvGemini');
+  var btnClaude = document.getElementById('btnProvClaude');
+  var panelGemini = document.getElementById('panelGemini');
+  var panelClaude = document.getElementById('panelClaude');
+
+  if (provider === 'claude') {
+    if (btnClaude) { btnClaude.style.background = 'rgba(139,92,246,0.15)'; btnClaude.style.borderColor = 'var(--accent-purple)'; btnClaude.style.color = 'var(--accent-purple)'; }
+    if (btnGemini) { btnGemini.style.background = 'var(--bg-card)'; btnGemini.style.borderColor = 'var(--border)'; btnGemini.style.color = 'var(--text-secondary)'; }
+    if (panelGemini) panelGemini.style.display = 'none';
+    if (panelClaude) panelClaude.style.display = 'block';
+  } else {
+    if (btnGemini) { btnGemini.style.background = 'rgba(59,130,246,0.15)'; btnGemini.style.borderColor = 'var(--accent-blue)'; btnGemini.style.color = 'var(--accent-blue)'; }
+    if (btnClaude) { btnClaude.style.background = 'var(--bg-card)'; btnClaude.style.borderColor = 'var(--border)'; btnClaude.style.color = 'var(--text-secondary)'; }
+    if (panelGemini) panelGemini.style.display = 'block';
+    if (panelClaude) panelClaude.style.display = 'none';
+  }
+  try { localStorage.setItem('vetanes_api_provider', provider); } catch(e) {}
 }
 
 function setApiMode(mode) {
@@ -2588,9 +2797,9 @@ function setApiMode(mode) {
   try { localStorage.setItem('vetanes_api_mode', mode); } catch(e) {}
 }
 
-function toggleApiKeyVisibility() {
-  var input = document.getElementById('inputApiKey');
-  var btn = document.getElementById('btnToggleKey');
+function toggleKeyVisibility(inputId, btnId) {
+  var input = document.getElementById(inputId);
+  var btn = document.getElementById(btnId);
   if (!input) return;
   if (input.type === 'password') {
     input.type = 'text';
@@ -2600,27 +2809,27 @@ function toggleApiKeyVisibility() {
     if (btn) btn.textContent = '👁';
   }
 }
+// 後方互換
+function toggleApiKeyVisibility() { toggleKeyVisibility('inputApiKey', 'btnToggleKey'); }
 
 function testApiConnection() {
   var resultEl = document.getElementById('apiTestResult');
+
+  if (state.apiProvider === 'claude') {
+    testClaudeConnection(resultEl);
+  } else {
+    testGeminiConnection(resultEl);
+  }
+}
+
+function testGeminiConnection(resultEl) {
   var keyInput = document.getElementById('inputApiKey');
   var key = keyInput ? keyInput.value.trim() : '';
   if (!key) {
-    if (resultEl) {
-      resultEl.style.display = 'block';
-      resultEl.style.background = 'rgba(239,68,68,0.1)';
-      resultEl.style.color = 'var(--accent-red)';
-      resultEl.textContent = '❌ APIキーを入力してください';
-    }
+    showTestResult(resultEl, false, '❌ Gemini APIキーを入力してください');
     return;
   }
-
-  if (resultEl) {
-    resultEl.style.display = 'block';
-    resultEl.style.background = 'rgba(59,130,246,0.1)';
-    resultEl.style.color = 'var(--accent-blue)';
-    resultEl.textContent = '⏳ 接続テスト中...';
-  }
+  showTestResult(resultEl, null, '⏳ Gemini 接続テスト中...');
 
   var modelSelect = document.getElementById('selectApiModel');
   var modelVal = modelSelect ? modelSelect.value : 'gemini-flash';
@@ -2639,41 +2848,74 @@ function testApiConnection() {
   xhr.timeout = 15000;
 
   xhr.onload = function() {
-    if (!resultEl) return;
-    resultEl.style.display = 'block';
     if (xhr.status === 200) {
-      resultEl.style.background = 'rgba(16,185,129,0.1)';
-      resultEl.style.color = 'var(--accent-green)';
-      resultEl.textContent = '✅ 接続成功！API が正常に動作しています（model: ' + modelId + '）';
+      showTestResult(resultEl, true, '✅ Gemini 接続成功！（model: ' + modelId + '）');
     } else {
       var errMsg = 'HTTP ' + xhr.status;
-      try {
-        var errBody = JSON.parse(xhr.responseText);
-        if (errBody.error && errBody.error.message) errMsg = errBody.error.message;
-      } catch(e2) {}
-      resultEl.style.background = 'rgba(239,68,68,0.1)';
-      resultEl.style.color = 'var(--accent-red)';
-      resultEl.textContent = '❌ エラー: ' + errMsg;
+      try { var errBody = JSON.parse(xhr.responseText); if (errBody.error && errBody.error.message) errMsg = errBody.error.message; } catch(e2) {}
+      showTestResult(resultEl, false, '❌ Gemini エラー: ' + errMsg);
     }
   };
-
-  xhr.onerror = function() {
-    if (!resultEl) return;
-    resultEl.style.display = 'block';
-    resultEl.style.background = 'rgba(239,68,68,0.1)';
-    resultEl.style.color = 'var(--accent-red)';
-    resultEl.textContent = '❌ ネットワークエラー';
-  };
-
-  xhr.ontimeout = function() {
-    if (!resultEl) return;
-    resultEl.style.display = 'block';
-    resultEl.style.background = 'rgba(239,68,68,0.1)';
-    resultEl.style.color = 'var(--accent-red)';
-    resultEl.textContent = '❌ タイムアウト（15秒）';
-  };
-
+  xhr.onerror = function() { showTestResult(resultEl, false, '❌ ネットワークエラー'); };
+  xhr.ontimeout = function() { showTestResult(resultEl, false, '❌ タイムアウト（15秒）'); };
   xhr.send(body);
+}
+
+function testClaudeConnection(resultEl) {
+  var keyInput = document.getElementById('inputClaudeApiKey');
+  var key = keyInput ? keyInput.value.trim() : '';
+  if (!key) {
+    showTestResult(resultEl, false, '❌ Claude APIキーを入力してください');
+    return;
+  }
+  showTestResult(resultEl, null, '⏳ Claude 接続テスト中...');
+
+  var modelSelect = document.getElementById('selectClaudeModel');
+  var modelVal = modelSelect ? modelSelect.value : 'claude-haiku';
+  var modelId = modelVal === 'claude-sonnet' ? 'claude-sonnet-4-20250514' : 'claude-haiku-4-5-20251001';
+
+  var body = JSON.stringify({
+    model: modelId,
+    max_tokens: 16,
+    messages: [{ role: 'user', content: 'Reply with only: OK' }]
+  });
+
+  var xhr = new XMLHttpRequest();
+  xhr.open('POST', 'https://api.anthropic.com/v1/messages', true);
+  xhr.setRequestHeader('Content-Type', 'application/json');
+  xhr.setRequestHeader('x-api-key', key);
+  xhr.setRequestHeader('anthropic-version', '2023-06-01');
+  xhr.setRequestHeader('anthropic-dangerous-direct-browser-access', 'true');
+  xhr.timeout = 15000;
+
+  xhr.onload = function() {
+    if (xhr.status === 200) {
+      showTestResult(resultEl, true, '✅ Claude 接続成功！（model: ' + modelId + '）');
+    } else {
+      var errMsg = 'HTTP ' + xhr.status;
+      try { var errBody = JSON.parse(xhr.responseText); if (errBody.error && errBody.error.message) errMsg = errBody.error.message; } catch(e2) {}
+      showTestResult(resultEl, false, '❌ Claude エラー: ' + errMsg);
+    }
+  };
+  xhr.onerror = function() { showTestResult(resultEl, false, '❌ ネットワークエラー'); };
+  xhr.ontimeout = function() { showTestResult(resultEl, false, '❌ タイムアウト（15秒）'); };
+  xhr.send(body);
+}
+
+function showTestResult(el, success, msg) {
+  if (!el) return;
+  el.style.display = 'block';
+  if (success === true) {
+    el.style.background = 'rgba(16,185,129,0.1)';
+    el.style.color = 'var(--accent-green)';
+  } else if (success === false) {
+    el.style.background = 'rgba(239,68,68,0.1)';
+    el.style.color = 'var(--accent-red)';
+  } else {
+    el.style.background = 'rgba(59,130,246,0.1)';
+    el.style.color = 'var(--accent-blue)';
+  }
+  el.textContent = msg;
 }
 
 function generateMockVitals(sp){
@@ -2693,7 +2935,6 @@ function applyVitalData(d, captureId, isManual){
   document.getElementById('valMean').textContent=d.mean;document.getElementById('valTemp').textContent=d.temp;
   document.getElementById('valGasIn').textContent=d.gas_in;document.getElementById('valGasEx').textContent=d.gas_ex;
   addVitalToChart(d);
-  state.vitals.sys.push(d.sys);state.vitals.dia.push(d.dia);state.vitals.temp.push(d.temp);
   const prefix = isManual ? '✏️' : '📊';
   addLog(`${prefix} HR:${d.hr} SpO2:${d.spo2} RR:${d.rr} CO2in:${d.etco2_in} CO2ex:${d.etco2_ex} BP:${d.sys}/${d.dia}(${d.mean}) T:${d.temp} GasIn:${d.gas_in} GasEx:${d.gas_ex}`, captureId || null);
   checkAlarms(d);
@@ -2704,7 +2945,7 @@ function applyVitalData(d, captureId, isManual){
 // ===================================================================
 function checkAlarms(d){
   if(d.mean<60){document.getElementById('vitalBP').classList.add('alert');showAlert('低血圧警告',`MAP ${d.mean} mmHg\n昇圧剤の投与を検討してください。`);}else{document.getElementById('vitalBP').classList.remove('alert');}
-  if((d.sys-d.dia)<15){showAlert('脈圧異常',`脈圧: ${d.sys-d.dia}mmHg\nカフサイズを確認してください。`);}
+  if(d.sys>0&&d.dia>0&&(d.sys-d.dia)<15){showAlert('脈圧異常',`脈圧: ${d.sys-d.dia}mmHg\nカフサイズを確認してください。`);}
   if(d.spo2<90){document.getElementById('vitalSpO2').classList.add('alert');showAlert('SpO2低下',`SpO2: ${d.spo2}%`);}else{document.getElementById('vitalSpO2').classList.remove('alert');}
   const hrLow=state.patient.species==='cat'?100:state.patient.species==='rabbit'?150:60;
   document.getElementById('vitalHR').classList.toggle('alert',d.hr<hrLow);
@@ -3141,18 +3382,30 @@ function saveCalibProfile() {
 }
 
 function compressCalibImage(dataUrl, maxW, maxH) {
+  // 同期的にcanvasで圧縮（Imageロード不要：既にdataUrlがあるためimg要素経由で描画）
+  // ただしImage.onloadは非同期のため、ここではdataUrlをそのまま保持し、
+  // プロファイル保存時に非同期で圧縮する方式に変更
   try {
-    const c = document.createElement('canvas');
-    c.width = maxW; c.height = maxH;
-    const ctx = c.getContext('2d');
-    // Simple compression: just create small canvas with placeholder
-    ctx.fillStyle = '#1a1a2e'; ctx.fillRect(0,0,maxW,maxH);
-    ctx.fillStyle = '#8892a8'; ctx.font = '12px sans-serif';
-    ctx.fillText('Monitor Ref', 10, 20);
-    return c.toDataURL('image/jpeg', 0.5);
+    // dataUrlが大きすぎる場合のみ圧縮試行（localStorage容量対策）
+    if (dataUrl.length > 200000) {
+      // 簡易圧縮: JPEG品質を下げて再エンコード
+      var tempCanvas = document.createElement('canvas');
+      var tempImg = new Image();
+      tempImg.src = dataUrl;
+      // 同期的に描画可能か試行（既にキャッシュ済みの場合）
+      if (tempImg.complete && tempImg.naturalWidth > 0) {
+        var scale = Math.min(maxW / tempImg.naturalWidth, maxH / tempImg.naturalHeight, 1);
+        tempCanvas.width = Math.round(tempImg.naturalWidth * scale);
+        tempCanvas.height = Math.round(tempImg.naturalHeight * scale);
+        var tCtx = tempCanvas.getContext('2d');
+        tCtx.drawImage(tempImg, 0, 0, tempCanvas.width, tempCanvas.height);
+        return tempCanvas.toDataURL('image/jpeg', 0.4);
+      }
+    }
+    return dataUrl;
   } catch(e) {
     console.warn('compressCalibImage error:', e);
-    return dataUrl; // fallback: return original
+    return dataUrl;
   }
 }
 
@@ -3437,7 +3690,7 @@ function generateReport() {
 
   // --- Vital Data Table ---
   if (state.timeLabels.length > 0) {
-    html += '<table class="report-vitals-table"><thead><tr><th>時刻</th><th>HR</th><th>SpO2</th><th>RR</th><th>CO2 In</th><th>CO2 Ex</th><th>MAP</th><th>Gas In</th><th>Gas Ex</th></tr></thead><tbody>';
+    html += '<table class="report-vitals-table"><thead><tr><th>時刻</th><th>HR</th><th>SpO2</th><th>RR</th><th>CO2 In</th><th>CO2 Ex</th><th>Sys</th><th>Dia</th><th>MAP</th><th>Temp</th><th>Gas In</th><th>Gas Ex</th></tr></thead><tbody>';
     for (var vi = 0; vi < state.timeLabels.length; vi++) {
       var tl = state.timeLabels[vi];
       if (tl === '+5min') continue;
@@ -3448,7 +3701,10 @@ function generateReport() {
       html += '<td>' + (state.vitals.rr[vi] !== undefined ? state.vitals.rr[vi] : '-') + '</td>';
       html += '<td>' + (state.vitals.etco2_in[vi] !== undefined ? state.vitals.etco2_in[vi] : '-') + '</td>';
       html += '<td>' + (state.vitals.etco2_ex[vi] !== undefined ? state.vitals.etco2_ex[vi] : '-') + '</td>';
+      html += '<td>' + (state.vitals.sys[vi] !== undefined ? state.vitals.sys[vi] : '-') + '</td>';
+      html += '<td>' + (state.vitals.dia[vi] !== undefined ? state.vitals.dia[vi] : '-') + '</td>';
       html += '<td>' + (state.vitals.mean[vi] !== undefined ? state.vitals.mean[vi] : '-') + '</td>';
+      html += '<td>' + (state.vitals.temp[vi] !== undefined ? state.vitals.temp[vi] : '-') + '</td>';
       html += '<td>' + (state.vitals.gas_in[vi] !== undefined ? state.vitals.gas_in[vi] : '-') + '</td>';
       html += '<td>' + (state.vitals.gas_ex[vi] !== undefined ? state.vitals.gas_ex[vi] : '-') + '</td>';
       html += '</tr>';
@@ -3478,7 +3734,7 @@ function generateReport() {
   for (var li = 0; li < logIds.length; li++) {
     var le = state.logEntries[logIds[li]];
     if (le && le.text) {
-      if (le.text.indexOf('💊') === 0 || le.text.indexOf('💉') === 0) {
+      if (le.text.startsWith('💊') || le.text.startsWith('💉')) {
         drugLogs.push(le.text);
       }
     }
@@ -3534,6 +3790,9 @@ function closeReport() {
 //  INIT: Event listeners (iPad-safe)
 // ===================================================================
 document.addEventListener('DOMContentLoaded', () => {
+  // 日付フィールド初期化
+  try { document.getElementById('inputDate').value = new Date().toISOString().split('T')[0]; } catch(e) { console.warn('init date error:', e); }
+
   try { loadCalibProfiles(); } catch(e) { console.warn('init calib error:', e); }
   try { loadDrugMasterFromStorage(); } catch(e) { console.warn('init drug master error:', e); }
   try { loadApiSettings(); } catch(e) { console.warn('init api settings error:', e); }
