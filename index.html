@@ -168,9 +168,18 @@
   .prep-drug-row {
     display: flex; align-items: center; gap: 8px;
     background: var(--bg-secondary); border: 1px solid var(--border);
-    border-radius: 10px; padding: 10px 12px; transition: border-color 0.2s;
+    border-radius: 10px; padding: 10px 12px; transition: border-color 0.2s, opacity 0.2s, transform 0.15s;
+    cursor: grab; touch-action: none;
   }
+  .prep-drug-row:active { cursor: grabbing; }
   .prep-drug-row.checked { border-color: var(--accent-green); background: rgba(16,185,129,0.05); }
+  .prep-drug-row.dragging { opacity: 0.4; transform: scale(0.97); }
+  .prep-drug-row.drag-over { border-color: var(--accent-cyan); border-style: dashed; background: rgba(6,182,212,0.08); }
+  .prep-drag-handle {
+    font-size: 16px; color: var(--text-muted); flex-shrink: 0;
+    cursor: grab; padding: 0 4px; user-select: none; -webkit-user-select: none;
+  }
+  .prep-drag-handle:active { cursor: grabbing; }
   .prep-drug-row input[type="checkbox"] {
     width: 22px; height: 22px; accent-color: var(--accent-green);
     flex-shrink: 0; cursor: pointer;
@@ -1811,11 +1820,14 @@ function buildPrepDrugList(species, weight) {
     const list = document.createElement('div');
     list.className = 'prep-drug-list';
 
-    drugs.forEach(drug => {
+    drugs.forEach((drug, drugIndexInCat) => {
       const idx = drugIdx++;
       const row = document.createElement('div');
       row.className = 'prep-drug-row';
       row.id = 'prepRow_' + idx;
+      row.draggable = true;
+      row.dataset.catKey = catKey;
+      row.dataset.drugIndex = drugIndexInCat;
 
       const isInhale = drug.conc === null;
       const defaultDose = drug.doseMin;
@@ -1825,22 +1837,36 @@ function buildPrepDrugList(species, weight) {
       let calcHtml = '';
       if (isInhale) {
         calcHtml = `<span class="prep-drug-calc">${drug.doseMin}-${drug.doseMax}${drug.doseUnit}</span>`;
-      } else {
+      } else if (defaultDose > 0) {
         const volDisp = volMl < 0.01 ? volMl.toFixed(4) : volMl < 0.1 ? volMl.toFixed(3) : volMl.toFixed(2);
         calcHtml = `<span class="prep-drug-calc" id="prepCalc_${idx}"><strong>${volDisp} mL</strong><br><span class="calc-detail">${doseMg < 0.01 ? doseMg.toFixed(4) : doseMg.toFixed(2)}${drug.doseUnit.replace('/kg','')}</span></span>`;
+      } else {
+        calcHtml = `<span class="prep-drug-calc" id="prepCalc_${idx}"></span>`;
       }
 
       row.innerHTML =
+        `<span class="prep-drag-handle">☰</span>` +
         `<input type="checkbox" id="prepChk_${idx}" onchange="togglePrepRow(${idx})">` +
         `<span class="prep-drug-name">${drug.name}</span>` +
         `<span class="prep-drug-dose-range">${drug.doseMin}~${drug.doseMax}<br>${drug.doseUnit}</span>` +
-        (isInhale ? '' : `<input type="number" class="prep-drug-input" id="prepDose_${idx}" value="${defaultDose}" step="any" min="0" data-idx="${idx}" data-conc="${drug.conc}" data-unit="${drug.doseUnit}" onchange="updatePrepCalc(${idx})">`) +
+        (isInhale ? '' : `<input type="number" class="prep-drug-input" id="prepDose_${idx}" value="${defaultDose}" step="any" min="0" data-idx="${idx}" data-conc="${drug.conc}" data-unit="${drug.doseUnit}" onchange="updatePrepCalc(${idx})" oninput="updatePrepCalc(${idx})">`) +
         (isInhale ? '' : `<span class="prep-drug-unit">${drug.doseUnit}</span>`) +
         calcHtml +
         `<span class="prep-drug-route">${drug.route}</span>`;
 
+      // Drag events
+      row.addEventListener('dragstart', prepDragStart);
+      row.addEventListener('dragend', prepDragEnd);
+      row.addEventListener('dragover', prepDragOver);
+      row.addEventListener('dragenter', prepDragEnter);
+      row.addEventListener('dragleave', prepDragLeave);
+      row.addEventListener('drop', prepDrop);
+
       list.appendChild(row);
     });
+
+    // Touch drag support
+    setupTouchDrag(list);
 
     section.appendChild(list);
     container.appendChild(section);
@@ -1859,6 +1885,11 @@ function updatePrepCalc(idx) {
   if (!input || !calcEl) return;
 
   const dosePerKg = parseFloat(input.value) || 0;
+  if (dosePerKg <= 0) {
+    calcEl.innerHTML = '';
+    return;
+  }
+
   const conc = parseFloat(input.dataset.conc);
   const unit = input.dataset.unit;
   const w = state.patient.weight;
@@ -1868,6 +1899,167 @@ function updatePrepCalc(idx) {
   const volDisp = volMl < 0.01 ? volMl.toFixed(4) : volMl < 0.1 ? volMl.toFixed(3) : volMl.toFixed(2);
   const calcHtml = `<strong>${volDisp} mL</strong><br><span class="calc-detail">${doseMg < 0.01 ? doseMg.toFixed(4) : doseMg.toFixed(2)}${unit.replace('/kg','')}</span>`;
   calcEl.innerHTML = calcHtml;
+}
+
+// ===================================================================
+//  DRUG PREP: DRAG & DROP (Desktop + Touch)
+// ===================================================================
+var prepDragItem = null;
+
+function prepDragStart(e) {
+  prepDragItem = this;
+  this.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', '');
+}
+
+function prepDragEnd(e) {
+  this.classList.remove('dragging');
+  document.querySelectorAll('.prep-drug-row.drag-over').forEach(el => el.classList.remove('drag-over'));
+  prepDragItem = null;
+}
+
+function prepDragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+}
+
+function prepDragEnter(e) {
+  e.preventDefault();
+  if (this !== prepDragItem && this.classList.contains('prep-drug-row')) {
+    this.classList.add('drag-over');
+  }
+}
+
+function prepDragLeave(e) {
+  this.classList.remove('drag-over');
+}
+
+function prepDrop(e) {
+  e.preventDefault();
+  this.classList.remove('drag-over');
+  if (!prepDragItem || prepDragItem === this) return;
+
+  // Same category check
+  const fromCat = prepDragItem.dataset.catKey;
+  const toCat = this.dataset.catKey;
+  if (fromCat !== toCat) return; // カテゴリ間移動は不可
+
+  const list = this.parentNode;
+  const children = Array.from(list.children);
+  const fromIdx = children.indexOf(prepDragItem);
+  const toIdx = children.indexOf(this);
+
+  if (fromIdx < toIdx) {
+    list.insertBefore(prepDragItem, this.nextSibling);
+  } else {
+    list.insertBefore(prepDragItem, this);
+  }
+
+  // PREMED_MASTER内の並び順も更新
+  const sp = state.patient.species || 'dog';
+  const master = PREMED_MASTER[sp] || PREMED_MASTER.dog;
+  const arr = master[fromCat];
+  if (arr) {
+    const fi = parseInt(prepDragItem.dataset.drugIndex);
+    const ti = parseInt(this.dataset.drugIndex);
+    const item = arr.splice(fi, 1)[0];
+    arr.splice(ti > fi ? ti - 1 : ti, 0, item); // adjust for removal
+    // Re-index dataset attributes
+    Array.from(list.children).forEach((row, i) => { row.dataset.drugIndex = i; });
+  }
+}
+
+// Touch drag support for iPad/mobile
+function setupTouchDrag(listEl) {
+  var touchItem = null;
+  var touchClone = null;
+  var touchStartY = 0;
+  var touchOffsetY = 0;
+
+  listEl.addEventListener('touchstart', function(e) {
+    var handle = e.target.closest('.prep-drag-handle');
+    if (!handle) return;
+    var row = handle.closest('.prep-drug-row');
+    if (!row) return;
+
+    touchItem = row;
+    var rect = row.getBoundingClientRect();
+    touchStartY = e.touches[0].clientY;
+    touchOffsetY = touchStartY - rect.top;
+
+    // Create visual clone
+    touchClone = row.cloneNode(true);
+    touchClone.style.position = 'fixed';
+    touchClone.style.left = rect.left + 'px';
+    touchClone.style.top = rect.top + 'px';
+    touchClone.style.width = rect.width + 'px';
+    touchClone.style.zIndex = '9999';
+    touchClone.style.opacity = '0.85';
+    touchClone.style.boxShadow = '0 8px 24px rgba(0,0,0,0.4)';
+    touchClone.style.pointerEvents = 'none';
+    touchClone.style.transition = 'none';
+    document.body.appendChild(touchClone);
+
+    row.classList.add('dragging');
+  }, { passive: true });
+
+  listEl.addEventListener('touchmove', function(e) {
+    if (!touchItem || !touchClone) return;
+    e.preventDefault();
+
+    var y = e.touches[0].clientY;
+    touchClone.style.top = (y - touchOffsetY) + 'px';
+
+    // Find drop target
+    var rows = Array.from(listEl.querySelectorAll('.prep-drug-row'));
+    rows.forEach(r => r.classList.remove('drag-over'));
+    for (var i = 0; i < rows.length; i++) {
+      if (rows[i] === touchItem) continue;
+      var rect = rows[i].getBoundingClientRect();
+      if (y > rect.top && y < rect.bottom) {
+        rows[i].classList.add('drag-over');
+        break;
+      }
+    }
+  }, { passive: false });
+
+  listEl.addEventListener('touchend', function(e) {
+    if (!touchItem) return;
+
+    // Find target
+    var target = listEl.querySelector('.prep-drug-row.drag-over');
+    if (target && target !== touchItem && target.dataset.catKey === touchItem.dataset.catKey) {
+      var children = Array.from(listEl.children);
+      var fromIdx = children.indexOf(touchItem);
+      var toIdx = children.indexOf(target);
+      if (fromIdx < toIdx) {
+        listEl.insertBefore(touchItem, target.nextSibling);
+      } else {
+        listEl.insertBefore(touchItem, target);
+      }
+
+      // Update PREMED_MASTER order
+      var sp = state.patient.species || 'dog';
+      var master = PREMED_MASTER[sp] || PREMED_MASTER.dog;
+      var catKey = touchItem.dataset.catKey;
+      var arr = master[catKey];
+      if (arr) {
+        var fi = parseInt(touchItem.dataset.drugIndex);
+        var ti = parseInt(target.dataset.drugIndex);
+        var item = arr.splice(fi, 1)[0];
+        arr.splice(ti > fi ? ti - 1 : ti, 0, item);
+        Array.from(listEl.children).forEach(function(row, i) { row.dataset.drugIndex = i; });
+      }
+    }
+
+    // Cleanup
+    touchItem.classList.remove('dragging');
+    listEl.querySelectorAll('.prep-drug-row.drag-over').forEach(r => r.classList.remove('drag-over'));
+    if (touchClone && touchClone.parentNode) touchClone.parentNode.removeChild(touchClone);
+    touchItem = null;
+    touchClone = null;
+  }, { passive: true });
 }
 
 function completeDrugPrep() {
