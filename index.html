@@ -2912,9 +2912,9 @@ function handleCameraCapture(){
         var thumbUrl = thumbCanvas.toDataURL('image/jpeg', 0.5);
         var captureId = storeThumbnail(thumbUrl);
 
-        // API送信用にリサイズ（通信量削減: 最大768px）
+        // API送信用にリサイズ（精度確保: 最大1280px）
         var apiCanvas = document.createElement('canvas');
-        var scale = Math.min(768 / img.width, 768 / img.height, 1);
+        var scale = Math.min(1280 / img.width, 1280 / img.height, 1);
         apiCanvas.width = Math.round(img.width * scale);
         apiCanvas.height = Math.round(img.height * scale);
         var aCtx = apiCanvas.getContext('2d');
@@ -2955,6 +2955,34 @@ function handleCameraCapture(){
 // ===================================================================
 //  GEMINI VISION API
 // ===================================================================
+// ===================================================================
+//  SHARED VISION PROMPT
+// ===================================================================
+function getVisionPrompt() {
+  return 'この画像は動物病院の麻酔モニター画面の写真です。画面に表示されている全ての数値を正確に読み取ってください。\n\n' +
+    '【重要な注意】\n' +
+    '- 数値は画面上の色付きの大きな数字です（緑、赤、黄色、白、青など）\n' +
+    '- 波形（グラフの線）ではなく、数値テキストを読んでください\n' +
+    '- 血圧は "120/80" や "SYS 120 DIA 80 MAP 93" のように表示されることがあります\n' +
+    '- EtCO2/呼気CO2は通常30-50の範囲の数値です\n' +
+    '- 体温は通常25-42℃の範囲です\n' +
+    '- 麻酔ガス濃度(ISO/SEV)はFi(吸気)とEt(呼気)の2つがあり、0-5%程度です\n' +
+    '- 読み取れない項目はnullにしてください\n\n' +
+    '必ず以下のJSON形式のみで回答してください。説明テキストは不要です。\n' +
+    '{"hr":数値,"spo2":数値,"rr":数値,"etco2_in":数値,"etco2_ex":数値,"sys":数値,"dia":数値,"temp":数値,"gas_in":数値,"gas_ex":数値}\n\n' +
+    '各項目:\n' +
+    '- hr: 心拍数/脈拍数(bpm) ※HR, Pulse\n' +
+    '- spo2: 酸素飽和度(%) ※SpO2\n' +
+    '- rr: 呼吸数(/min) ※RR, awRR, RESP\n' +
+    '- etco2_in: 吸気CO2濃度(mmHg) ※InspCO2, FiCO2。表示がなければnull\n' +
+    '- etco2_ex: 呼気終末CO2濃度(mmHg) ※EtCO2, ETCO2\n' +
+    '- sys: 収縮期血圧(mmHg) ※SYS, NBPs, IBPs。数値のみ\n' +
+    '- dia: 拡張期血圧(mmHg) ※DIA, NBPd, IBPd。数値のみ\n' +
+    '- temp: 体温(℃) ※TEMP, T1, T2。小数点1桁\n' +
+    '- gas_in: 吸入麻酔ガス吸気濃度(%) ※FiAA, FiIso, FiSev, Fi\n' +
+    '- gas_ex: 吸入麻酔ガス呼気濃度(%) ※EtAA, EtIso, EtSev, Et';
+}
+
 function getGeminiModelId() {
   if (state.apiModel === 'gemini-pro') return 'gemini-2.5-pro-preview-06-05';
   return 'gemini-2.0-flash';
@@ -2969,14 +2997,7 @@ function callGeminiVision(imageDataUrl, captureId, btn) {
   var base64Data = parts[1];
 
   var modelId = getGeminiModelId();
-  var prompt = 'この画像は動物病院の麻酔モニター画面です。表示されている数値を読み取ってください。\n' +
-    '必ず以下のJSON形式のみで回答してください。他のテキストは不要です。\n' +
-    '読み取れない項目はnullにしてください。\n' +
-    '{"hr":数値,"spo2":数値,"rr":数値,"etco2_in":数値,"etco2_ex":数値,"sys":数値,"dia":数値,"temp":数値,"gas_in":数値,"gas_ex":数値}\n' +
-    '- hr: 心拍数(bpm)\n- spo2: 酸素飽和度(%)\n- rr: 呼吸数\n' +
-    '- etco2_in: 吸気CO2濃度(mmHg) ※InspCO2, FiCO2\n- etco2_ex: 呼気終末CO2濃度(mmHg) ※EtCO2\n' +
-    '- sys: 収縮期血圧(mmHg)\n- dia: 拡張期血圧(mmHg)\n- temp: 体温(℃)\n' +
-    '- gas_in: 吸入麻酔ガス吸気濃度(%) ※FiAA, FiIso, FiSev\n- gas_ex: 吸入麻酔ガス呼気濃度(%) ※EtAA, EtIso, EtSev';
+  var prompt = getVisionPrompt();
 
   var apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/' + modelId + ':generateContent?key=' + encodeURIComponent(state.apiKey);
 
@@ -2995,7 +3016,7 @@ function callGeminiVision(imageDataUrl, captureId, btn) {
       ]
     }],
     generationConfig: {
-      maxOutputTokens: 256,
+      maxOutputTokens: 512,
       temperature: 0.1
     }
   });
@@ -3022,9 +3043,9 @@ function callGeminiVision(imageDataUrl, captureId, btn) {
         var vitals = parseVitalsFromAI(text);
         if (vitals) {
           applyVitalData(vitals, captureId, false);
-          addLog('🤖 AI読取成功 (' + modelId + ')');
+          addLog('🤖 AI読取成功 (' + modelId + ') HR:' + vitals.hr + ' SpO2:' + vitals.spo2 + ' T:' + vitals.temp);
         } else {
-          addLog('⚠ AI応答のパース失敗 → デモ値使用');
+          addLog('⚠ AI応答のパース失敗: ' + (text ? text.substring(0, 80) : '空') + ' → デモ値使用');
           var d = generateMockVitals(state.patient.species);
           applyVitalData(d, captureId, false);
         }
@@ -3083,18 +3104,11 @@ function callClaudeVision(imageDataUrl, captureId, btn) {
   var base64Data = parts[1];
 
   var modelId = getClaudeModelId();
-  var prompt = 'この画像は動物病院の麻酔モニター画面です。表示されている数値を読み取ってください。\n' +
-    '必ず以下のJSON形式のみで回答してください。他のテキストは不要です。\n' +
-    '読み取れない項目はnullにしてください。\n' +
-    '{"hr":数値,"spo2":数値,"rr":数値,"etco2_in":数値,"etco2_ex":数値,"sys":数値,"dia":数値,"temp":数値,"gas_in":数値,"gas_ex":数値}\n' +
-    '- hr: 心拍数(bpm)\n- spo2: 酸素飽和度(%)\n- rr: 呼吸数\n' +
-    '- etco2_in: 吸気CO2濃度(mmHg) ※InspCO2, FiCO2\n- etco2_ex: 呼気終末CO2濃度(mmHg) ※EtCO2\n' +
-    '- sys: 収縮期血圧(mmHg)\n- dia: 拡張期血圧(mmHg)\n- temp: 体温(℃)\n' +
-    '- gas_in: 吸入麻酔ガス吸気濃度(%) ※FiAA, FiIso, FiSev\n- gas_ex: 吸入麻酔ガス呼気濃度(%) ※EtAA, EtIso, EtSev';
+  var prompt = getVisionPrompt();
 
   var body = JSON.stringify({
     model: modelId,
-    max_tokens: 300,
+    max_tokens: 512,
     messages: [{
       role: 'user',
       content: [
@@ -3141,9 +3155,9 @@ function callClaudeVision(imageDataUrl, captureId, btn) {
         var vitals = parseVitalsFromAI(text);
         if (vitals) {
           applyVitalData(vitals, captureId, false);
-          addLog('🧠 Claude読取成功 (' + modelId + ')');
+          addLog('🧠 Claude読取成功 (' + modelId + ') HR:' + vitals.hr + ' SpO2:' + vitals.spo2 + ' T:' + vitals.temp);
         } else {
-          addLog('⚠ Claude応答のパース失敗 → デモ値使用');
+          addLog('⚠ Claude応答のパース失敗: ' + (text ? text.substring(0, 80) : '空') + ' → デモ値使用');
           var d = generateMockVitals(state.patient.species);
           applyVitalData(d, captureId, false);
         }
@@ -3189,28 +3203,35 @@ function callClaudeVision(imageDataUrl, captureId, btn) {
 function parseVitalsFromAI(text) {
   // AI応答からJSONを抽出
   try {
+    console.log('[VetAnes] AI raw response:', text);
+
     // ```json ... ``` を除去
     var cleaned = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
     // JSONオブジェクト部分を抽出
-    var jsonMatch = cleaned.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) return null;
+    var jsonMatch = cleaned.match(/\{[\s\S]*?\}/);
+    if (!jsonMatch) {
+      console.warn('[VetAnes] No JSON found in AI response');
+      return null;
+    }
     var obj = JSON.parse(jsonMatch[0]);
+    console.log('[VetAnes] Parsed JSON:', obj);
 
-    // 数値の妥当性チェック＋デフォルト補完
+    // 数値の妥当性チェック（範囲を広めに設定）
     var hr = (typeof obj.hr === 'number' && obj.hr > 0 && obj.hr < 500) ? Math.round(obj.hr) : null;
     var spo2 = (typeof obj.spo2 === 'number' && obj.spo2 > 0 && obj.spo2 <= 100) ? Math.round(obj.spo2) : null;
-    var rr = (typeof obj.rr === 'number' && obj.rr > 0 && obj.rr < 200) ? Math.round(obj.rr) : null;
+    var rr = (typeof obj.rr === 'number' && obj.rr >= 0 && obj.rr < 200) ? Math.round(obj.rr) : null;
     var etco2_in = (typeof obj.etco2_in === 'number' && obj.etco2_in >= 0 && obj.etco2_in < 150) ? Math.round(obj.etco2_in) : null;
-    var etco2_ex = (typeof obj.etco2_ex === 'number' && obj.etco2_ex > 0 && obj.etco2_ex < 150) ? Math.round(obj.etco2_ex) : null;
+    var etco2_ex = (typeof obj.etco2_ex === 'number' && obj.etco2_ex >= 0 && obj.etco2_ex < 150) ? Math.round(obj.etco2_ex) : null;
     var sys = (typeof obj.sys === 'number' && obj.sys > 0 && obj.sys < 400) ? Math.round(obj.sys) : null;
-    var dia = (typeof obj.dia === 'number' && obj.dia > 0 && obj.dia < 300) ? Math.round(obj.dia) : null;
-    var temp = (typeof obj.temp === 'number' && obj.temp > 15 && obj.temp < 45) ? +obj.temp.toFixed(1) : null;
-    var gas_in = (typeof obj.gas_in === 'number' && obj.gas_in >= 0 && obj.gas_in < 10) ? +obj.gas_in.toFixed(1) : null;
-    var gas_ex = (typeof obj.gas_ex === 'number' && obj.gas_ex >= 0 && obj.gas_ex < 10) ? +obj.gas_ex.toFixed(1) : null;
+    var dia = (typeof obj.dia === 'number' && obj.dia > 0 && obj.dia < 400) ? Math.round(obj.dia) : null;
+    var temp = (typeof obj.temp === 'number' && obj.temp > 10 && obj.temp < 50) ? +obj.temp.toFixed(1) : null;
+    var gas_in = (typeof obj.gas_in === 'number' && obj.gas_in >= 0 && obj.gas_in < 15) ? +obj.gas_in.toFixed(1) : null;
+    var gas_ex = (typeof obj.gas_ex === 'number' && obj.gas_ex >= 0 && obj.gas_ex < 15) ? +obj.gas_ex.toFixed(1) : null;
 
-    // 少なくとも2項目以上読めていれば成功とする
+    // 1項目以上読めていれば成功とする（前回値で補完するため）
     var count = [hr, spo2, rr, etco2_in, etco2_ex, sys, dia, temp, gas_in, gas_ex].filter(function(v) { return v !== null; }).length;
-    if (count < 2) return null;
+    console.log('[VetAnes] Valid values count:', count);
+    if (count < 1) return null;
 
     // null項目は前回値で補完
     var lastHr = state.vitals.hr.length > 0 ? state.vitals.hr[state.vitals.hr.length - 1] : 0;
