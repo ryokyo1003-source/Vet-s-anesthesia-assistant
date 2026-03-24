@@ -1000,6 +1000,85 @@
     .report-timeline tr:nth-child(even) td, .report-drug-table tr:nth-child(even) td, .report-vitals-table tr:nth-child(even) td { background: #f8f8f8 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     @page { size: A4 portrait; margin: 8mm; }
   }
+
+  /* ===== PREP SCREEN: mL/kg dose references ===== */
+  .prep-dose-ref { font-size: 10px; color: var(--text-secondary); line-height: 1.3; }
+  .prep-dose-mlkg { font-size: 10px; color: var(--accent-cyan); line-height: 1.3; margin-top: 1px; }
+  .prep-drug-calc .calc-detail-mgkg { font-size: 10px; color: var(--text-secondary); font-weight: 400; }
+
+  /* ===== CUSTOM DRUG (院内製剤) ===== */
+  .custom-drug-badge {
+    display: inline-block; font-size: 9px; font-weight: 700;
+    background: rgba(139,92,246,0.2); color: var(--accent-purple);
+    border: 1px solid rgba(139,92,246,0.3); border-radius: 4px;
+    padding: 1px 4px; margin-left: 4px; vertical-align: middle;
+  }
+  .custom-prep-card {
+    background: var(--bg-secondary); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px; margin-bottom: 8px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .custom-prep-card:hover { background: var(--bg-card-hover); }
+  .custom-prep-photo {
+    width: 48px; height: 48px; border-radius: 8px; object-fit: cover;
+    border: 1px solid var(--border); flex-shrink: 0; background: var(--bg-card);
+  }
+  .custom-prep-photo-placeholder {
+    width: 48px; height: 48px; border-radius: 8px;
+    border: 1px dashed var(--border); flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; color: var(--text-muted); background: var(--bg-card);
+  }
+  .custom-prep-info { flex: 1; min-width: 0; }
+  .custom-prep-info .cp-name { font-size: 14px; font-weight: 700; color: var(--text-primary); }
+  .custom-prep-info .cp-detail { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+  .custom-prep-actions { display: flex; gap: 4px; flex-shrink: 0; }
+  .custom-prep-actions button {
+    width: 32px; height: 32px; border-radius: 6px; border: none;
+    font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  }
+  .cp-btn-edit { background: rgba(59,130,246,0.12); color: var(--accent-blue); }
+  .cp-btn-delete { background: rgba(239,68,68,0.1); color: var(--accent-red); }
+  #tabCustomDrugs .custom-drugs-scroll {
+    max-height: calc(100vh - 220px); overflow-y: auto; -webkit-overflow-scrolling: touch;
+    padding: 16px;
+  }
+  .cp-modal-overlay {
+    position: fixed; inset: 0; z-index: 2000;
+    background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center;
+  }
+  .cp-modal {
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px;
+    padding: 24px; width: 420px; max-width: 95vw; max-height: 90vh; overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .cp-modal h3 { font-size: 18px; margin-bottom: 16px; }
+  .cp-modal .cp-field { margin-bottom: 12px; }
+  .cp-modal .cp-field label { display: block; font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; }
+  .cp-modal .cp-field input, .cp-modal .cp-field select {
+    width: 100%; padding: 10px 12px; background: var(--bg-secondary); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text-primary); font-size: 14px; outline: none;
+    -webkit-appearance: none; appearance: none;
+  }
+  .cp-modal .cp-field select { padding-right: 30px; }
+  .cp-modal .cp-row { display: flex; gap: 8px; }
+  .cp-modal .cp-row .cp-field { flex: 1; }
+  .cp-photo-area {
+    border: 2px dashed var(--border); border-radius: 10px; padding: 16px;
+    text-align: center; margin-bottom: 12px; position: relative;
+  }
+  .cp-photo-area img { max-width: 100%; max-height: 150px; border-radius: 8px; margin-top: 8px; }
+  .cp-photo-btns { display: flex; gap: 8px; justify-content: center; margin-top: 8px; }
+  .cp-photo-btns button {
+    padding: 8px 14px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--bg-secondary); color: var(--text-primary); font-size: 13px;
+    font-weight: 600; cursor: pointer;
+  }
+  .cp-photo-btns button:active { background: var(--bg-card-hover); }
+  .cp-modal-btns { display: flex; gap: 8px; margin-top: 16px; }
+  .cp-modal-btns button { flex: 1; padding: 12px; border-radius: 10px; border: none; font-size: 15px; font-weight: 700; cursor: pointer; }
+  .cp-btn-cancel { background: var(--bg-secondary); color: var(--text-secondary); border: 1px solid var(--border) !important; }
+  .cp-btn-save { background: linear-gradient(135deg, var(--accent-green), #059669); color: white; }
 </style>
 </head>
 <body>
@@ -1101,6 +1180,7 @@
     <button class="settings-tab active" data-tab="tabMonitor" id="tabBtnMonitor">📐 モニター設定</button>
     <button class="settings-tab" data-tab="tabDrugMaster" id="tabBtnDrugMaster">💊 薬剤マスタ</button>
     <button class="settings-tab" data-tab="tabApiSettings" id="tabBtnApi">🔑 AI読取設定</button>
+    <button class="settings-tab" data-tab="tabCustomDrugs" id="tabBtnCustomDrugs">🏥 院内製剤</button>
   </div>
 
   <!-- Tab 1: Monitor Calibration -->
@@ -1248,6 +1328,19 @@
 
       <button type="button" onclick="testApiConnection()" id="btnTestApi" style="width:100%; padding:12px; margin-top:8px; background:var(--bg-secondary); border:1px solid var(--accent-blue); border-radius:10px; color:var(--accent-blue); font-size:14px; font-weight:600; cursor:pointer; min-height:44px;">🔍 接続テスト</button>
       <div id="apiTestResult" style="margin-top:8px; padding:10px; border-radius:8px; font-size:12px; display:none;"></div>
+    </div>
+  </div>
+
+  <!-- Tab 4: Custom Drugs (院内製剤) -->
+  <div class="settings-tab-content" id="tabCustomDrugs">
+    <div class="custom-drugs-scroll">
+      <div style="text-align:center; margin-bottom:16px;">
+        <div style="font-size:36px; margin-bottom:6px;">🏥</div>
+        <h3 style="font-size:16px; margin-bottom:4px;">院内製剤 登録</h3>
+        <p style="font-size:12px; color:var(--text-secondary);">院内で調製した薬剤を登録し、薬剤準備画面で使用できます</p>
+      </div>
+      <div id="customDrugsList"></div>
+      <button type="button" onclick="openCustomDrugModal(-1)" style="width:100%; padding:14px; margin-top:12px; background:linear-gradient(135deg, var(--accent-purple), var(--accent-blue)); border:none; border-radius:10px; color:white; font-size:15px; font-weight:700; cursor:pointer; min-height:48px;">＋ 院内製剤を追加</button>
     </div>
   </div>
 </div>
@@ -1924,7 +2017,18 @@ function buildPrepDrugList(species, weight) {
     const list = document.createElement('div');
     list.className = 'prep-drug-list';
 
-    drugs.forEach((drug, drugIndexInCat) => {
+    // Combine master drugs with custom preparations for this category
+    const customPreps = getCustomPreparations().filter(cp => cp.category === catKey);
+    const allDrugs = [];
+    drugs.forEach((drug, i) => allDrugs.push({ drug, drugIndexInCat: i, isCustom: false }));
+    customPreps.forEach(cp => allDrugs.push({
+      drug: { name: cp.name, conc: cp.conc, concUnit: cp.concUnit, doseMin: cp.doseMin, doseMax: cp.doseMax, doseUnit: cp.doseUnit, route: cp.route },
+      drugIndexInCat: -1, isCustom: true, customId: cp.id, photoDataUrl: cp.photoDataUrl
+    }));
+
+    allDrugs.forEach((entry) => {
+      const drug = entry.drug;
+      const drugIndexInCat = entry.drugIndexInCat;
       const idx = drugIdx++;
       const row = document.createElement('div');
       row.className = 'prep-drug-row';
@@ -1932,34 +2036,88 @@ function buildPrepDrugList(species, weight) {
       row.draggable = true;
       row.dataset.catKey = catKey;
       row.dataset.drugIndex = drugIndexInCat;
+      if (entry.isCustom) row.dataset.customId = entry.customId;
 
       const isInhale = drug.conc === null;
-      const defaultDose = drug.doseMin;
-      const doseMg = isInhale ? null : (defaultDose * weight);
-      const volMl = isInhale ? null : (doseMg / drug.conc);
+      const isFluidUnit = drug.doseUnit && drug.doseUnit.indexOf('mL/') >= 0;
+      const isInjectable = !isInhale && !isFluidUnit && drug.conc > 0;
 
+      // For injectable drugs: input in mL/kg
+      let defaultInputVal, defaultMlPerKg, totalMl, equivMgPerKg;
+      if (isInjectable) {
+        defaultMlPerKg = drug.doseMin / drug.conc;
+        defaultInputVal = defaultMlPerKg;
+        totalMl = defaultMlPerKg * weight;
+        equivMgPerKg = drug.doseMin; // = defaultMlPerKg * drug.conc
+      } else {
+        defaultInputVal = drug.doseMin;
+      }
+
+      // Dose range display
+      let doseRangeHtml = '';
+      if (isInjectable) {
+        const mlKgMin = (drug.doseMin / drug.conc);
+        const mlKgMax = (drug.doseMax / drug.conc);
+        const fmtMlMin = mlKgMin < 0.001 ? mlKgMin.toFixed(4) : mlKgMin < 0.01 ? mlKgMin.toFixed(3) : mlKgMin.toFixed(2);
+        const fmtMlMax = mlKgMax < 0.001 ? mlKgMax.toFixed(4) : mlKgMax < 0.01 ? mlKgMax.toFixed(3) : mlKgMax.toFixed(2);
+        doseRangeHtml =
+          `<span class="prep-drug-dose-range">` +
+            `<span class="prep-dose-ref">${drug.doseMin}~${drug.doseMax} ${drug.doseUnit}</span><br>` +
+            `<span class="prep-dose-mlkg">(${fmtMlMin}~${fmtMlMax} mL/kg)</span>` +
+          `</span>`;
+      } else {
+        doseRangeHtml = `<span class="prep-drug-dose-range">${drug.doseMin}~${drug.doseMax}<br>${drug.doseUnit}</span>`;
+      }
+
+      // Calc display
       let calcHtml = '';
       if (isInhale) {
         calcHtml = `<span class="prep-drug-calc">${drug.doseMin}-${drug.doseMax}${drug.doseUnit}</span>`;
-      } else if (defaultDose > 0) {
-        const volDisp = volMl < 0.01 ? volMl.toFixed(4) : volMl < 0.1 ? volMl.toFixed(3) : volMl.toFixed(2);
-        calcHtml = `<span class="prep-drug-calc" id="prepCalc_${idx}"><strong>${volDisp} mL</strong><br><span class="calc-detail">${doseMg < 0.01 ? doseMg.toFixed(4) : doseMg.toFixed(2)}${drug.doseUnit.replace('/kg','')}</span></span>`;
+      } else if (isInjectable && defaultInputVal > 0) {
+        const volDisp = totalMl < 0.01 ? totalMl.toFixed(4) : totalMl < 0.1 ? totalMl.toFixed(3) : totalMl.toFixed(2);
+        const mgDisp = equivMgPerKg < 0.001 ? equivMgPerKg.toFixed(4) : equivMgPerKg < 0.01 ? equivMgPerKg.toFixed(3) : equivMgPerKg.toFixed(2);
+        calcHtml = `<span class="prep-drug-calc" id="prepCalc_${idx}"><strong>${volDisp} mL</strong><br><span class="calc-detail-mgkg">${mgDisp} mg/kg</span></span>`;
+      } else if (!isInhale && defaultInputVal > 0) {
+        // Fluid drugs: keep old behavior
+        const doseMg = defaultInputVal * weight;
+        calcHtml = `<span class="prep-drug-calc" id="prepCalc_${idx}"><strong>${doseMg.toFixed(2)}</strong><br><span class="calc-detail">${drug.doseUnit}</span></span>`;
       } else {
         calcHtml = `<span class="prep-drug-calc" id="prepCalc_${idx}"></span>`;
+      }
+
+      // Input field
+      let inputHtml = '';
+      if (isInjectable) {
+        const inputDisp = defaultInputVal < 0.001 ? defaultInputVal.toFixed(4) : defaultInputVal < 0.01 ? defaultInputVal.toFixed(3) : defaultInputVal.toFixed(2);
+        inputHtml = `<input type="number" class="prep-drug-input" id="prepDose_${idx}" value="${inputDisp}" step="any" min="0" data-idx="${idx}" data-conc="${drug.conc}" data-unit="${drug.doseUnit}" data-mode="mlkg" onchange="updatePrepCalc(${idx})" oninput="updatePrepCalc(${idx})">` +
+          `<span class="prep-drug-unit">mL/kg</span>`;
+      } else if (!isInhale) {
+        inputHtml = `<input type="number" class="prep-drug-input" id="prepDose_${idx}" value="${defaultInputVal}" step="any" min="0" data-idx="${idx}" data-conc="${drug.conc || 0}" data-unit="${drug.doseUnit}" data-mode="legacy" onchange="updatePrepCalc(${idx})" oninput="updatePrepCalc(${idx})">` +
+          `<span class="prep-drug-unit">${drug.doseUnit}</span>`;
+      }
+
+      // Drug name with optional custom badge and photo
+      let nameHtml = drug.name;
+      if (entry.isCustom) {
+        nameHtml = (entry.photoDataUrl ? `<img src="${entry.photoDataUrl}" class="custom-prep-photo" style="width:24px;height:24px;border-radius:4px;vertical-align:middle;margin-right:4px;">` : '') +
+          drug.name + `<span class="custom-drug-badge">院内</span>`;
       }
 
       row.innerHTML =
         `<span class="prep-drag-handle">☰</span>` +
         `<input type="checkbox" id="prepChk_${idx}" onchange="togglePrepRow(${idx})">` +
-        `<span class="prep-drug-name">${drug.name}</span>` +
-        `<span class="prep-drug-dose-range">${drug.doseMin}~${drug.doseMax}<br>${drug.doseUnit}</span>` +
-        (isInhale ? '' : `<input type="number" class="prep-drug-input" id="prepDose_${idx}" value="${defaultDose}" step="any" min="0" data-idx="${idx}" data-conc="${drug.conc}" data-unit="${drug.doseUnit}" onchange="updatePrepCalc(${idx})" oninput="updatePrepCalc(${idx})">`) +
-        (isInhale ? '' : `<span class="prep-drug-unit">${drug.doseUnit}</span>`) +
+        `<span class="prep-drug-name">${nameHtml}</span>` +
+        doseRangeHtml +
+        inputHtml +
         calcHtml +
         `<span class="prep-drug-route">${drug.route}</span>` +
         `<span class="prep-drug-actions-row">` +
-          `<button class="prep-btn-edit" onclick="event.stopPropagation();openPrepDrugEdit('${catKey}',${drugIndexInCat})" title="編集">✏</button>` +
-          `<button class="prep-btn-delete" onclick="event.stopPropagation();deletePrepDrug('${catKey}',${drugIndexInCat})" title="削除">✕</button>` +
+          (entry.isCustom
+            ? `<button class="prep-btn-edit" onclick="event.stopPropagation();openCustomDrugModal('${entry.customId}')" title="編集">✏</button>` +
+              `<button class="prep-btn-delete" onclick="event.stopPropagation();deleteCustomPreparation('${entry.customId}')" title="削除">✕</button>`
+            : `<button class="prep-btn-edit" onclick="event.stopPropagation();openPrepDrugEdit('${catKey}',${drugIndexInCat})" title="編集">✏</button>` +
+              `<button class="prep-btn-delete" onclick="event.stopPropagation();deletePrepDrug('${catKey}',${drugIndexInCat})" title="削除">✕</button>`
+          ) +
         `</span>`;
 
       // Drag events
@@ -2103,21 +2261,37 @@ function updatePrepCalc(idx) {
   const calcEl = document.getElementById('prepCalc_' + idx);
   if (!input || !calcEl) return;
 
-  const dosePerKg = parseFloat(input.value) || 0;
-  if (dosePerKg <= 0) {
+  const inputVal = parseFloat(input.value) || 0;
+  if (inputVal <= 0) {
     calcEl.innerHTML = '';
     return;
   }
 
   const conc = parseFloat(input.dataset.conc);
   const unit = input.dataset.unit;
+  const mode = input.dataset.mode || 'legacy';
   const w = state.patient.weight;
-  const doseMg = dosePerKg * w;
-  const volMl = doseMg / conc;
 
-  const volDisp = volMl < 0.01 ? volMl.toFixed(4) : volMl < 0.1 ? volMl.toFixed(3) : volMl.toFixed(2);
-  const calcHtml = `<strong>${volDisp} mL</strong><br><span class="calc-detail">${doseMg < 0.01 ? doseMg.toFixed(4) : doseMg.toFixed(2)}${unit.replace('/kg','')}</span>`;
-  calcEl.innerHTML = calcHtml;
+  if (mode === 'mlkg') {
+    // Input is mL/kg
+    const mlPerKg = inputVal;
+    const totalMl = mlPerKg * w;
+    const equivMgPerKg = mlPerKg * conc;
+    const volDisp = totalMl < 0.01 ? totalMl.toFixed(4) : totalMl < 0.1 ? totalMl.toFixed(3) : totalMl.toFixed(2);
+    const mgDisp = equivMgPerKg < 0.001 ? equivMgPerKg.toFixed(4) : equivMgPerKg < 0.01 ? equivMgPerKg.toFixed(3) : equivMgPerKg.toFixed(2);
+    calcEl.innerHTML = `<strong>${volDisp} mL</strong><br><span class="calc-detail-mgkg">${mgDisp} mg/kg</span>`;
+  } else {
+    // Legacy: input is in original doseUnit (mg/kg or mL/kg/hr etc.)
+    const dosePerKg = inputVal;
+    const doseMg = dosePerKg * w;
+    if (conc > 0) {
+      const volMl = doseMg / conc;
+      const volDisp = volMl < 0.01 ? volMl.toFixed(4) : volMl < 0.1 ? volMl.toFixed(3) : volMl.toFixed(2);
+      calcEl.innerHTML = `<strong>${volDisp} mL</strong><br><span class="calc-detail">${doseMg < 0.01 ? doseMg.toFixed(4) : doseMg.toFixed(2)}${unit.replace('/kg','')}</span>`;
+    } else {
+      calcEl.innerHTML = `<strong>${doseMg.toFixed(2)}</strong><br><span class="calc-detail">${unit}</span>`;
+    }
+  }
 }
 
 // ===================================================================
@@ -4227,6 +4401,344 @@ function resetDrugMasterSpecies() {
 }
 
 // ===================================================================
+//  CUSTOM PREPARATIONS (院内製剤)
+// ===================================================================
+var _customPrepsCache = null;
+
+function getCustomPreparations() {
+  if (_customPrepsCache) return _customPrepsCache;
+  try {
+    var raw = localStorage.getItem('vetanes_custom_preparations');
+    _customPrepsCache = raw ? JSON.parse(raw) : [];
+  } catch(e) {
+    _customPrepsCache = [];
+  }
+  return _customPrepsCache;
+}
+
+function saveCustomPreparations(arr) {
+  _customPrepsCache = arr;
+  localStorage.setItem('vetanes_custom_preparations', JSON.stringify(arr));
+}
+
+function renderCustomDrugsList() {
+  var container = document.getElementById('customDrugsList');
+  if (!container) return;
+  var preps = getCustomPreparations();
+  if (preps.length === 0) {
+    container.innerHTML = '<div style="text-align:center;color:var(--text-muted);font-size:13px;padding:20px;">登録された院内製剤はありません</div>';
+    return;
+  }
+  var html = '';
+  preps.forEach(function(cp) {
+    var catLabel = PREMED_CATEGORY_LABELS[cp.category] ? PREMED_CATEGORY_LABELS[cp.category].label : cp.category;
+    var photoHtml = cp.photoDataUrl
+      ? '<img src="' + cp.photoDataUrl + '" class="custom-prep-photo" alt="">'
+      : '<div class="custom-prep-photo-placeholder">💊</div>';
+    html += '<div class="custom-prep-card">' +
+      photoHtml +
+      '<div class="custom-prep-info">' +
+        '<div class="cp-name">' + cp.name + ' <span class="custom-drug-badge">院内</span></div>' +
+        '<div class="cp-detail">' + (cp.conc || '?') + ' ' + (cp.concUnit || 'mg/mL') + ' | ' + cp.doseMin + '~' + cp.doseMax + ' ' + cp.doseUnit + ' | ' + cp.route + ' | ' + catLabel + '</div>' +
+      '</div>' +
+      '<div class="custom-prep-actions">' +
+        '<button class="cp-btn-edit" onclick="openCustomDrugModal(\'' + cp.id + '\')">✏</button>' +
+        '<button class="cp-btn-delete" onclick="deleteCustomPreparation(\'' + cp.id + '\')">✕</button>' +
+      '</div>' +
+    '</div>';
+  });
+  container.innerHTML = html;
+}
+
+function deleteCustomPreparation(id) {
+  if (!confirm('この院内製剤を削除しますか？')) return;
+  var preps = getCustomPreparations().filter(function(cp) { return cp.id !== id; });
+  saveCustomPreparations(preps);
+  renderCustomDrugsList();
+  // Refresh prep screen if open
+  if (document.getElementById('drugPrepScreen').style.display !== 'none' && state.patient.weight > 0) {
+    buildPrepDrugList(state.patient.species || 'dog', state.patient.weight);
+  }
+}
+
+var _cpModalPhotoData = null;
+
+function openCustomDrugModal(idOrNew) {
+  var isEdit = typeof idOrNew === 'string' && idOrNew !== '-1';
+  var cp = null;
+  if (isEdit) {
+    cp = getCustomPreparations().find(function(p) { return p.id === idOrNew; });
+    if (!cp) return;
+  }
+
+  _cpModalPhotoData = cp ? cp.photoDataUrl || null : null;
+
+  var catOptions = '';
+  for (var key in PREMED_CATEGORY_LABELS) {
+    var info = PREMED_CATEGORY_LABELS[key];
+    var sel = cp && cp.category === key ? ' selected' : (!cp && key === 'premed' ? ' selected' : '');
+    catOptions += '<option value="' + key + '"' + sel + '>' + info.icon + ' ' + info.label + '</option>';
+  }
+
+  var overlay = document.createElement('div');
+  overlay.className = 'cp-modal-overlay';
+  overlay.id = 'cpModalOverlay';
+  overlay.innerHTML =
+    '<div class="cp-modal">' +
+      '<h3>' + (isEdit ? '✏️ 院内製剤を編集' : '➕ 院内製剤を登録') + '</h3>' +
+      '<div class="cp-photo-area" id="cpPhotoArea">' +
+        '<div style="font-size:24px;">📷</div>' +
+        '<div style="font-size:12px;color:var(--text-secondary);">薬剤ラベルを撮影（任意）</div>' +
+        (_cpModalPhotoData ? '<img id="cpPhotoPreview" src="' + _cpModalPhotoData + '">' : '<img id="cpPhotoPreview" style="display:none;">') +
+        '<div class="cp-photo-btns">' +
+          '<button onclick="captureCustomDrugPhoto()">📸 撮影</button>' +
+          '<button id="btnAiReadConc" onclick="aiReadConcentration()" style="display:none;">🤖 AI濃度読取</button>' +
+        '</div>' +
+        '<input type="file" id="cpPhotoInput" accept="image/*" capture="environment" style="display:none;" onchange="handleCustomDrugPhoto(this)">' +
+      '</div>' +
+      '<div class="cp-field">' +
+        '<label>薬剤名</label>' +
+        '<input type="text" id="cpName" value="' + (cp ? cp.name : '') + '" placeholder="薬剤名を入力">' +
+      '</div>' +
+      '<div class="cp-row">' +
+        '<div class="cp-field">' +
+          '<label>濃度</label>' +
+          '<input type="number" id="cpConc" value="' + (cp ? cp.conc : '') + '" step="any" placeholder="例: 10">' +
+        '</div>' +
+        '<div class="cp-field">' +
+          '<label>濃度単位</label>' +
+          '<input type="text" id="cpConcUnit" value="' + (cp ? cp.concUnit || 'mg/mL' : 'mg/mL') + '" placeholder="mg/mL">' +
+        '</div>' +
+      '</div>' +
+      '<div class="cp-field">' +
+        '<label>カテゴリ</label>' +
+        '<select id="cpCategory">' + catOptions + '</select>' +
+      '</div>' +
+      '<div class="cp-field">' +
+        '<label>投与経路</label>' +
+        '<input type="text" id="cpRoute" value="' + (cp ? cp.route : 'iv') + '" placeholder="iv, im, sc, po...">' +
+      '</div>' +
+      '<div class="cp-row">' +
+        '<div class="cp-field">' +
+          '<label>最小用量 (mg/kg)</label>' +
+          '<input type="number" id="cpDoseMin" value="' + (cp ? cp.doseMin : '') + '" step="any" placeholder="0">' +
+        '</div>' +
+        '<div class="cp-field">' +
+          '<label>最大用量 (mg/kg)</label>' +
+          '<input type="number" id="cpDoseMax" value="' + (cp ? cp.doseMax : '') + '" step="any" placeholder="0">' +
+        '</div>' +
+      '</div>' +
+      '<div class="cp-modal-btns">' +
+        '<button class="cp-btn-cancel" onclick="closeCustomDrugModal()">キャンセル</button>' +
+        '<button class="cp-btn-save" onclick="saveCustomDrug(\'' + (isEdit ? cp.id : '') + '\')">' + (isEdit ? '保存' : '追加') + '</button>' +
+      '</div>' +
+    '</div>';
+
+  document.body.appendChild(overlay);
+
+  // Show AI button if API key available
+  setTimeout(function() {
+    if ((state.apiProvider === 'gemini' && state.apiKey) || (state.apiProvider === 'claude' && state.claudeApiKey)) {
+      var btn = document.getElementById('btnAiReadConc');
+      if (btn) btn.style.display = '';
+    }
+  }, 50);
+}
+
+function closeCustomDrugModal() {
+  var overlay = document.getElementById('cpModalOverlay');
+  if (overlay) overlay.remove();
+  _cpModalPhotoData = null;
+}
+
+function captureCustomDrugPhoto() {
+  var input = document.getElementById('cpPhotoInput');
+  if (input) input.click();
+}
+
+function handleCustomDrugPhoto(input) {
+  if (!input.files || !input.files[0]) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    _cpModalPhotoData = e.target.result;
+    var preview = document.getElementById('cpPhotoPreview');
+    if (preview) {
+      preview.src = _cpModalPhotoData;
+      preview.style.display = '';
+    }
+    // Show AI button
+    if ((state.apiProvider === 'gemini' && state.apiKey) || (state.apiProvider === 'claude' && state.claudeApiKey)) {
+      var btn = document.getElementById('btnAiReadConc');
+      if (btn) btn.style.display = '';
+    }
+  };
+  reader.readAsDataURL(input.files[0]);
+}
+
+function aiReadConcentration() {
+  if (!_cpModalPhotoData) { alert('先に写真を撮影してください'); return; }
+
+  var btn = document.getElementById('btnAiReadConc');
+  if (btn) { btn.textContent = '🤖 読取中...'; btn.disabled = true; }
+
+  var parts = _cpModalPhotoData.split(',');
+  var mimeType = 'image/jpeg';
+  var mtMatch = parts[0].match(/data:([^;]+)/);
+  if (mtMatch) mimeType = mtMatch[1];
+  var base64Data = parts[1];
+
+  var prompt = 'この画像は動物用医薬品のラベルです。薬剤名と濃度(mg/mL)を読み取ってください。JSON形式で回答してください: {"name":"薬剤名","concentration":数値,"unit":"mg/mL"}。読み取れない場合は{"name":"","concentration":0,"unit":"mg/mL"}を返してください。';
+
+  function onResult(text) {
+    if (btn) { btn.textContent = '🤖 AI濃度読取'; btn.disabled = false; }
+    try {
+      var jsonMatch = text.match(/\{[\s\S]*?\}/);
+      if (jsonMatch) {
+        var result = JSON.parse(jsonMatch[0]);
+        if (result.name) {
+          var nameInput = document.getElementById('cpName');
+          if (nameInput && !nameInput.value) nameInput.value = result.name;
+        }
+        if (result.concentration > 0) {
+          var concInput = document.getElementById('cpConc');
+          if (concInput) concInput.value = result.concentration;
+          var unitInput = document.getElementById('cpConcUnit');
+          if (unitInput && result.unit) unitInput.value = result.unit;
+        }
+        alert('AI読取結果: ' + (result.name || '不明') + ' / ' + (result.concentration || '?') + ' ' + (result.unit || 'mg/mL'));
+      } else {
+        alert('AIからの応答を解析できませんでした');
+      }
+    } catch(e) {
+      alert('AI応答のパースに失敗: ' + e.message);
+    }
+  }
+
+  function onError(msg) {
+    if (btn) { btn.textContent = '🤖 AI濃度読取'; btn.disabled = false; }
+    alert('AI読取エラー: ' + msg);
+  }
+
+  if (state.apiProvider === 'claude' && state.claudeApiKey) {
+    var bodyC = JSON.stringify({
+      model: getClaudeModelId(),
+      max_tokens: 256,
+      messages: [{ role: 'user', content: [
+        { type: 'image', source: { type: 'base64', media_type: mimeType, data: base64Data } },
+        { type: 'text', text: prompt }
+      ]}]
+    });
+    var xhrC = new XMLHttpRequest();
+    xhrC.open('POST', 'https://api.anthropic.com/v1/messages', true);
+    xhrC.setRequestHeader('Content-Type', 'application/json');
+    xhrC.setRequestHeader('x-api-key', state.claudeApiKey);
+    xhrC.setRequestHeader('anthropic-version', '2023-06-01');
+    xhrC.setRequestHeader('anthropic-dangerous-direct-browser-access', 'true');
+    xhrC.timeout = 30000;
+    xhrC.onload = function() {
+      if (xhrC.status === 200) {
+        try {
+          var resp = JSON.parse(xhrC.responseText);
+          var t = '';
+          if (resp.content) for (var i = 0; i < resp.content.length; i++) {
+            if (resp.content[i].type === 'text') { t = resp.content[i].text; break; }
+          }
+          onResult(t);
+        } catch(e) { onError(e.message); }
+      } else { onError('HTTP ' + xhrC.status); }
+    };
+    xhrC.onerror = function() { onError('ネットワークエラー'); };
+    xhrC.ontimeout = function() { onError('タイムアウト'); };
+    xhrC.send(bodyC);
+  } else if (state.apiProvider === 'gemini' && state.apiKey) {
+    var modelId = typeof getGeminiModelId === 'function' ? getGeminiModelId() : 'gemini-2.0-flash';
+    var apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/' + modelId + ':generateContent';
+    var bodyG = JSON.stringify({
+      contents: [{ parts: [
+        { inline_data: { mime_type: mimeType, data: base64Data } },
+        { text: prompt }
+      ]}],
+      generationConfig: { maxOutputTokens: 256, temperature: 0.1 }
+    });
+    var xhrG = new XMLHttpRequest();
+    xhrG.open('POST', apiUrl, true);
+    xhrG.setRequestHeader('Content-Type', 'application/json');
+    xhrG.setRequestHeader('x-goog-api-key', state.apiKey);
+    xhrG.timeout = 30000;
+    xhrG.onload = function() {
+      if (xhrG.status === 200) {
+        try {
+          var resp = JSON.parse(xhrG.responseText);
+          var t = '';
+          if (resp.candidates && resp.candidates[0] && resp.candidates[0].content && resp.candidates[0].content.parts) {
+            t = resp.candidates[0].content.parts[0].text || '';
+          }
+          onResult(t);
+        } catch(e) { onError(e.message); }
+      } else { onError('HTTP ' + xhrG.status); }
+    };
+    xhrG.onerror = function() { onError('ネットワークエラー'); };
+    xhrG.ontimeout = function() { onError('タイムアウト'); };
+    xhrG.send(bodyG);
+  } else {
+    onError('APIキーが設定されていません。設定画面でAPIキーを入力してください。');
+  }
+}
+
+function saveCustomDrug(editId) {
+  var name = (document.getElementById('cpName').value || '').trim();
+  if (!name) { alert('薬剤名を入力してください'); return; }
+  var conc = parseFloat(document.getElementById('cpConc').value) || 0;
+  if (conc <= 0) { alert('濃度を入力してください'); return; }
+  var concUnit = (document.getElementById('cpConcUnit').value || '').trim() || 'mg/mL';
+  var category = document.getElementById('cpCategory').value;
+  var route = (document.getElementById('cpRoute').value || '').trim() || 'iv';
+  var doseMin = parseFloat(document.getElementById('cpDoseMin').value) || 0;
+  var doseMax = parseFloat(document.getElementById('cpDoseMax').value) || 0;
+
+  var preps = getCustomPreparations();
+  if (editId) {
+    // Update existing
+    for (var i = 0; i < preps.length; i++) {
+      if (preps[i].id === editId) {
+        preps[i].name = name;
+        preps[i].conc = conc;
+        preps[i].concUnit = concUnit;
+        preps[i].category = category;
+        preps[i].route = route;
+        preps[i].doseMin = doseMin;
+        preps[i].doseMax = doseMax;
+        preps[i].doseUnit = 'mg/kg';
+        if (_cpModalPhotoData) preps[i].photoDataUrl = _cpModalPhotoData;
+        break;
+      }
+    }
+  } else {
+    // Add new
+    preps.push({
+      id: 'cp_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
+      name: name,
+      conc: conc,
+      concUnit: concUnit,
+      doseMin: doseMin,
+      doseMax: doseMax,
+      doseUnit: 'mg/kg',
+      route: route,
+      category: category,
+      photoDataUrl: _cpModalPhotoData || null,
+      createdAt: new Date().toISOString()
+    });
+  }
+  saveCustomPreparations(preps);
+  closeCustomDrugModal();
+  renderCustomDrugsList();
+  // Refresh prep screen if open
+  if (document.getElementById('drugPrepScreen').style.display !== 'none' && state.patient.weight > 0) {
+    buildPrepDrugList(state.patient.species || 'dog', state.patient.weight);
+  }
+}
+
+// ===================================================================
 //  POST-OP REPORT
 // ===================================================================
 function endAnesthesia() {
@@ -4435,6 +4947,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // Drug master reset
   const btnDmReset = document.getElementById('btnDmReset');
   if (btnDmReset) btnDmReset.addEventListener('click', () => resetDrugMasterSpecies());
+
+  // Custom preparations (院内製剤) init
+  try { renderCustomDrugsList(); } catch(e) { console.warn('init custom drugs error:', e); }
 });
 </script>
 </body>
