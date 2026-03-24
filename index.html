@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; connect-src https://generativelanguage.googleapis.com https://api.anthropic.com; img-src 'self' data: blob:; font-src 'self';">
+<meta name="referrer" content="no-referrer">
 <title>VetAnes - 獣医麻酔管理</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 <style>
@@ -1599,22 +1601,19 @@ let PREMED_MASTER = {
   },
   cat: {
     premed: [
-      { name:'メデトミジン', conc:1, concUnit:'mg/mL', doseMin:0.01, doseMax:0.04, doseUnit:'mg/kg', route:'im' },
-      { name:'ブトルファノール', conc:5, concUnit:'mg/mL', doseMin:0.2, doseMax:0.4, doseUnit:'mg/kg', route:'im' },
-      { name:'ミダゾラム', conc:5, concUnit:'mg/mL', doseMin:0.2, doseMax:0.3, doseUnit:'mg/kg', route:'im' },
-      { name:'ブプレノルフィン', conc:0.3, concUnit:'mg/mL', doseMin:0.01, doseMax:0.02, doseUnit:'mg/kg', route:'im' },
       { name:'アトロピン', conc:0.5, concUnit:'mg/mL', doseMin:0.02, doseMax:0.04, doseUnit:'mg/kg', route:'im/sc' },
-      { name:'セファゾリン', conc:100, concUnit:'mg/mL', doseMin:20, doseMax:25, doseUnit:'mg/kg', route:'iv' },
+      { name:'ミダゾラム', conc:5, concUnit:'mg/mL', doseMin:0.2, doseMax:0.3, doseUnit:'mg/kg', route:'im' },
+      { name:'ブトルファノール', conc:5, concUnit:'mg/mL', doseMin:0.2, doseMax:0.4, doseUnit:'mg/kg', route:'im' },
+      { name:'メデトミジン', conc:1, concUnit:'mg/mL', doseMin:0.01, doseMax:0.04, doseUnit:'mg/kg', route:'im' },
+      { name:'マロピタント', conc:10, concUnit:'mg/mL', doseMin:1.0, doseMax:1.0, doseUnit:'mg/kg', route:'sc' },
       { name:'メロキシカム', conc:5, concUnit:'mg/mL', doseMin:0.1, doseMax:0.2, doseUnit:'mg/kg', route:'sc' },
     ],
     induction: [
       { name:'プロポフォール', conc:10, concUnit:'mg/mL', doseMin:2, doseMax:6, doseUnit:'mg/kg', route:'iv slow' },
       { name:'アルファキサロン', conc:10, concUnit:'mg/mL', doseMin:2, doseMax:5, doseUnit:'mg/kg', route:'iv/im' },
-      { name:'ケタミン', conc:50, concUnit:'mg/mL', doseMin:5, doseMax:10, doseUnit:'mg/kg', route:'im' },
     ],
     maintenance: [
       { name:'イソフルラン', conc:null, concUnit:null, doseMin:1.0, doseMax:2.5, doseUnit:'%', route:'吸入' },
-      { name:'セボフルラン', conc:null, concUnit:null, doseMin:2.5, doseMax:4.5, doseUnit:'%', route:'吸入' },
     ],
     analgesic: [
       { name:'フェンタニル', conc:0.05, concUnit:'mg/mL', doseMin:0.001, doseMax:0.003, doseUnit:'mg/kg', route:'iv' },
@@ -1622,8 +1621,8 @@ let PREMED_MASTER = {
       { name:'ケタミン', conc:50, concUnit:'mg/mL', doseMin:2, doseMax:5, doseUnit:'mg/kg', route:'im' },
     ],
     antibiotic: [
-      { name:'セファゾリン', conc:100, concUnit:'mg/mL', doseMin:20, doseMax:25, doseUnit:'mg/kg', route:'iv' },
       { name:'アンピシリン', conc:100, concUnit:'mg/mL', doseMin:20, doseMax:25, doseUnit:'mg/kg', route:'iv' },
+      { name:'セファゾリン', conc:100, concUnit:'mg/mL', doseMin:20, doseMax:25, doseUnit:'mg/kg', route:'iv' },
       { name:'エンロフロキサシン', conc:50, concUnit:'mg/mL', doseMin:5, doseMax:5, doseUnit:'mg/kg', route:'sc' },
       { name:'メトロニダゾール', conc:5, concUnit:'mg/mL', doseMin:10, doseMax:15, doseUnit:'mg/kg', route:'iv' },
       { name:'トランサミン', conc:100, concUnit:'mg/mL', doseMin:10, doseMax:25, doseUnit:'mg/kg', route:'iv' },
@@ -1631,77 +1630,78 @@ let PREMED_MASTER = {
       { name:'ガスター', conc:10, concUnit:'mg/mL', doseMin:0.5, doseMax:1.0, doseUnit:'mg/kg', route:'iv' },
     ],
     fluid: [
-      { name:'乳酸リンゲル', conc:null, concUnit:null, doseMin:3, doseMax:5, doseUnit:'mL/kg/hr', route:'iv' },
+      { name:'ソルラクト', conc:null, concUnit:null, doseMin:3, doseMax:5, doseUnit:'mL/kg/hr', route:'iv' },
+      { name:'ソルアセト', conc:null, concUnit:null, doseMin:3, doseMax:5, doseUnit:'mL/kg/hr', route:'iv' },
       { name:'生理食塩水', conc:null, concUnit:null, doseMin:3, doseMax:5, doseUnit:'mL/kg/hr', route:'iv' },
-      { name:'酢酸リンゲル', conc:null, concUnit:null, doseMin:3, doseMax:5, doseUnit:'mL/kg/hr', route:'iv' },
     ],
   },
   rabbit: {
     premed: [
+      { name:'アトロピン', conc:0.5, concUnit:'mg/mL', doseMin:0.05, doseMax:0.1, doseUnit:'mg/kg', route:'sc' },
       { name:'ミダゾラム', conc:5, concUnit:'mg/mL', doseMin:0.5, doseMax:1.0, doseUnit:'mg/kg', route:'im' },
       { name:'ブトルファノール', conc:5, concUnit:'mg/mL', doseMin:0.1, doseMax:0.5, doseUnit:'mg/kg', route:'im/sc' },
       { name:'メデトミジン', conc:1, concUnit:'mg/mL', doseMin:0.1, doseMax:0.25, doseUnit:'mg/kg', route:'im' },
-      { name:'アトロピン', conc:0.5, concUnit:'mg/mL', doseMin:0.05, doseMax:0.1, doseUnit:'mg/kg', route:'sc' },
       { name:'メロキシカム', conc:5, concUnit:'mg/mL', doseMin:0.3, doseMax:0.5, doseUnit:'mg/kg', route:'sc' },
     ],
     induction: [
       { name:'プロポフォール', conc:10, concUnit:'mg/mL', doseMin:3, doseMax:10, doseUnit:'mg/kg', route:'iv slow' },
       { name:'アルファキサロン', conc:10, concUnit:'mg/mL', doseMin:3, doseMax:6, doseUnit:'mg/kg', route:'iv' },
-      { name:'ケタミン', conc:50, concUnit:'mg/mL', doseMin:10, doseMax:35, doseUnit:'mg/kg', route:'im' },
     ],
     maintenance: [
       { name:'イソフルラン', conc:null, concUnit:null, doseMin:1.5, doseMax:3.0, doseUnit:'%', route:'吸入' },
-      { name:'セボフルラン', conc:null, concUnit:null, doseMin:3.0, doseMax:5.0, doseUnit:'%', route:'吸入' },
     ],
     analgesic: [
       { name:'ブプレノルフィン', conc:0.3, concUnit:'mg/mL', doseMin:0.01, doseMax:0.05, doseUnit:'mg/kg', route:'sc/iv' },
       { name:'メロキシカム', conc:5, concUnit:'mg/mL', doseMin:0.3, doseMax:0.5, doseUnit:'mg/kg', route:'sc' },
     ],
     antibiotic: [
-      { name:'エンロフロキサシン', conc:50, concUnit:'mg/mL', doseMin:5, doseMax:10, doseUnit:'mg/kg', route:'sc' },
+      { name:'アンピシリン', conc:100, concUnit:'mg/mL', doseMin:20, doseMax:25, doseUnit:'mg/kg', route:'iv' },
       { name:'セファゾリン', conc:100, concUnit:'mg/mL', doseMin:20, doseMax:25, doseUnit:'mg/kg', route:'iv' },
+      { name:'エンロフロキサシン', conc:50, concUnit:'mg/mL', doseMin:5, doseMax:10, doseUnit:'mg/kg', route:'sc' },
       { name:'トランサミン', conc:100, concUnit:'mg/mL', doseMin:10, doseMax:25, doseUnit:'mg/kg', route:'iv' },
       { name:'アドナ', conc:10, concUnit:'mg/mL', doseMin:0.5, doseMax:1.0, doseUnit:'mg/kg', route:'iv' },
       { name:'ガスター', conc:10, concUnit:'mg/mL', doseMin:0.5, doseMax:1.0, doseUnit:'mg/kg', route:'iv' },
     ],
     fluid: [
-      { name:'乳酸リンゲル', conc:null, concUnit:null, doseMin:10, doseMax:10, doseUnit:'mL/kg/hr', route:'iv' },
+      { name:'ソルラクト', conc:null, concUnit:null, doseMin:10, doseMax:10, doseUnit:'mL/kg/hr', route:'iv' },
+      { name:'ソルアセト', conc:null, concUnit:null, doseMin:10, doseMax:10, doseUnit:'mL/kg/hr', route:'iv' },
       { name:'生理食塩水', conc:null, concUnit:null, doseMin:10, doseMax:10, doseUnit:'mL/kg/hr', route:'iv' },
     ],
   },
   ferret: {
     premed: [
+      { name:'アトロピン', conc:0.5, concUnit:'mg/mL', doseMin:0.02, doseMax:0.04, doseUnit:'mg/kg', route:'sc' },
       { name:'ミダゾラム', conc:5, concUnit:'mg/mL', doseMin:0.25, doseMax:0.5, doseUnit:'mg/kg', route:'im' },
       { name:'ブトルファノール', conc:5, concUnit:'mg/mL', doseMin:0.1, doseMax:0.2, doseUnit:'mg/kg', route:'im' },
       { name:'メデトミジン', conc:1, concUnit:'mg/mL', doseMin:0.08, doseMax:0.1, doseUnit:'mg/kg', route:'im' },
-      { name:'アトロピン', conc:0.5, concUnit:'mg/mL', doseMin:0.02, doseMax:0.04, doseUnit:'mg/kg', route:'sc' },
       { name:'メロキシカム', conc:5, concUnit:'mg/mL', doseMin:0.2, doseMax:0.2, doseUnit:'mg/kg', route:'sc' },
     ],
     induction: [
       { name:'プロポフォール', conc:10, concUnit:'mg/mL', doseMin:2, doseMax:8, doseUnit:'mg/kg', route:'iv slow' },
       { name:'アルファキサロン', conc:10, concUnit:'mg/mL', doseMin:2, doseMax:5, doseUnit:'mg/kg', route:'iv' },
-      { name:'ケタミン', conc:50, concUnit:'mg/mL', doseMin:5, doseMax:10, doseUnit:'mg/kg', route:'im' },
     ],
     maintenance: [
       { name:'イソフルラン', conc:null, concUnit:null, doseMin:1.5, doseMax:3.0, doseUnit:'%', route:'吸入' },
-      { name:'セボフルラン', conc:null, concUnit:null, doseMin:3.0, doseMax:5.0, doseUnit:'%', route:'吸入' },
     ],
     analgesic: [
       { name:'ブプレノルフィン', conc:0.3, concUnit:'mg/mL', doseMin:0.01, doseMax:0.03, doseUnit:'mg/kg', route:'sc' },
     ],
     antibiotic: [
-      { name:'エンロフロキサシン', conc:50, concUnit:'mg/mL', doseMin:5, doseMax:10, doseUnit:'mg/kg', route:'sc' },
+      { name:'アンピシリン', conc:100, concUnit:'mg/mL', doseMin:20, doseMax:25, doseUnit:'mg/kg', route:'iv' },
       { name:'セファゾリン', conc:100, concUnit:'mg/mL', doseMin:20, doseMax:25, doseUnit:'mg/kg', route:'iv' },
+      { name:'エンロフロキサシン', conc:50, concUnit:'mg/mL', doseMin:5, doseMax:10, doseUnit:'mg/kg', route:'sc' },
       { name:'トランサミン', conc:100, concUnit:'mg/mL', doseMin:10, doseMax:25, doseUnit:'mg/kg', route:'iv' },
       { name:'アドナ', conc:10, concUnit:'mg/mL', doseMin:0.5, doseMax:1.0, doseUnit:'mg/kg', route:'iv' },
       { name:'ガスター', conc:10, concUnit:'mg/mL', doseMin:0.5, doseMax:1.0, doseUnit:'mg/kg', route:'iv' },
     ],
     fluid: [
-      { name:'乳酸リンゲル', conc:null, concUnit:null, doseMin:5, doseMax:10, doseUnit:'mL/kg/hr', route:'iv/sc' },
+      { name:'ソルラクト', conc:null, concUnit:null, doseMin:5, doseMax:10, doseUnit:'mL/kg/hr', route:'iv/sc' },
+      { name:'ソルアセト', conc:null, concUnit:null, doseMin:5, doseMax:10, doseUnit:'mL/kg/hr', route:'iv/sc' },
     ],
   },
   guinea_pig: {
     premed: [
+      { name:'アトロピン', conc:0.5, concUnit:'mg/mL', doseMin:0.05, doseMax:0.1, doseUnit:'mg/kg', route:'sc' },
       { name:'ミダゾラム', conc:5, concUnit:'mg/mL', doseMin:0.5, doseMax:1.0, doseUnit:'mg/kg', route:'im' },
       { name:'ブトルファノール', conc:5, concUnit:'mg/mL', doseMin:0.2, doseMax:0.4, doseUnit:'mg/kg', route:'sc' },
       { name:'メデトミジン', conc:1, concUnit:'mg/mL', doseMin:0.05, doseMax:0.1, doseUnit:'mg/kg', route:'im' },
@@ -1709,35 +1709,35 @@ let PREMED_MASTER = {
     ],
     induction: [
       { name:'アルファキサロン', conc:10, concUnit:'mg/mL', doseMin:5, doseMax:10, doseUnit:'mg/kg', route:'iv/im' },
-      { name:'ケタミン', conc:50, concUnit:'mg/mL', doseMin:20, doseMax:40, doseUnit:'mg/kg', route:'im' },
     ],
     maintenance: [
       { name:'イソフルラン', conc:null, concUnit:null, doseMin:1.5, doseMax:3.5, doseUnit:'%', route:'吸入' },
-      { name:'セボフルラン', conc:null, concUnit:null, doseMin:3.0, doseMax:5.0, doseUnit:'%', route:'吸入' },
     ],
     analgesic: [
       { name:'ブプレノルフィン', conc:0.3, concUnit:'mg/mL', doseMin:0.05, doseMax:0.1, doseUnit:'mg/kg', route:'sc' },
       { name:'メロキシカム', conc:5, concUnit:'mg/mL', doseMin:0.2, doseMax:0.5, doseUnit:'mg/kg', route:'sc' },
     ],
     antibiotic: [
+      { name:'アンピシリン', conc:100, concUnit:'mg/mL', doseMin:20, doseMax:25, doseUnit:'mg/kg', route:'iv' },
       { name:'エンロフロキサシン', conc:50, concUnit:'mg/mL', doseMin:5, doseMax:10, doseUnit:'mg/kg', route:'sc' },
       { name:'トランサミン', conc:100, concUnit:'mg/mL', doseMin:10, doseMax:25, doseUnit:'mg/kg', route:'iv' },
       { name:'アドナ', conc:10, concUnit:'mg/mL', doseMin:0.5, doseMax:1.0, doseUnit:'mg/kg', route:'iv' },
       { name:'ガスター', conc:10, concUnit:'mg/mL', doseMin:0.5, doseMax:1.0, doseUnit:'mg/kg', route:'iv' },
     ],
     fluid: [
-      { name:'乳酸リンゲル', conc:null, concUnit:null, doseMin:10, doseMax:10, doseUnit:'mL/kg/hr', route:'iv/sc' },
+      { name:'ソルラクト', conc:null, concUnit:null, doseMin:10, doseMax:10, doseUnit:'mL/kg/hr', route:'iv/sc' },
+      { name:'ソルアセト', conc:null, concUnit:null, doseMin:10, doseMax:10, doseUnit:'mL/kg/hr', route:'iv/sc' },
     ],
   },
   hamster: {
     premed: [
+      { name:'アトロピン', conc:0.5, concUnit:'mg/mL', doseMin:0.05, doseMax:0.1, doseUnit:'mg/kg', route:'sc' },
       { name:'ミダゾラム', conc:5, concUnit:'mg/mL', doseMin:1.0, doseMax:2.0, doseUnit:'mg/kg', route:'im' },
       { name:'ブトルファノール', conc:5, concUnit:'mg/mL', doseMin:1.0, doseMax:2.0, doseUnit:'mg/kg', route:'sc' },
       { name:'メデトミジン', conc:1, concUnit:'mg/mL', doseMin:0.1, doseMax:0.3, doseUnit:'mg/kg', route:'im' },
     ],
     induction: [
       { name:'アルファキサロン', conc:10, concUnit:'mg/mL', doseMin:5, doseMax:10, doseUnit:'mg/kg', route:'ip' },
-      { name:'ケタミン', conc:50, concUnit:'mg/mL', doseMin:50, doseMax:100, doseUnit:'mg/kg', route:'ip' },
     ],
     maintenance: [
       { name:'イソフルラン', conc:null, concUnit:null, doseMin:1.5, doseMax:3.0, doseUnit:'%', route:'吸入' },
@@ -1747,17 +1747,20 @@ let PREMED_MASTER = {
       { name:'メロキシカム', conc:5, concUnit:'mg/mL', doseMin:0.2, doseMax:0.5, doseUnit:'mg/kg', route:'sc' },
     ],
     antibiotic: [
+      { name:'アンピシリン', conc:100, concUnit:'mg/mL', doseMin:20, doseMax:25, doseUnit:'mg/kg', route:'iv' },
       { name:'エンロフロキサシン', conc:50, concUnit:'mg/mL', doseMin:5, doseMax:10, doseUnit:'mg/kg', route:'sc' },
       { name:'トランサミン', conc:100, concUnit:'mg/mL', doseMin:10, doseMax:25, doseUnit:'mg/kg', route:'iv' },
       { name:'アドナ', conc:10, concUnit:'mg/mL', doseMin:0.5, doseMax:1.0, doseUnit:'mg/kg', route:'iv' },
       { name:'ガスター', conc:10, concUnit:'mg/mL', doseMin:0.5, doseMax:1.0, doseUnit:'mg/kg', route:'iv' },
     ],
     fluid: [
-      { name:'乳酸リンゲル', conc:null, concUnit:null, doseMin:10, doseMax:10, doseUnit:'mL/kg/hr', route:'sc' },
+      { name:'ソルラクト', conc:null, concUnit:null, doseMin:10, doseMax:10, doseUnit:'mL/kg/hr', route:'sc' },
+      { name:'ソルアセト', conc:null, concUnit:null, doseMin:10, doseMax:10, doseUnit:'mL/kg/hr', route:'sc' },
     ],
   },
   bird: {
     premed: [
+      { name:'アトロピン', conc:0.5, concUnit:'mg/mL', doseMin:0.02, doseMax:0.04, doseUnit:'mg/kg', route:'im/sc' },
       { name:'ミダゾラム', conc:5, concUnit:'mg/mL', doseMin:0.5, doseMax:2.0, doseUnit:'mg/kg', route:'im' },
       { name:'ブトルファノール', conc:5, concUnit:'mg/mL', doseMin:1.0, doseMax:2.0, doseUnit:'mg/kg', route:'im' },
       { name:'メロキシカム', conc:5, concUnit:'mg/mL', doseMin:0.5, doseMax:1.0, doseUnit:'mg/kg', route:'im' },
@@ -1768,25 +1771,26 @@ let PREMED_MASTER = {
     ],
     maintenance: [
       { name:'イソフルラン', conc:null, concUnit:null, doseMin:1.5, doseMax:3.5, doseUnit:'%', route:'吸入' },
-      { name:'セボフルラン', conc:null, concUnit:null, doseMin:3.0, doseMax:5.0, doseUnit:'%', route:'吸入' },
     ],
     analgesic: [
       { name:'ブプレノルフィン', conc:0.3, concUnit:'mg/mL', doseMin:0.01, doseMax:0.05, doseUnit:'mg/kg', route:'im' },
       { name:'メロキシカム', conc:5, concUnit:'mg/mL', doseMin:0.5, doseMax:1.0, doseUnit:'mg/kg', route:'im' },
     ],
     antibiotic: [
-      { name:'エンロフロキサシン', conc:50, concUnit:'mg/mL', doseMin:10, doseMax:15, doseUnit:'mg/kg', route:'im' },
       { name:'アンピシリン', conc:100, concUnit:'mg/mL', doseMin:100, doseMax:200, doseUnit:'mg/kg', route:'im' },
+      { name:'エンロフロキサシン', conc:50, concUnit:'mg/mL', doseMin:10, doseMax:15, doseUnit:'mg/kg', route:'im' },
       { name:'トランサミン', conc:100, concUnit:'mg/mL', doseMin:10, doseMax:25, doseUnit:'mg/kg', route:'iv' },
       { name:'アドナ', conc:10, concUnit:'mg/mL', doseMin:0.5, doseMax:1.0, doseUnit:'mg/kg', route:'iv' },
       { name:'ガスター', conc:10, concUnit:'mg/mL', doseMin:0.5, doseMax:1.0, doseUnit:'mg/kg', route:'iv' },
     ],
     fluid: [
-      { name:'乳酸リンゲル', conc:null, concUnit:null, doseMin:10, doseMax:10, doseUnit:'mL/kg/hr', route:'iv/io' },
+      { name:'ソルラクト', conc:null, concUnit:null, doseMin:10, doseMax:10, doseUnit:'mL/kg/hr', route:'iv/io' },
+      { name:'ソルアセト', conc:null, concUnit:null, doseMin:10, doseMax:10, doseUnit:'mL/kg/hr', route:'iv/io' },
     ],
   },
   reptile: {
     premed: [
+      { name:'アトロピン', conc:0.5, concUnit:'mg/mL', doseMin:0.02, doseMax:0.04, doseUnit:'mg/kg', route:'im/sc' },
       { name:'ミダゾラム', conc:5, concUnit:'mg/mL', doseMin:1.0, doseMax:2.0, doseUnit:'mg/kg', route:'im' },
       { name:'ブトルファノール', conc:5, concUnit:'mg/mL', doseMin:0.5, doseMax:1.0, doseUnit:'mg/kg', route:'im' },
       { name:'メロキシカム', conc:5, concUnit:'mg/mL', doseMin:0.2, doseMax:0.5, doseUnit:'mg/kg', route:'im' },
@@ -1794,16 +1798,16 @@ let PREMED_MASTER = {
     induction: [
       { name:'プロポフォール', conc:10, concUnit:'mg/mL', doseMin:5, doseMax:15, doseUnit:'mg/kg', route:'iv slow' },
       { name:'アルファキサロン', conc:10, concUnit:'mg/mL', doseMin:5, doseMax:15, doseUnit:'mg/kg', route:'iv/im' },
-      { name:'ケタミン', conc:50, concUnit:'mg/mL', doseMin:20, doseMax:60, doseUnit:'mg/kg', route:'im' },
     ],
     maintenance: [
       { name:'イソフルラン', conc:null, concUnit:null, doseMin:2.0, doseMax:4.0, doseUnit:'%', route:'吸入' },
-      { name:'セボフルラン', conc:null, concUnit:null, doseMin:3.0, doseMax:6.0, doseUnit:'%', route:'吸入' },
     ],
     analgesic: [
+      { name:'ブプレノルフィン', conc:0.3, concUnit:'mg/mL', doseMin:0.01, doseMax:0.02, doseUnit:'mg/kg', route:'im' },
       { name:'トラマドール', conc:50, concUnit:'mg/mL', doseMin:5, doseMax:10, doseUnit:'mg/kg', route:'po/im' },
     ],
     antibiotic: [
+      { name:'アンピシリン', conc:100, concUnit:'mg/mL', doseMin:20, doseMax:25, doseUnit:'mg/kg', route:'im' },
       { name:'エンロフロキサシン', conc:50, concUnit:'mg/mL', doseMin:5, doseMax:10, doseUnit:'mg/kg', route:'im' },
       { name:'セフタジジム', conc:100, concUnit:'mg/mL', doseMin:20, doseMax:40, doseUnit:'mg/kg', route:'im' },
       { name:'トランサミン', conc:100, concUnit:'mg/mL', doseMin:10, doseMax:25, doseUnit:'mg/kg', route:'iv' },
@@ -1811,7 +1815,8 @@ let PREMED_MASTER = {
       { name:'ガスター', conc:10, concUnit:'mg/mL', doseMin:0.5, doseMax:1.0, doseUnit:'mg/kg', route:'iv' },
     ],
     fluid: [
-      { name:'乳酸リンゲル', conc:null, concUnit:null, doseMin:5, doseMax:10, doseUnit:'mL/kg/day', route:'sc/ico' },
+      { name:'ソルラクト', conc:null, concUnit:null, doseMin:5, doseMax:10, doseUnit:'mL/kg/day', route:'sc/ico' },
+      { name:'ソルアセト', conc:null, concUnit:null, doseMin:5, doseMax:10, doseUnit:'mL/kg/day', route:'sc/ico' },
     ],
   },
   other: null, // uses dog defaults
@@ -2996,7 +3001,7 @@ function callGeminiVision(imageDataUrl, captureId, btn) {
   var modelId = getGeminiModelId();
   var prompt = getVisionPrompt();
 
-  var apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/' + modelId + ':generateContent?key=' + encodeURIComponent(state.apiKey);
+  var apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/' + modelId + ':generateContent';
 
   var body = JSON.stringify({
     contents: [{
@@ -3021,6 +3026,7 @@ function callGeminiVision(imageDataUrl, captureId, btn) {
   var xhr = new XMLHttpRequest();
   xhr.open('POST', apiUrl, true);
   xhr.setRequestHeader('Content-Type', 'application/json');
+  xhr.setRequestHeader('x-goog-api-key', state.apiKey);
   xhr.timeout = 30000;
 
   xhr.onload = function() {
@@ -3265,21 +3271,54 @@ function parseVitalsFromAI(text) {
 }
 
 // ===================================================================
+//  SECURITY UTILITIES
+// ===================================================================
+function _encKey(plainKey) {
+  if (!plainKey) return '';
+  try { return btoa(unescape(encodeURIComponent(plainKey))); } catch(e) { return ''; }
+}
+function _decKey(encoded) {
+  if (!encoded) return '';
+  try { return decodeURIComponent(escape(atob(encoded))); } catch(e) { return ''; }
+}
+function validateGeminiKey(key) {
+  return typeof key === 'string' && /^AIzaSy[A-Za-z0-9_-]{33}$/.test(key);
+}
+function validateClaudeKey(key) {
+  return typeof key === 'string' && /^sk-ant-/.test(key) && key.length > 20;
+}
+
+// ===================================================================
 //  API SETTINGS MANAGEMENT
 // ===================================================================
 function loadApiSettings() {
   try {
     var provider = localStorage.getItem('vetanes_api_provider');
-    var key = localStorage.getItem('vetanes_api_key');
+    var keyEnc = localStorage.getItem('vetanes_api_key_enc');
+    var keyPlain = localStorage.getItem('vetanes_api_key');
     var model = localStorage.getItem('vetanes_api_model');
     var mode = localStorage.getItem('vetanes_api_mode');
-    var claudeKey = localStorage.getItem('vetanes_claude_api_key');
+    var claudeKeyEnc = localStorage.getItem('vetanes_claude_api_key_enc');
+    var claudeKeyPlain = localStorage.getItem('vetanes_claude_api_key');
     var claudeModel = localStorage.getItem('vetanes_claude_model');
     if (provider) state.apiProvider = provider;
-    if (key) state.apiKey = key;
+    // Migrate: prefer encoded keys, fallback to plain (and migrate)
+    if (keyEnc) {
+      state.apiKey = _decKey(keyEnc);
+    } else if (keyPlain) {
+      state.apiKey = keyPlain;
+      localStorage.setItem('vetanes_api_key_enc', _encKey(keyPlain));
+      localStorage.removeItem('vetanes_api_key');
+    }
+    if (claudeKeyEnc) {
+      state.claudeApiKey = _decKey(claudeKeyEnc);
+    } else if (claudeKeyPlain) {
+      state.claudeApiKey = claudeKeyPlain;
+      localStorage.setItem('vetanes_claude_api_key_enc', _encKey(claudeKeyPlain));
+      localStorage.removeItem('vetanes_claude_api_key');
+    }
     if (model) state.apiModel = model;
     if (mode) state.apiMode = mode;
-    if (claudeKey) state.claudeApiKey = claudeKey;
     if (claudeModel) state.claudeModel = claudeModel;
   } catch(e) { console.warn('API settings load error:', e); }
 }
@@ -3293,12 +3332,23 @@ function saveApiSettings() {
   if (modelSelect) state.apiModel = modelSelect.value;
   if (claudeKeyInput) state.claudeApiKey = claudeKeyInput.value.trim();
   if (claudeModelSelect) state.claudeModel = claudeModelSelect.value;
+  // Validate keys before saving
+  if (state.apiKey && !validateGeminiKey(state.apiKey)) {
+    alert('⚠ Gemini APIキーの形式が正しくありません。AIzaSy... で始まる39文字のキーを入力してください。');
+    return;
+  }
+  if (state.claudeApiKey && !validateClaudeKey(state.claudeApiKey)) {
+    alert('⚠ Claude APIキーの形式が正しくありません。sk-ant- で始まるキーを入力してください。');
+    return;
+  }
   try {
     localStorage.setItem('vetanes_api_provider', state.apiProvider);
-    localStorage.setItem('vetanes_api_key', state.apiKey);
+    localStorage.setItem('vetanes_api_key_enc', _encKey(state.apiKey));
+    localStorage.removeItem('vetanes_api_key'); // Remove old plain key
     localStorage.setItem('vetanes_api_model', state.apiModel);
     localStorage.setItem('vetanes_api_mode', state.apiMode);
-    localStorage.setItem('vetanes_claude_api_key', state.claudeApiKey);
+    localStorage.setItem('vetanes_claude_api_key_enc', _encKey(state.claudeApiKey));
+    localStorage.removeItem('vetanes_claude_api_key'); // Remove old plain key
     localStorage.setItem('vetanes_claude_model', state.claudeModel);
   } catch(e) {}
   var provName = state.apiProvider === 'claude' ? 'Claude' : 'Gemini';
@@ -3394,7 +3444,7 @@ function testGeminiConnection(resultEl) {
   var modelVal = modelSelect ? modelSelect.value : 'gemini-flash';
   var modelId = modelVal === 'gemini-pro' ? 'gemini-2.5-pro-preview-06-05' : 'gemini-2.0-flash';
 
-  var apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/' + modelId + ':generateContent?key=' + encodeURIComponent(key);
+  var apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/' + modelId + ':generateContent';
 
   var body = JSON.stringify({
     contents: [{ parts: [{ text: 'Reply with only: OK' }] }],
@@ -3404,6 +3454,7 @@ function testGeminiConnection(resultEl) {
   var xhr = new XMLHttpRequest();
   xhr.open('POST', apiUrl, true);
   xhr.setRequestHeader('Content-Type', 'application/json');
+  xhr.setRequestHeader('x-goog-api-key', key);
   xhr.timeout = 15000;
 
   xhr.onload = function() {
