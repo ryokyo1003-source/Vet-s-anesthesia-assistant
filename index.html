@@ -398,9 +398,10 @@
     width: 100%; padding: 6px 2px; font-size: 16px; font-weight: 700;
     background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 6px;
     color: var(--text-primary); text-align: center; outline: none;
-    -webkit-appearance: none; appearance: none;
+    -webkit-appearance: none; appearance: none; cursor: pointer;
+    -webkit-tap-highlight-color: rgba(59,130,246,0.15);
   }
-  .mv-field input:focus { border-color: var(--accent-blue); }
+  .mv-field input:active { border-color: var(--accent-blue); background: var(--bg-card-hover); }
   .mv-field input::placeholder { color: var(--text-muted); font-size: 12px; font-weight: 400; }
   .btn-manual-apply {
     padding: 6px 10px; min-width: 56px; min-height: 36px;
@@ -1080,6 +1081,80 @@
   .cp-btn-cancel { background: var(--bg-secondary); color: var(--text-secondary); border: 1px solid var(--border) !important; }
   .cp-btn-save { background: linear-gradient(135deg, var(--accent-green), #059669); color: white; }
 
+  /* ===== DRUM ROLLER PICKER ===== */
+  .picker-overlay {
+    position: fixed; inset: 0; z-index: 2000;
+    background: rgba(0,0,0,0.5);
+    display: flex; align-items: flex-end; justify-content: center;
+    animation: fadeIn 0.15s;
+  }
+  .picker-sheet {
+    width: 100%; max-width: 500px;
+    background: var(--bg-card); border-radius: 16px 16px 0 0;
+    padding-bottom: env(safe-area-inset-bottom, 0);
+    animation: slideUp 0.25s ease-out;
+  }
+  @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+  .picker-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 16px; border-bottom: 1px solid var(--border);
+  }
+  .picker-header .picker-cancel {
+    padding: 8px 16px; background: none; border: none;
+    color: var(--text-secondary); font-size: 15px; font-weight: 600; cursor: pointer;
+  }
+  .picker-header .picker-title {
+    font-size: 15px; font-weight: 700; color: var(--text-primary);
+  }
+  .picker-header .picker-done {
+    padding: 8px 16px; background: none; border: none;
+    color: var(--accent-blue); font-size: 15px; font-weight: 700; cursor: pointer;
+  }
+  .picker-body {
+    position: relative; height: 220px; overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .picker-highlight {
+    position: absolute; left: 10%; right: 10%; height: 44px;
+    top: 50%; transform: translateY(-50%);
+    border-top: 2px solid var(--accent-blue); border-bottom: 2px solid var(--accent-blue);
+    pointer-events: none; z-index: 1;
+    background: rgba(59,130,246,0.06);
+  }
+  .picker-scroll {
+    width: 100%; height: 100%;
+    overflow-y: scroll; -webkit-overflow-scrolling: touch;
+    scroll-snap-type: y mandatory;
+    -ms-overflow-style: none; scrollbar-width: none;
+  }
+  .picker-scroll::-webkit-scrollbar { display: none; }
+  .picker-item {
+    height: 44px; display: flex; align-items: center; justify-content: center;
+    font-size: 22px; font-weight: 700; color: var(--text-muted);
+    scroll-snap-align: center;
+    transition: color 0.15s, transform 0.15s;
+    font-variant-numeric: tabular-nums;
+  }
+  .picker-item.selected { color: var(--text-primary); transform: scale(1.1); }
+  .picker-spacer { height: 88px; flex-shrink: 0; }
+  .picker-unit {
+    position: absolute; right: 16%; top: 50%; transform: translateY(-50%);
+    font-size: 13px; color: var(--text-secondary); font-weight: 600;
+    pointer-events: none; z-index: 2;
+  }
+  .picker-direct-input {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 10px 16px; border-top: 1px solid var(--border);
+  }
+  .picker-direct-input input {
+    width: 120px; padding: 8px 12px; font-size: 18px; font-weight: 700;
+    background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px;
+    color: var(--text-primary); text-align: center; outline: none;
+    -webkit-appearance: none;
+  }
+  .picker-direct-input input:focus { border-color: var(--accent-blue); }
+  .picker-direct-input span { font-size: 12px; color: var(--text-muted); }
+
   /* ===== BACK TO START BUTTON ===== */
   .btn-back-to-start {
     width: 36px; height: 36px; border-radius: 8px;
@@ -1471,16 +1546,16 @@
 
       <!-- Manual vital input row -->
       <div class="manual-vitals-row">
-        <div class="mv-field"><label>HR</label><input type="text" inputmode="decimal" id="mvHR" placeholder="--" class="auto-zen2han"></div>
-        <div class="mv-field"><label>SpO2</label><input type="text" inputmode="decimal" id="mvSpO2" placeholder="--" class="auto-zen2han"></div>
-        <div class="mv-field"><label>RR</label><input type="text" inputmode="decimal" id="mvRR" placeholder="--" class="auto-zen2han"></div>
-        <div class="mv-field"><label>CO2 In</label><input type="text" inputmode="decimal" id="mvEtCO2In" placeholder="--" class="auto-zen2han"></div>
-        <div class="mv-field"><label>CO2 Ex</label><input type="text" inputmode="decimal" id="mvEtCO2Ex" placeholder="--" class="auto-zen2han"></div>
-        <div class="mv-field"><label>Sys</label><input type="text" inputmode="decimal" id="mvSys" placeholder="--" class="auto-zen2han"></div>
-        <div class="mv-field"><label>Dia</label><input type="text" inputmode="decimal" id="mvDia" placeholder="--" class="auto-zen2han"></div>
-        <div class="mv-field"><label>T℃</label><input type="text" inputmode="decimal" id="mvTemp" placeholder="--" class="auto-zen2han"></div>
-        <div class="mv-field"><label>Gas In</label><input type="text" inputmode="decimal" id="mvGasIn" placeholder="--" class="auto-zen2han"></div>
-        <div class="mv-field"><label>Gas Ex</label><input type="text" inputmode="decimal" id="mvGasEx" placeholder="--" class="auto-zen2han"></div>
+        <div class="mv-field"><label>HR</label><input type="text" inputmode="none" id="mvHR" placeholder="--" class="auto-zen2han" readonly onfocus="this.blur();openVitalPicker('mvHR')"></div>
+        <div class="mv-field"><label>SpO2</label><input type="text" inputmode="none" id="mvSpO2" placeholder="--" class="auto-zen2han" readonly onfocus="this.blur();openVitalPicker('mvSpO2')"></div>
+        <div class="mv-field"><label>RR</label><input type="text" inputmode="none" id="mvRR" placeholder="--" class="auto-zen2han" readonly onfocus="this.blur();openVitalPicker('mvRR')"></div>
+        <div class="mv-field"><label>CO2 In</label><input type="text" inputmode="none" id="mvEtCO2In" placeholder="--" class="auto-zen2han" readonly onfocus="this.blur();openVitalPicker('mvEtCO2In')"></div>
+        <div class="mv-field"><label>CO2 Ex</label><input type="text" inputmode="none" id="mvEtCO2Ex" placeholder="--" class="auto-zen2han" readonly onfocus="this.blur();openVitalPicker('mvEtCO2Ex')"></div>
+        <div class="mv-field"><label>Sys</label><input type="text" inputmode="none" id="mvSys" placeholder="--" class="auto-zen2han" readonly onfocus="this.blur();openVitalPicker('mvSys')"></div>
+        <div class="mv-field"><label>Dia</label><input type="text" inputmode="none" id="mvDia" placeholder="--" class="auto-zen2han" readonly onfocus="this.blur();openVitalPicker('mvDia')"></div>
+        <div class="mv-field"><label>T℃</label><input type="text" inputmode="none" id="mvTemp" placeholder="--" class="auto-zen2han" readonly onfocus="this.blur();openVitalPicker('mvTemp')"></div>
+        <div class="mv-field"><label>Gas In</label><input type="text" inputmode="none" id="mvGasIn" placeholder="--" class="auto-zen2han" readonly onfocus="this.blur();openVitalPicker('mvGasIn')"></div>
+        <div class="mv-field"><label>Gas Ex</label><input type="text" inputmode="none" id="mvGasEx" placeholder="--" class="auto-zen2han" readonly onfocus="this.blur();openVitalPicker('mvGasEx')"></div>
         <button class="btn-manual-apply" onclick="applyManualVitals()">✏️<br>適用</button>
       </div>
 
@@ -5359,6 +5434,178 @@ function closeReport() {
     updateResumeButton();
     updateHistoryButton();
   }
+}
+
+// ===================================================================
+//  DRUM ROLLER PICKER (Apple Calendar-style)
+// ===================================================================
+var VITAL_PICKER_CONFIG = {
+  mvHR:       { label: 'HR',      unit: 'bpm',  min: 20,   max: 300,  step: 1,   decimal: 0 },
+  mvSpO2:     { label: 'SpO2',    unit: '%',    min: 50,   max: 100,  step: 1,   decimal: 0 },
+  mvRR:       { label: 'RR',      unit: '/min', min: 2,    max: 80,   step: 1,   decimal: 0 },
+  mvEtCO2In:  { label: 'CO2 In',  unit: 'mmHg', min: 0,    max: 80,   step: 1,   decimal: 0 },
+  mvEtCO2Ex:  { label: 'CO2 Ex',  unit: 'mmHg', min: 0,    max: 80,   step: 1,   decimal: 0 },
+  mvSys:      { label: 'Sys',     unit: 'mmHg', min: 20,   max: 280,  step: 5,   decimal: 0 },
+  mvDia:      { label: 'Dia',     unit: 'mmHg', min: 10,   max: 200,  step: 5,   decimal: 0 },
+  mvTemp:     { label: '体温',    unit: '℃',   min: 34.0, max: 42.0, step: 0.1, decimal: 1 },
+  mvGasIn:    { label: 'Gas In',  unit: '%',    min: 0.0,  max: 5.0,  step: 0.1, decimal: 1 },
+  mvGasEx:    { label: 'Gas Ex',  unit: '%',    min: 0.0,  max: 5.0,  step: 0.1, decimal: 1 },
+};
+
+function openVitalPicker(inputId) {
+  var cfg = VITAL_PICKER_CONFIG[inputId];
+  if (!cfg) return;
+  var inputEl = document.getElementById(inputId);
+  if (!inputEl) return;
+
+  // Build values array
+  var values = [];
+  for (var v = cfg.min; v <= cfg.max + cfg.step * 0.01; v += cfg.step) {
+    values.push(parseFloat(v.toFixed(cfg.decimal)));
+  }
+
+  // Current value
+  var currentVal = parseFloat(inputEl.value);
+  if (isNaN(currentVal)) {
+    // Try to get from current display
+    var dispMap = { mvHR:'valHR', mvSpO2:'valSpO2', mvRR:'valRR', mvEtCO2In:'valEtCO2In',
+                    mvEtCO2Ex:'valEtCO2Ex', mvSys:'valSys', mvDia:'valDia', mvTemp:'valTemp',
+                    mvGasIn:'valGasIn', mvGasEx:'valGasEx' };
+    var dispEl = document.getElementById(dispMap[inputId]);
+    if (dispEl) currentVal = parseFloat(dispEl.textContent);
+  }
+  if (isNaN(currentVal)) currentVal = values[Math.floor(values.length / 2)];
+
+  // Find closest index
+  var closestIdx = 0;
+  var closestDist = Infinity;
+  for (var i = 0; i < values.length; i++) {
+    var d = Math.abs(values[i] - currentVal);
+    if (d < closestDist) { closestDist = d; closestIdx = i; }
+  }
+
+  // Build overlay
+  var overlay = document.createElement('div');
+  overlay.className = 'picker-overlay';
+  overlay.id = 'pickerOverlay';
+
+  var itemsHtml = '';
+  for (var j = 0; j < values.length; j++) {
+    var label = cfg.decimal > 0 ? values[j].toFixed(cfg.decimal) : values[j].toString();
+    itemsHtml += '<div class="picker-item" data-idx="' + j + '" data-val="' + values[j] + '">' + label + '</div>';
+  }
+
+  overlay.innerHTML =
+    '<div class="picker-sheet">' +
+      '<div class="picker-header">' +
+        '<button class="picker-cancel" onclick="closePicker(false)">キャンセル</button>' +
+        '<span class="picker-title">' + cfg.label + '</span>' +
+        '<button class="picker-done" onclick="closePicker(true)">完了</button>' +
+      '</div>' +
+      '<div class="picker-body">' +
+        '<div class="picker-highlight"></div>' +
+        '<div class="picker-unit">' + cfg.unit + '</div>' +
+        '<div class="picker-scroll" id="pickerScroll">' +
+          '<div class="picker-spacer"></div>' +
+          itemsHtml +
+          '<div class="picker-spacer"></div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="picker-direct-input">' +
+        '<span>直接入力:</span>' +
+        '<input type="text" inputmode="decimal" id="pickerDirectInput" class="auto-zen2han" value="' +
+          (cfg.decimal > 0 ? currentVal.toFixed(cfg.decimal) : currentVal) + '">' +
+        '<span>' + cfg.unit + '</span>' +
+      '</div>' +
+    '</div>';
+
+  overlay.addEventListener('click', function(e) {
+    if (e.target === overlay) closePicker(false);
+  });
+
+  document.body.appendChild(overlay);
+
+  // Store context
+  window._pickerCtx = { inputId: inputId, cfg: cfg, values: values, selectedIdx: closestIdx };
+
+  // Scroll to current value
+  var scrollEl = document.getElementById('pickerScroll');
+  var itemH = 44;
+  var targetScroll = closestIdx * itemH;
+  setTimeout(function() {
+    scrollEl.scrollTop = targetScroll;
+    updatePickerSelection();
+  }, 30);
+
+  // Scroll listener for selection highlight
+  var scrollTimer = null;
+  scrollEl.addEventListener('scroll', function() {
+    if (scrollTimer) clearTimeout(scrollTimer);
+    scrollTimer = setTimeout(function() {
+      updatePickerSelection();
+    }, 50);
+  });
+
+  // Direct input sync
+  var directInput = document.getElementById('pickerDirectInput');
+  directInput.addEventListener('input', function() {
+    var v = parseFloat(zenToHan(this.value));
+    if (!isNaN(v)) {
+      var bestIdx = 0, bestDist = Infinity;
+      for (var k = 0; k < values.length; k++) {
+        var dd = Math.abs(values[k] - v);
+        if (dd < bestDist) { bestDist = dd; bestIdx = k; }
+      }
+      scrollEl.scrollTop = bestIdx * itemH;
+      window._pickerCtx.selectedIdx = bestIdx;
+    }
+  });
+}
+
+function updatePickerSelection() {
+  var scrollEl = document.getElementById('pickerScroll');
+  if (!scrollEl || !window._pickerCtx) return;
+  var itemH = 44;
+  var centerIdx = Math.round(scrollEl.scrollTop / itemH);
+  var values = window._pickerCtx.values;
+  centerIdx = Math.max(0, Math.min(centerIdx, values.length - 1));
+  window._pickerCtx.selectedIdx = centerIdx;
+
+  var items = scrollEl.querySelectorAll('.picker-item');
+  items.forEach(function(it, i) {
+    it.classList.toggle('selected', i === centerIdx);
+  });
+
+  // Update direct input
+  var directInput = document.getElementById('pickerDirectInput');
+  if (directInput && document.activeElement !== directInput) {
+    var cfg = window._pickerCtx.cfg;
+    directInput.value = cfg.decimal > 0 ? values[centerIdx].toFixed(cfg.decimal) : values[centerIdx].toString();
+  }
+}
+
+function closePicker(apply) {
+  var overlay = document.getElementById('pickerOverlay');
+  if (!overlay) return;
+
+  if (apply && window._pickerCtx) {
+    var ctx = window._pickerCtx;
+    var inputEl = document.getElementById(ctx.inputId);
+    if (inputEl) {
+      // Check direct input first
+      var directInput = document.getElementById('pickerDirectInput');
+      var directVal = directInput ? parseFloat(zenToHan(directInput.value)) : NaN;
+      if (!isNaN(directVal)) {
+        inputEl.value = ctx.cfg.decimal > 0 ? directVal.toFixed(ctx.cfg.decimal) : Math.round(directVal).toString();
+      } else {
+        var val = ctx.values[ctx.selectedIdx];
+        inputEl.value = ctx.cfg.decimal > 0 ? val.toFixed(ctx.cfg.decimal) : val.toString();
+      }
+    }
+  }
+
+  overlay.remove();
+  window._pickerCtx = null;
 }
 
 // ===================================================================
