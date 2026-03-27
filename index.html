@@ -1610,7 +1610,8 @@
       <div class="panel-section">
         <div class="panel-title">💉 薬剤投与記録</div>
         <div class="drug-admin-row">
-          <select id="drugAdminName"><option value="">薬剤選択</option>
+          <select id="drugAdminName" style="display:none;">
+            <option value="">薬剤選択</option>
             <option>プロポフォール</option><option>アルファキサロン</option>
             <option>ミダゾラム</option><option>ケタミン</option>
             <option>メデトミジン</option><option>ブトルファノール</option>
@@ -1618,8 +1619,10 @@
             <option>セファゾリン</option><option>マロピタント</option>
             <option>乳酸リンゲル</option>
           </select>
-          <input type="text" id="drugAdminDose" placeholder="用量">
-          <select id="drugAdminRoute"><option>iv</option><option>im</option><option>sc</option><option>po</option><option>ip</option></select>
+          <button class="drug-admin-picker-btn" id="drugAdminNameBtn" onclick="openDrugNamePicker()" style="flex:2;padding:8px 10px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;color:var(--text-secondary);font-size:13px;text-align:left;cursor:pointer;min-height:36px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">薬剤選択 ▾</button>
+          <input type="text" id="drugAdminDose" placeholder="用量" class="auto-zen2han" inputmode="decimal">
+          <select id="drugAdminRoute" style="display:none;"><option>iv</option><option>iv slow</option><option>im</option><option>sc</option><option>po</option><option>ip</option><option>io</option><option>it</option><option>cri</option><option>topical</option><option>吸入</option></select>
+          <button class="drug-admin-picker-btn" id="drugAdminRouteBtn" onclick="openRoutePicker()" style="flex:0.8;padding:8px 10px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;color:var(--accent-purple);font-size:13px;font-weight:700;text-align:center;cursor:pointer;min-height:36px;">iv ▾</button>
           <button class="btn-drug-add" onclick="recordDrugAdmin()">記録</button>
         </div>
       </div>
@@ -3155,6 +3158,9 @@ function recordDrugAdmin(){
   if(!name){alert('薬剤を選択してください');return;}
   addLog(`💊 ${name} ${dose} ${route}`);
   document.getElementById('drugAdminDose').value='';
+  document.getElementById('drugAdminName').value='';
+  var nameBtn=document.getElementById('drugAdminNameBtn');
+  if(nameBtn){nameBtn.textContent='薬剤選択 ▾';nameBtn.style.color='var(--text-secondary)';}
 }
 
 // ===================================================================
@@ -5606,6 +5612,146 @@ function closePicker(apply) {
 
   overlay.remove();
   window._pickerCtx = null;
+}
+
+// ===================================================================
+//  LIST PICKER (for text options like route, drug name)
+// ===================================================================
+function openListPicker(targetId, title, options, currentVal) {
+  // options: array of strings, or array of { label, value }
+  var items = options.map(function(o) {
+    return typeof o === 'string' ? { label: o, value: o } : o;
+  });
+
+  var currentIdx = 0;
+  for (var i = 0; i < items.length; i++) {
+    if (items[i].value === currentVal) { currentIdx = i; break; }
+  }
+
+  var overlay = document.createElement('div');
+  overlay.className = 'picker-overlay';
+  overlay.id = 'listPickerOverlay';
+
+  var itemsHtml = '';
+  for (var j = 0; j < items.length; j++) {
+    itemsHtml += '<div class="picker-item" data-idx="' + j + '">' + items[j].label + '</div>';
+  }
+
+  overlay.innerHTML =
+    '<div class="picker-sheet">' +
+      '<div class="picker-header">' +
+        '<button class="picker-cancel" onclick="closeListPicker(false)">キャンセル</button>' +
+        '<span class="picker-title">' + title + '</span>' +
+        '<button class="picker-done" onclick="closeListPicker(true)">完了</button>' +
+      '</div>' +
+      '<div class="picker-body">' +
+        '<div class="picker-highlight"></div>' +
+        '<div class="picker-scroll" id="listPickerScroll">' +
+          '<div class="picker-spacer"></div>' +
+          itemsHtml +
+          '<div class="picker-spacer"></div>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+
+  overlay.addEventListener('click', function(e) {
+    if (e.target === overlay) closeListPicker(false);
+  });
+
+  document.body.appendChild(overlay);
+
+  window._listPickerCtx = { targetId: targetId, items: items, selectedIdx: currentIdx };
+
+  var scrollEl = document.getElementById('listPickerScroll');
+  var itemH = 44;
+  setTimeout(function() {
+    scrollEl.scrollTop = currentIdx * itemH;
+    updateListPickerSelection();
+  }, 30);
+
+  var scrollTimer = null;
+  scrollEl.addEventListener('scroll', function() {
+    if (scrollTimer) clearTimeout(scrollTimer);
+    scrollTimer = setTimeout(updateListPickerSelection, 50);
+  });
+}
+
+function updateListPickerSelection() {
+  var scrollEl = document.getElementById('listPickerScroll');
+  if (!scrollEl || !window._listPickerCtx) return;
+  var itemH = 44;
+  var centerIdx = Math.round(scrollEl.scrollTop / itemH);
+  var items = window._listPickerCtx.items;
+  centerIdx = Math.max(0, Math.min(centerIdx, items.length - 1));
+  window._listPickerCtx.selectedIdx = centerIdx;
+
+  scrollEl.querySelectorAll('.picker-item').forEach(function(it, i) {
+    it.classList.toggle('selected', i === centerIdx);
+  });
+}
+
+function closeListPicker(apply) {
+  var overlay = document.getElementById('listPickerOverlay');
+  if (!overlay) return;
+
+  if (apply && window._listPickerCtx) {
+    var ctx = window._listPickerCtx;
+    var item = ctx.items[ctx.selectedIdx];
+
+    // Callback mode (targetId starts with _callback_)
+    if (ctx.targetId.indexOf('_callback_') === 0 && window._listPickerCallback) {
+      window._listPickerCallback(item.value);
+      window._listPickerCallback = null;
+    } else {
+      var targetEl = document.getElementById(ctx.targetId);
+      if (targetEl) {
+        if (targetEl.tagName === 'SELECT') {
+          targetEl.value = item.value;
+        } else if (targetEl.tagName === 'INPUT') {
+          targetEl.value = item.value;
+        } else {
+          targetEl.textContent = item.label;
+          targetEl.dataset.value = item.value;
+        }
+      }
+    }
+  } else {
+    window._listPickerCallback = null;
+  }
+
+  overlay.remove();
+  window._listPickerCtx = null;
+}
+
+// ===================================================================
+//  DRUG ADMIN PICKER HELPERS
+// ===================================================================
+function openDrugNamePicker() {
+  var el = document.getElementById('drugAdminName');
+  var options = [];
+  for (var i = 0; i < el.options.length; i++) {
+    if (el.options[i].value) options.push(el.options[i].value);
+  }
+  // Use a callback-based approach
+  window._listPickerCallback = function(val) {
+    el.value = val;
+    var btn = document.getElementById('drugAdminNameBtn');
+    btn.textContent = val + ' ▾';
+    btn.style.color = 'var(--text-primary)';
+  };
+  openListPicker('_callback_drugName', '💉 薬剤選択', options, el.value);
+}
+
+function openRoutePicker() {
+  var el = document.getElementById('drugAdminRoute');
+  var routes = ['iv', 'iv slow', 'im', 'sc', 'po', 'ip', 'io', 'it', 'cri', 'topical', '吸入'];
+  var current = el.value || 'iv';
+  window._listPickerCallback = function(val) {
+    el.value = val;
+    var btn = document.getElementById('drugAdminRouteBtn');
+    btn.textContent = val + ' ▾';
+  };
+  openListPicker('_callback_route', '💊 投与経路', routes, current);
 }
 
 // ===================================================================
