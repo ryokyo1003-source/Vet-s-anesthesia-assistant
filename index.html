@@ -1864,15 +1864,15 @@ let PREMED_MASTER = {
   },
   cat: {
     premed: [
-      { name:'アトロピン', conc:0.5, concUnit:'mg/mL', doseMin:0.02, doseMax:0.04, doseUnit:'mg/kg', route:'im/sc' },
-      { name:'ミダゾラム', conc:5, concUnit:'mg/mL', doseMin:0.2, doseMax:0.3, doseUnit:'mg/kg', route:'im' },
-      { name:'ブトルファノール', conc:5, concUnit:'mg/mL', doseMin:0.2, doseMax:0.4, doseUnit:'mg/kg', route:'im' },
+      { name:'アトロピン', conc:0.5, concUnit:'mg/mL', doseMin:0.02, doseMax:0.04, doseUnit:'mg/kg', route:'im/sc', recMlPerKg:0.05 },
+      { name:'ミダゾラム', conc:5, concUnit:'mg/mL', doseMin:0.2, doseMax:0.3, doseUnit:'mg/kg', route:'im', recMlPerKg:0.02 },
+      { name:'ブトルファノール', conc:5, concUnit:'mg/mL', doseMin:0.2, doseMax:0.4, doseUnit:'mg/kg', route:'im', recMlPerKg:0.04 },
       { name:'メデトミジン', conc:1, concUnit:'mg/mL', doseMin:0.01, doseMax:0.04, doseUnit:'mg/kg', route:'im' },
       { name:'マロピタント', conc:10, concUnit:'mg/mL', doseMin:1.0, doseMax:1.0, doseUnit:'mg/kg', route:'sc' },
-      { name:'メロキシカム', conc:5, concUnit:'mg/mL', doseMin:0.1, doseMax:0.2, doseUnit:'mg/kg', route:'sc' },
+      { name:'メロキシカム', conc:5, concUnit:'mg/mL', doseMin:0.1, doseMax:0.2, doseUnit:'mg/kg', route:'sc', recMlPerKg:0.06 },
     ],
     induction: [
-      { name:'プロポフォール', conc:10, concUnit:'mg/mL', doseMin:2, doseMax:6, doseUnit:'mg/kg', route:'iv slow' },
+      { name:'プロポフォール', conc:10, concUnit:'mg/mL', doseMin:2, doseMax:6, doseUnit:'mg/kg', route:'iv slow', recMlPerKg:0.5 },
       { name:'アルファキサロン', conc:10, concUnit:'mg/mL', doseMin:2, doseMax:5, doseUnit:'mg/kg', route:'iv/im' },
       { name:'ケタミン', conc:50, concUnit:'mg/mL', doseMin:5, doseMax:10, doseUnit:'mg/kg', route:'im' },
     ],
@@ -1881,7 +1881,7 @@ let PREMED_MASTER = {
     ],
     analgesic: [
       { name:'フェンタニル', conc:0.05, concUnit:'mg/mL', doseMin:0.001, doseMax:0.003, doseUnit:'mg/kg', route:'iv' },
-      { name:'ブプレノルフィン', conc:0.3, concUnit:'mg/mL', doseMin:0.01, doseMax:0.02, doseUnit:'mg/kg', route:'im/iv' },
+      { name:'ブプレノルフィン', conc:0.3, concUnit:'mg/mL', doseMin:0.01, doseMax:0.02, doseUnit:'mg/kg', route:'im/iv', recMlPerKg:0.05 },
       { name:'ケタミン', conc:50, concUnit:'mg/mL', doseMin:2, doseMax:5, doseUnit:'mg/kg', route:'im' },
     ],
     antibiotic: [
@@ -2212,27 +2212,31 @@ function buildPrepDrugList(species, weight) {
       const isInjectable = !isInhale && !isFluidUnit && drug.conc > 0;
 
       // For injectable drugs: input in mL/kg
+      // Use recMlPerKg (院内推奨) if available, otherwise doseMin / conc
       let defaultInputVal, defaultMlPerKg, totalMl, equivMgPerKg;
       if (isInjectable) {
-        defaultMlPerKg = drug.doseMin / drug.conc;
+        defaultMlPerKg = (drug.recMlPerKg != null) ? drug.recMlPerKg : (drug.doseMin / drug.conc);
         defaultInputVal = defaultMlPerKg;
         totalMl = defaultMlPerKg * weight;
-        equivMgPerKg = drug.doseMin; // = defaultMlPerKg * drug.conc
+        equivMgPerKg = defaultMlPerKg * drug.conc;
       } else {
         defaultInputVal = drug.doseMin;
       }
 
       // Dose range display
       let doseRangeHtml = '';
+      const hasRec = drug.recMlPerKg != null;
       if (isInjectable) {
         const mlKgMin = (drug.doseMin / drug.conc);
         const mlKgMax = (drug.doseMax / drug.conc);
         const fmtMlMin = mlKgMin < 0.001 ? mlKgMin.toFixed(4) : mlKgMin < 0.01 ? mlKgMin.toFixed(3) : mlKgMin.toFixed(2);
         const fmtMlMax = mlKgMax < 0.001 ? mlKgMax.toFixed(4) : mlKgMax < 0.01 ? mlKgMax.toFixed(3) : mlKgMax.toFixed(2);
+        const recLabel = hasRec ? `<br><span style="color:var(--accent-orange);font-size:10px;font-weight:700;">★ 推奨 ${drug.recMlPerKg} mL/kg</span>` : '';
         doseRangeHtml =
           `<span class="prep-drug-dose-range">` +
             `<span class="prep-dose-ref">${drug.doseMin}~${drug.doseMax} ${drug.doseUnit}</span><br>` +
             `<span class="prep-dose-mlkg">(${fmtMlMin}~${fmtMlMax} mL/kg)</span>` +
+            recLabel +
           `</span>`;
       } else {
         doseRangeHtml = `<span class="prep-drug-dose-range">${drug.doseMin}~${drug.doseMax}<br>${drug.doseUnit}</span>`;
@@ -2358,9 +2362,15 @@ function openPrepDrugEdit(catKey, drugIndex) {
         <input type="text" id="peditDoseUnit" value="${drug.doseUnit}" placeholder="mg/kg">
       </div>
     </div>
-    <div class="prep-edit-field">
-      <label>投与経路</label>
-      <input type="text" id="peditRoute" value="${drug.route}" placeholder="iv, im, sc, po...">
+    <div class="prep-edit-row">
+      <div class="prep-edit-field">
+        <label>投与経路</label>
+        <input type="text" id="peditRoute" value="${drug.route}" placeholder="iv, im, sc, po...">
+      </div>
+      <div class="prep-edit-field">
+        <label>院内推奨 mL/kg</label>
+        <input type="number" id="peditRecMlPerKg" value="${drug.recMlPerKg != null ? drug.recMlPerKg : ''}" step="any" placeholder="空=最小用量">
+      </div>
     </div>
     <div class="prep-edit-btns">
       <button class="prep-edit-cancel" onclick="this.closest('.prep-edit-overlay').remove()">キャンセル</button>
@@ -2387,8 +2397,11 @@ function savePrepDrugEdit(catKey, drugIndex) {
   const doseMax = parseFloat(document.getElementById('peditDoseMax').value) || 0;
   const doseUnit = document.getElementById('peditDoseUnit').value.trim() || 'mg/kg';
   const route = document.getElementById('peditRoute').value.trim() || 'iv';
+  const recMlVal = document.getElementById('peditRecMlPerKg').value.trim();
+  const recMlPerKg = recMlVal === '' ? undefined : parseFloat(recMlVal);
 
   const drugData = { name, conc, concUnit, doseMin, doseMax, doseUnit, route };
+  if (recMlPerKg != null && !isNaN(recMlPerKg)) drugData.recMlPerKg = recMlPerKg;
 
   if (drugIndex < 0) {
     arr.push(drugData);
