@@ -1422,7 +1422,7 @@
         <div style="background:var(--bg-secondary); border:1px solid var(--border); border-radius:10px; padding:16px; margin-bottom:16px;">
           <label style="font-size:13px; font-weight:600; color:var(--text-primary); display:block; margin-bottom:8px;">🧠 Gemini モデル</label>
           <select id="selectApiModel" style="width:100%; padding:10px 12px; background:var(--bg-card); border:1px solid var(--border); border-radius:8px; color:var(--text-primary); font-size:14px;">
-            <option value="gemini-flash">Gemini 2.0 Flash（高速・最安）推奨</option>
+            <option value="gemini-flash">Gemini 2.5 Flash（高速・最安）推奨</option>
             <option value="gemini-pro">Gemini 2.5 Pro（最高精度）</option>
           </select>
         </div>
@@ -3341,7 +3341,7 @@ function getVisionPrompt() {
 
 function getGeminiModelId() {
   if (state.apiModel === 'gemini-pro') return 'gemini-2.5-pro-preview-06-05';
-  return 'gemini-2.0-flash';
+  return 'gemini-2.5-flash';
 }
 
 function callGeminiVision(imageDataUrl, captureId, btn) {
@@ -3796,7 +3796,7 @@ function testGeminiConnection(resultEl) {
 
   var modelSelect = document.getElementById('selectApiModel');
   var modelVal = modelSelect ? modelSelect.value : 'gemini-flash';
-  var modelId = modelVal === 'gemini-pro' ? 'gemini-2.5-pro-preview-06-05' : 'gemini-2.0-flash';
+  var modelId = modelVal === 'gemini-pro' ? 'gemini-2.5-pro-preview-06-05' : 'gemini-2.5-flash';
 
   var apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/' + modelId + ':generateContent';
 
@@ -4823,7 +4823,7 @@ function aiReadConcentration() {
     xhrC.ontimeout = function() { onError('タイムアウト'); };
     xhrC.send(bodyC);
   } else if (state.apiProvider === 'gemini' && state.apiKey) {
-    var modelId = typeof getGeminiModelId === 'function' ? getGeminiModelId() : 'gemini-2.0-flash';
+    var modelId = typeof getGeminiModelId === 'function' ? getGeminiModelId() : 'gemini-2.5-flash';
     var apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/' + modelId + ':generateContent';
     var bodyG = JSON.stringify({
       contents: [{ parts: [
