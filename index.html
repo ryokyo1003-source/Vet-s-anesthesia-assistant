@@ -1264,7 +1264,10 @@
   <div class="startup-card">
     <div class="startup-title-row">
       <h1>🩺 VetAnes</h1>
-      <button type="button" class="btn-settings-gear" onclick="openSettings()">⚙️</button>
+      <div style="display:flex;gap:8px;">
+        <button type="button" class="btn-settings-gear" id="btnHistoryGear" onclick="openHistoryScreen()" style="display:none;" title="過去の麻酔記録">📋</button>
+        <button type="button" class="btn-settings-gear" onclick="openSettings()">⚙️</button>
+      </div>
     </div>
     <p class="sub">獣医麻酔管理アシスタント</p>
 
@@ -1344,7 +1347,6 @@
 
     <button class="btn-resume-session" id="btnResumeSession" onclick="resumeSession()" style="display:none;">🔄 セッション再開</button>
     <button class="btn-start" onclick="startSession()">麻酔セッション開始</button>
-    <button class="btn-history" id="btnHistory" onclick="openHistoryScreen()" style="display:none;">📋 過去の麻酔記録 (<span id="historyCount">0</span>件)</button>
   </div>
 </div>
 
@@ -2339,6 +2341,24 @@ function buildPrepDrugList(species, weight) {
 
     section.appendChild(list);
     container.appendChild(section);
+  }
+
+  // Auto-check drugs from imported history
+  if (state._importedDrugLog && state._importedDrugLog.length > 0) {
+    var importText = state._importedDrugLog.join(' ');
+    document.querySelectorAll('.prep-drug-row').forEach(function(row) {
+      var nameEl = row.querySelector('.prep-drug-name');
+      if (!nameEl) return;
+      var drugName = nameEl.textContent.replace(/院内/g, '').trim();
+      if (drugName && importText.indexOf(drugName) >= 0) {
+        var chk = row.querySelector('input[type="checkbox"]');
+        if (chk) {
+          chk.checked = true;
+          row.classList.add('checked');
+        }
+      }
+    });
+    state._importedDrugLog = null; // clear after use
   }
 }
 
@@ -5739,8 +5759,9 @@ function renderHistoryList() {
     if (p.surgeon) html += ' | 執刀医: ' + p.surgeon;
     html += '</div>';
     html += '<div class="history-card-actions">';
-    html += '<button class="btn-history-view" onclick="viewHistoryRecord(\'' + rec.id + '\')">📄 レポート表示</button>';
-    html += '<button class="btn-history-delete" onclick="deleteHistoryRecord(\'' + rec.id + '\')">🗑 削除</button>';
+    html += '<button class="btn-history-view" onclick="importFromHistory(\'' + rec.id + '\')">📥 この記録から新規作成</button>';
+    html += '<button class="btn-history-view" onclick="viewHistoryRecord(\'' + rec.id + '\')">📄 レポート</button>';
+    html += '<button class="btn-history-delete" onclick="deleteHistoryRecord(\'' + rec.id + '\')">🗑</button>';
     html += '</div>';
     html += '</div>';
   }
@@ -5799,15 +5820,58 @@ function deleteHistoryRecord(id) {
   updateHistoryButton();
 }
 
-function updateHistoryButton() {
-  var btn = document.getElementById('btnHistory');
-  var count = document.getElementById('historyCount');
+function importFromHistory(id) {
   var history = getAnesthesiaHistory();
-  if (btn) {
-    btn.style.display = history.length > 0 ? 'block' : 'none';
+  var rec = history.find(function(r) { return r.id === id; });
+  if (!rec) { alert('記録が見つかりません'); return; }
+
+  var p = rec.patient;
+  closeHistoryScreen();
+
+  // Fill startup form with patient info
+  document.getElementById('inputId').value = p.id || '';
+  document.getElementById('inputName').value = p.name || '';
+  document.getElementById('inputSpecies').value = p.species || 'dog';
+  document.getElementById('inputWeight').value = p.weight || '';
+  document.getElementById('inputAge').value = p.age || '';
+  document.getElementById('inputProcedure').value = p.procedure || '';
+  document.getElementById('inputNotes').value = p.notes || '';
+  document.getElementById('inputSurgeon').value = p.surgeon || '';
+  document.getElementById('inputAnesthetist').value = p.anesthetist || '';
+
+  // Set sex
+  if (p.sex) setSex(p.sex);
+
+  // Store drug log entries for auto-import into prep screen
+  // Extract drug names from log entries (lines starting with 💉 or 💊)
+  var drugImport = [];
+  if (rec.logEntries) {
+    var logIds = Object.keys(rec.logEntries);
+    for (var i = 0; i < logIds.length; i++) {
+      var entry = rec.logEntries[logIds[i]];
+      if (entry && entry.text) {
+        // 💉 薬剤準備: ミダゾラム 0.02mL, ブトルファノール...
+        if (entry.text.indexOf('薬剤準備') >= 0) {
+          drugImport.push(entry.text);
+        }
+        // 💊 プロポフォール 2mL iv
+        if (entry.text.charAt(0) === '💊') {
+          drugImport.push(entry.text);
+        }
+      }
+    }
   }
-  if (count) {
-    count.textContent = history.length;
+  state._importedDrugLog = drugImport;
+  state._importedFromHistory = rec.id;
+
+  alert('患者情報を取り込みました。\n薬剤準備画面で前回使用した薬剤が自動チェックされます。');
+}
+
+function updateHistoryButton() {
+  var history = getAnesthesiaHistory();
+  var gearBtn = document.getElementById('btnHistoryGear');
+  if (gearBtn) {
+    gearBtn.style.display = history.length > 0 ? 'flex' : 'none';
   }
 }
 
