@@ -1728,12 +1728,12 @@ const SPECIES_EMOJI = {
 // ===================================================================
 const DRUG_MASTER_DEFAULT = {
   emergency: [
-    { name:'アトロピン', conc:0.5, unit:'mg/mL', dosePerKg:0.02, doseUnit:'mg/kg' },
-    { name:'エフェドリン', conc:4, unit:'mg/mL', dosePerKg:0.1, doseUnit:'mg/kg' },
-    { name:'エピネフリン', conc:1, unit:'mg/mL', dosePerKg:0.01, doseUnit:'mg/kg' },
-    { name:'ナロキソン', conc:0.4, unit:'mg/mL', dosePerKg:0.04, doseUnit:'mg/kg' },
-    { name:'ドキサプラム', conc:20, unit:'mg/mL', dosePerKg:1, doseUnit:'mg/kg' },
-    { name:'リドカイン', conc:20, unit:'mg/mL', dosePerKg:2, doseUnit:'mg/kg' },
+    { name:'アトロピン', conc:0.5, unit:'mg/mL', dosePerKg:0.02, doseUnit:'mg/kg', dilution:null },
+    { name:'エフェドリン', conc:4, unit:'mg/mL', dosePerKg:0.1, doseUnit:'mg/kg', dilution:{ ratio:10, diluent:'生食', note:'0.4mg/mLに希釈' } },
+    { name:'エピネフリン', conc:1, unit:'mg/mL', dosePerKg:0.01, doseUnit:'mg/kg', dilution:{ ratio:10, diluent:'生食', note:'0.1mg/mLに希釈' } },
+    { name:'ナロキソン', conc:0.4, unit:'mg/mL', dosePerKg:0.04, doseUnit:'mg/kg', dilution:null },
+    { name:'ドキサプラム', conc:20, unit:'mg/mL', dosePerKg:1, doseUnit:'mg/kg', dilution:null },
+    { name:'リドカイン', conc:20, unit:'mg/mL', dosePerKg:2, doseUnit:'mg/kg', dilution:null },
   ],
 };
 
@@ -1803,12 +1803,12 @@ const DRUG_MASTER = {
   dog: { emergency: DRUG_MASTER_DEFAULT.emergency },
   cat: {
     emergency: [
-      { name:'アトロピン', conc:0.5, unit:'mg/mL', dosePerKg:0.02, doseUnit:'mg/kg' },
-      { name:'エフェドリン', conc:4, unit:'mg/mL', dosePerKg:0.05, doseUnit:'mg/kg' },
-      { name:'エピネフリン', conc:1, unit:'mg/mL', dosePerKg:0.01, doseUnit:'mg/kg' },
-      { name:'ナロキソン', conc:0.4, unit:'mg/mL', dosePerKg:0.04, doseUnit:'mg/kg' },
-      { name:'ドキサプラム', conc:20, unit:'mg/mL', dosePerKg:1, doseUnit:'mg/kg' },
-      { name:'フルマゼニル', conc:0.1, unit:'mg/mL', dosePerKg:0.01, doseUnit:'mg/kg' },
+      { name:'アトロピン', conc:0.5, unit:'mg/mL', dosePerKg:0.02, doseUnit:'mg/kg', dilution:null },
+      { name:'エフェドリン', conc:4, unit:'mg/mL', dosePerKg:0.05, doseUnit:'mg/kg', dilution:{ ratio:10, diluent:'生食', note:'0.4mg/mLに希釈' } },
+      { name:'エピネフリン', conc:1, unit:'mg/mL', dosePerKg:0.01, doseUnit:'mg/kg', dilution:{ ratio:10, diluent:'生食', note:'0.1mg/mLに希釈' } },
+      { name:'ナロキソン', conc:0.4, unit:'mg/mL', dosePerKg:0.04, doseUnit:'mg/kg', dilution:null },
+      { name:'ドキサプラム', conc:20, unit:'mg/mL', dosePerKg:1, doseUnit:'mg/kg', dilution:null },
+      { name:'フルマゼニル', conc:0.1, unit:'mg/mL', dosePerKg:0.01, doseUnit:'mg/kg', dilution:null },
     ],
   },
   rabbit: { emergency: DRUG_MASTER_DEFAULT.emergency },
@@ -3136,29 +3136,192 @@ function recalcInfusionCRI() {
 }
 
 // ===================================================================
+//  LONG-PRESS HANDLER
+// ===================================================================
+var _longPressTimer = null;
+var _longPressTriggered = false;
+
+function setupLongPress(el, onLongPress) {
+  el.addEventListener('touchstart', function(e) {
+    _longPressTriggered = false;
+    _longPressTimer = setTimeout(function() {
+      _longPressTriggered = true;
+      onLongPress(el);
+    }, 800);
+  }, { passive: true });
+  el.addEventListener('touchend', function() { clearTimeout(_longPressTimer); });
+  el.addEventListener('touchmove', function() { clearTimeout(_longPressTimer); });
+  // For desktop
+  el.addEventListener('mousedown', function() {
+    _longPressTriggered = false;
+    _longPressTimer = setTimeout(function() {
+      _longPressTriggered = true;
+      onLongPress(el);
+    }, 800);
+  });
+  el.addEventListener('mouseup', function() { clearTimeout(_longPressTimer); });
+  el.addEventListener('mouseleave', function() { clearTimeout(_longPressTimer); });
+}
+
+// ===================================================================
 //  EMERGENCY DRUGS
 // ===================================================================
 function buildEmergencyDrugs(){
   const g=document.getElementById('emergGrid');g.innerHTML='';
   const sp=state.patient.species; const drugs=(DRUG_MASTER[sp]||DRUG_MASTER.dog).emergency;
   const w=state.patient.weight;
-  drugs.forEach(drug=>{
-    const vol=(drug.dosePerKg*w)/drug.conc; const btn=document.createElement('button');
-    btn.className='btn-emerg';
-    btn.innerHTML=`<div class="drug-name">${drug.name}</div><div class="drug-dose">${vol<0.01?vol.toFixed(3):vol.toFixed(2)} mL</div><div class="drug-detail">${drug.dosePerKg}${drug.doseUnit}×${w<1?(w*1000).toFixed(0)+'g':w+'kg'}</div>`;
-    btn.onclick=()=>{btn.classList.add('used');addLog(`💉 ${drug.name} ${vol.toFixed(2)}mL 投与`);};
+  drugs.forEach(function(drug, idx) {
+    const doseMg = drug.dosePerKg * w;
+    const volOrig = doseMg / drug.conc;
+    const dil = drug.dilution;
+
+    var mainVol, mainLabel, detailHtml;
+    if (dil && dil.ratio > 1) {
+      var dilConc = drug.conc / dil.ratio;
+      var volDil = doseMg / dilConc;
+      mainVol = volDil;
+      mainLabel = (volDil < 0.01 ? volDil.toFixed(3) : volDil.toFixed(2)) + ' mL';
+      detailHtml = '<div class="drug-detail">' + dil.note + '<br>原液' + volOrig.toFixed(3) + 'mL</div>';
+    } else {
+      mainVol = volOrig;
+      mainLabel = (volOrig < 0.01 ? volOrig.toFixed(3) : volOrig.toFixed(2)) + ' mL';
+      detailHtml = '<div class="drug-detail">' + drug.dosePerKg + drug.doseUnit + '×' + (w<1?(w*1000).toFixed(0)+'g':w+'kg') + '</div>';
+    }
+
+    var btn = document.createElement('button');
+    btn.className = 'btn-emerg';
+    btn.dataset.idx = idx;
+    btn.innerHTML = '<div class="drug-name">' + drug.name + '</div><div class="drug-dose">' + mainLabel + '</div>' + detailHtml;
+
+    btn.onclick = function() {
+      if (_longPressTriggered) { _longPressTriggered = false; return; }
+      btn.classList.add('used');
+      addLog('💉 ' + drug.name + ' ' + mainLabel + ' 投与');
+    };
+
+    // Long-press to cancel or edit dilution
+    setupLongPress(btn, function(b) {
+      if (!b.classList.contains('used')) {
+        // If not used, allow editing dilution
+        editEmergencyDilution(idx, sp);
+      } else {
+        // If used, offer cancel
+        if (confirm('「' + drug.name + ' 投与」を取り消しますか？')) {
+          b.classList.remove('used');
+          addLog('🔄 ' + drug.name + ' 投与取消');
+        }
+      }
+    });
+
     g.appendChild(btn);
   });
+}
+
+function editEmergencyDilution(drugIdx, species) {
+  var drugs = (DRUG_MASTER[species] || DRUG_MASTER.dog).emergency;
+  var drug = drugs[drugIdx];
+  if (!drug) return;
+
+  var dil = drug.dilution || { ratio: 1, diluent: '生食', note: '' };
+
+  var overlay = document.createElement('div');
+  overlay.className = 'prep-edit-overlay';
+  overlay.innerHTML = '<div class="prep-edit-popup">' +
+    '<h3>💉 ' + drug.name + ' 希釈設定</h3>' +
+    '<div class="prep-edit-field">' +
+      '<label>原液濃度: ' + drug.conc + ' ' + drug.unit + '</label>' +
+    '</div>' +
+    '<div class="prep-edit-row">' +
+      '<div class="prep-edit-field">' +
+        '<label>希釈倍率 (1:N)</label>' +
+        '<input type="number" id="edDilRatio" value="' + dil.ratio + '" step="1" min="1" placeholder="1=希釈なし">' +
+      '</div>' +
+      '<div class="prep-edit-field">' +
+        '<label>希釈液</label>' +
+        '<input type="text" id="edDilDiluent" value="' + (dil.diluent || '生食') + '" placeholder="生食">' +
+      '</div>' +
+    '</div>' +
+    '<div class="prep-edit-field">' +
+      '<label>メモ</label>' +
+      '<input type="text" id="edDilNote" value="' + (dil.note || '') + '" placeholder="例: 0.1mg/mLに希釈">' +
+    '</div>' +
+    '<div id="edDilPreview" style="padding:10px;margin-top:8px;background:var(--bg-secondary);border-radius:8px;font-size:12px;color:var(--text-secondary);"></div>' +
+    '<div class="prep-edit-btns">' +
+      '<button class="prep-edit-cancel" onclick="this.closest(\'.prep-edit-overlay\').remove()">キャンセル</button>' +
+      '<button class="prep-edit-save" onclick="saveEmergencyDilution(' + drugIdx + ',\'' + species + '\')">保存</button>' +
+    '</div>' +
+  '</div>';
+
+  document.getElementById('alertContainer').appendChild(overlay);
+
+  // Live preview
+  function updatePreview() {
+    var ratio = parseInt(document.getElementById('edDilRatio').value) || 1;
+    var w = state.patient.weight;
+    var doseMg = drug.dosePerKg * w;
+    var preview = document.getElementById('edDilPreview');
+    if (ratio <= 1) {
+      var vol = doseMg / drug.conc;
+      preview.innerHTML = '<strong>希釈なし</strong><br>投与量: ' + vol.toFixed(3) + ' mL (原液)';
+    } else {
+      var dilConc = drug.conc / ratio;
+      var volDil = doseMg / dilConc;
+      var volOrig = doseMg / drug.conc;
+      preview.innerHTML = '<strong>1:' + ratio + '希釈</strong> → ' + dilConc.toFixed(3) + ' ' + drug.unit + '<br>' +
+        '原液 1mL + 希釈液 ' + (ratio-1) + 'mL = ' + ratio + 'mL<br>' +
+        '投与量: <span style="color:var(--accent-red);font-weight:800;font-size:16px;">' + volDil.toFixed(2) + ' mL</span> (原液なら ' + volOrig.toFixed(3) + ' mL)';
+    }
+  }
+
+  document.getElementById('edDilRatio').addEventListener('input', updatePreview);
+  setTimeout(updatePreview, 50);
+}
+
+function saveEmergencyDilution(drugIdx, species) {
+  var drugs = (DRUG_MASTER[species] || DRUG_MASTER.dog).emergency;
+  var drug = drugs[drugIdx];
+  if (!drug) return;
+
+  var ratio = parseInt(document.getElementById('edDilRatio').value) || 1;
+  var diluent = document.getElementById('edDilDiluent').value.trim() || '生食';
+  var note = document.getElementById('edDilNote').value.trim();
+
+  if (ratio <= 1) {
+    drug.dilution = null;
+  } else {
+    drug.dilution = { ratio: ratio, diluent: diluent, note: note || (drug.conc/ratio).toFixed(3) + drug.unit + 'に希釈' };
+  }
+
+  // Rebuild display
+  buildEmergencyDrugs();
+
+  // Close modal
+  var overlay = document.querySelector('.prep-edit-overlay');
+  if (overlay) overlay.remove();
 }
 
 // ===================================================================
 //  EVENT / DRUG RECORDING
 // ===================================================================
 function recordEvent(btn){
+  if (_longPressTriggered) { _longPressTriggered = false; return; }
   if(!btn||btn.classList.contains('recorded'))return;
   const name=btn.dataset.event,now=new Date(),ts=now.toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'});
   btn.classList.add('recorded');btn.innerHTML=`${name}<span class="event-time">${ts}</span>`;
   state.events.push({name,time:now});addLog(`📋 ${name} (${ts})`);
+}
+
+function cancelEvent(btn) {
+  if (!btn.classList.contains('recorded')) return;
+  var name = btn.dataset.event;
+  if (!confirm('「' + name + '」の記録を取り消しますか？')) return;
+  btn.classList.remove('recorded');
+  btn.innerHTML = name;
+  // Remove from state.events
+  for (var i = state.events.length - 1; i >= 0; i--) {
+    if (state.events[i].name === name) { state.events.splice(i, 1); break; }
+  }
+  addLog('🔄 ' + name + ' 取消');
 }
 function recordDrugAdmin(){
   const name=document.getElementById('drugAdminName').value;
@@ -5857,6 +6020,11 @@ document.addEventListener('DOMContentLoaded', () => {
   // Session resume & history buttons init
   try { updateResumeButton(); } catch(e) { console.warn('init resume button error:', e); }
   try { updateHistoryButton(); } catch(e) { console.warn('init history button error:', e); }
+
+  // Long-press on event buttons for cancel/undo
+  document.querySelectorAll('.btn-event').forEach(function(btn) {
+    setupLongPress(btn, cancelEvent);
+  });
 });
 </script>
 </body>
