@@ -295,6 +295,34 @@
     padding: 4px 8px; border-bottom: 1px solid rgba(42,53,80,0.3); font-size: 11px;
   }
   .prep-cri-result tr.cri-default { background: rgba(59,130,246,0.12); font-weight: 700; }
+  .prep-cri-mode-toggle {
+    display: flex; gap: 0; margin-bottom: 10px; border-radius: 8px; overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .prep-cri-mode-btn {
+    flex: 1; padding: 8px 4px; border: none; cursor: pointer;
+    font-size: 12px; font-weight: 700; text-align: center;
+    background: var(--bg-secondary); color: var(--text-muted);
+    transition: background 0.2s, color 0.2s;
+  }
+  .prep-cri-mode-btn.active {
+    background: rgba(59,130,246,0.2); color: var(--accent-blue);
+  }
+  .prep-cri-result-box {
+    background: rgba(6,182,212,0.08); border: 1px solid rgba(6,182,212,0.3);
+    border-radius: 8px; padding: 10px 12px; margin-bottom: 10px;
+    font-size: 12px; color: var(--accent-cyan); line-height: 1.7;
+  }
+  .prep-cri-result-box strong { color: #22d3ee; }
+  .prep-cri-warn-box {
+    background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.25);
+    border-radius: 8px; padding: 8px 10px; margin-bottom: 10px;
+    font-size: 11px; color: var(--accent-yellow); line-height: 1.5;
+  }
+  .prep-cri-maint-ref {
+    font-size: 10px; color: var(--text-muted); margin-bottom: 8px;
+    padding: 4px 8px; background: rgba(255,255,255,0.03); border-radius: 6px;
+  }
   .btn-prep-done {
     width: 100%; padding: 16px;
     background: linear-gradient(135deg, var(--accent-green), #059669);
@@ -2650,6 +2678,11 @@ function buildPrepCriSection(species, weight) {
   html += '</div>';
   html += '<div class="prep-cri-body">';
 
+  // Maintenance fluid rate reference
+  var w = weight || state.patient.weight || 1;
+  var maintRate = ((30 * w + 70) / 24);
+  html += '<div class="prep-cri-maint-ref">💧 維持輸液速度（参考）: <strong>' + maintRate.toFixed(1) + ' mL/hr</strong>　((30 × ' + w + ' + 70) ÷ 24)</div>';
+
   // Drug selector
   html += '<select class="prep-cri-drug-select" id="prepCriDrugSelect" onchange="updatePrepCri()">';
   drugs.forEach(function(d, i) {
@@ -2660,14 +2693,65 @@ function buildPrepCriSection(species, weight) {
   });
   html += '</select>';
 
+  // Mode toggle
+  html += '<div class="prep-cri-mode-toggle" id="prepCriModeToggle">';
+  html += '<button type="button" class="prep-cri-mode-btn active" data-mode="bag" onclick="setPrepCriMode(\'bag\')">輸液バッグ混注</button>';
+  html += '<button type="button" class="prep-cri-mode-btn" data-mode="syringe" onclick="setPrepCriMode(\'syringe\')">シリンジポンプ</button>';
+  html += '</div>';
+
   // Result area
   html += '<div id="prepCriResult" class="prep-cri-result"></div>';
 
   html += '</div></div>';
   container.innerHTML = html;
 
+  // Store current mode
+  if (!window._prepCriMode) window._prepCriMode = 'bag';
+
   // Initial calc
   updatePrepCri();
+}
+
+function setPrepCriMode(mode) {
+  window._prepCriMode = mode;
+  var btns = document.querySelectorAll('#prepCriModeToggle .prep-cri-mode-btn');
+  btns.forEach(function(b) {
+    b.classList.toggle('active', b.dataset.mode === mode);
+  });
+  updatePrepCri();
+}
+
+function _prepCriDefaults(w) {
+  var bagVol, syringeVol, bagFlowRate;
+  if (w < 1) { bagVol = 50; syringeVol = 10; }
+  else if (w < 3) { bagVol = 100; syringeVol = 10; }
+  else if (w < 5) { bagVol = 100; syringeVol = 20; }
+  else if (w < 10) { bagVol = 250; syringeVol = 20; }
+  else { bagVol = 500; syringeVol = 50; }
+
+  if (w >= 10) bagFlowRate = 20;
+  else if (w >= 3) bagFlowRate = 8;
+  else if (w >= 1) bagFlowRate = 5;
+  else bagFlowRate = 2;
+
+  return { bagVol: bagVol, syringeVol: syringeVol, bagFlowRate: bagFlowRate };
+}
+
+function _calcMgPerHr(rate, rateUnit, w) {
+  // Convert any rate+unit to mg/hr for a given weight
+  var amountPerHr = 0;
+  if (rateUnit.indexOf('/min') >= 0) amountPerHr = rate * 60;
+  else if (rateUnit.indexOf('/hr') >= 0 || rateUnit.indexOf('/hour') >= 0) amountPerHr = rate;
+  else if (rateUnit.indexOf('/day') >= 0) amountPerHr = rate / 24;
+  else amountPerHr = rate;
+
+  if (rateUnit.indexOf('μg') >= 0) amountPerHr = amountPerHr / 1000; // μg→mg
+  return amountPerHr * w; // mg/hr
+}
+
+function _concToMgPerMl(conc, concUnit) {
+  if (concUnit.indexOf('μg') >= 0) return conc / 1000;
+  return conc; // already mg/mL
 }
 
 function updatePrepCri() {
@@ -2681,22 +2765,56 @@ function updatePrepCri() {
   if (idx < 0 || idx >= drugs.length) idx = 0;
   var d = drugs[idx];
   var w = state.patient.weight || 1;
+  var mode = window._prepCriMode || 'bag';
+  var defs = _prepCriDefaults(w);
 
   var html = '';
 
+  // Dilution note for simple drugs
+  if (d.diluted) {
+    html += '<div style="background:rgba(6,182,212,0.1);border:1px solid rgba(6,182,212,0.3);border-radius:6px;padding:6px 8px;margin-bottom:8px;font-size:11px;color:var(--accent-cyan);">';
+    html += '💧 ' + d.diluted.note + ' → <strong>' + d.diluted.conc + ' ' + d.diluted.concUnit + '</strong>';
+    html += '</div>';
+  }
+
+  // Recommended range
+  html += '<div style="font-size:11px;color:var(--text-secondary);margin-bottom:8px;">推奨: ' + d.rateMin + '〜' + d.rateMax + ' ' + d.rateUnit + '</div>';
+
+  // Editable fields
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:4px;">';
+  // Weight
+  html += '<div class="prep-edit-field" style="margin-bottom:4px;"><label>体重 (kg)</label>';
+  html += '<input type="number" id="prepCriWeight" value="' + w + '" min="0.01" step="0.01" onchange="recalcPrepCriInfusion()" oninput="recalcPrepCriInfusion()"></div>';
+  // Drug rate
+  html += '<div class="prep-edit-field" style="margin-bottom:4px;"><label>投与速度 (' + d.rateUnit + ')</label>';
+  html += '<input type="number" id="prepCriRate" value="' + d.rateDefault + '" min="0" step="any" onchange="recalcPrepCriInfusion()" oninput="recalcPrepCriInfusion()"></div>';
+  html += '</div>';
+
   if (d.calcType === 'simple') {
+    // Simple drugs: direct stock rate OR syringe pump
     var useConc = d.diluted ? d.diluted.conc : d.conc;
     var useConcUnit = d.diluted ? d.diluted.concUnit : d.concUnit;
 
-    if (d.diluted) {
-      html += '<div style="background:rgba(6,182,212,0.1);border:1px solid rgba(6,182,212,0.3);border-radius:6px;padding:6px 8px;margin-bottom:8px;font-size:11px;color:var(--accent-cyan);">';
-      html += '💧 ' + d.diluted.note + ' → <strong>' + d.diluted.conc + ' ' + d.diluted.concUnit + '</strong>';
+    if (mode === 'syringe') {
+      // Syringe pump for simple drugs
+      html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;">';
+      html += '<div class="prep-edit-field" style="margin-bottom:4px;"><label>シリンジ量 (mL)</label>';
+      html += '<input type="number" id="prepCriSyringeVol" value="' + defs.syringeVol + '" min="1" step="1" onchange="recalcPrepCriInfusion()" oninput="recalcPrepCriInfusion()"></div>';
+      html += '<div class="prep-edit-field" style="margin-bottom:4px;"><label>投与速度 (mL/hr)</label>';
+      // Calc default syringe flow: for default rate
+      var defMlHr = calcSimpleMlHr(d.rateDefault, d.rateUnit, useConc, useConcUnit, w);
+      html += '<input type="number" id="prepCriSyringeRate" value="' + defMlHr.toFixed(2) + '" min="0.01" step="0.01" onchange="recalcPrepCriInfusion()" oninput="recalcPrepCriInfusion()"></div>';
       html += '</div>';
+
+      // Result box
+      html += '<div id="prepCriCalcResult"></div>';
+    } else {
+      // Bag mode: show result box then table
+      html += '<div id="prepCriCalcResult"></div>';
     }
 
-    html += '<div style="font-size:11px;color:var(--text-secondary);margin-bottom:6px;">推奨: ' + d.rateMin + '〜' + d.rateMax + ' ' + d.rateUnit + '</div>';
-
-    html += '<table><thead><tr><th>' + d.rateUnit + '</th><th style="text-align:right;">mL/hr</th></tr></thead><tbody>';
+    // Rate steps table
+    html += '<table><thead><tr><th>' + d.rateUnit + '</th><th style="text-align:right;">mL/hr（原液）</th></tr></thead><tbody>';
     var steps = generateRateSteps(d);
     steps.forEach(function(rate) {
       var mlhr = calcSimpleMlHr(rate, d.rateUnit, useConc, useConcUnit, w);
@@ -2709,67 +2827,228 @@ function updatePrepCri() {
     html += '</tbody></table>';
 
   } else {
-    // Infusion bag method
-    var fluidVol = 50;
-    if (w >= 10) fluidVol = 250;
-    else if (w >= 5) fluidVol = 100;
+    // Infusion type drugs
+    if (mode === 'bag') {
+      // Bag mode fields
+      html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;">';
+      html += '<div class="prep-edit-field" style="margin-bottom:4px;"><label>点滴全体量 (mL)</label>';
+      html += '<input type="number" id="prepCriFluidVol" value="' + defs.bagVol + '" min="1" step="1" onchange="recalcPrepCriInfusion()" oninput="recalcPrepCriInfusion()"></div>';
+      html += '<div class="prep-edit-field" style="margin-bottom:4px;"><label>点滴流量 (mL/hr)</label>';
+      html += '<input type="number" id="prepCriFluidRate" value="' + defs.bagFlowRate + '" min="0.1" step="0.1" onchange="recalcPrepCriInfusion()" oninput="recalcPrepCriInfusion()"></div>';
+      html += '</div>';
+    } else {
+      // Syringe mode fields
+      var defMgHr = _calcMgPerHr(d.rateDefault, d.rateUnit, w);
+      var stockMgMl = _concToMgPerMl(d.conc, d.concUnit);
+      // Default syringe rate: aim for a reasonable rate
+      var defSyrRate = Math.max(0.1, Math.round((defMgHr / stockMgMl) * 100) / 100);
+      // If syringe rate > syringeVol, lower it
+      if (defSyrRate > defs.syringeVol) defSyrRate = Math.round(defs.syringeVol / 4 * 100) / 100;
+      if (defSyrRate < 0.1) defSyrRate = 0.1;
 
-    var fluidRate = 10;
-    if (w >= 10) fluidRate = 20;
-    else if (w >= 3) fluidRate = 8;
-    else if (w >= 1) fluidRate = 5;
-    else fluidRate = 2;
+      html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;">';
+      html += '<div class="prep-edit-field" style="margin-bottom:4px;"><label>シリンジ量 (mL)</label>';
+      html += '<input type="number" id="prepCriSyringeVol" value="' + defs.syringeVol + '" min="1" step="1" onchange="recalcPrepCriInfusion()" oninput="recalcPrepCriInfusion()"></div>';
+      html += '<div class="prep-edit-field" style="margin-bottom:4px;"><label>投与速度 (mL/hr)</label>';
+      html += '<input type="number" id="prepCriSyringeRate" value="' + defSyrRate + '" min="0.01" step="0.01" onchange="recalcPrepCriInfusion()" oninput="recalcPrepCriInfusion()"></div>';
+      html += '</div>';
+    }
 
-    html += '<div style="font-size:11px;color:var(--text-secondary);margin-bottom:6px;">推奨: ' + d.rateMin + '〜' + d.rateMax + ' ' + d.rateUnit + '</div>';
+    // Calc result placeholder
+    html += '<div id="prepCriCalcResult"></div>';
 
-    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;">';
-    html += '<div style="font-size:10px;"><label style="color:var(--text-muted);">輸液量(mL)</label>';
-    html += '<input type="number" id="prepCriFluidVol" value="' + fluidVol + '" min="1" step="1" style="width:100%;padding:5px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);font-size:12px;" onchange="recalcPrepCriInfusion()" oninput="recalcPrepCriInfusion()"></div>';
-    html += '<div style="font-size:10px;"><label style="color:var(--text-muted);">点滴流量(mL/hr)</label>';
-    html += '<input type="number" id="prepCriFluidRate" value="' + fluidRate + '" min="0.1" step="0.1" style="width:100%;padding:5px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);font-size:12px;" onchange="recalcPrepCriInfusion()" oninput="recalcPrepCriInfusion()"></div>';
-    html += '</div>';
-
-    html += '<table><thead><tr><th>' + d.rateUnit + '</th><th style="text-align:right;">添加量(mL)</th></tr></thead><tbody>';
-    var steps2 = generateRateSteps(d);
-    steps2.forEach(function(rate) {
-      var addMl = calcInfusionAddMl(rate, d.rateUnit, d.conc, d.concUnit, w, fluidVol, fluidRate);
-      var isDefault = (Math.abs(rate - d.rateDefault) < 0.001);
-      html += '<tr class="prep-cri-infusion-row' + (isDefault ? ' cri-default' : '') + '" data-rate="' + rate + '">';
-      html += '<td>' + rate + '</td>';
-      html += '<td style="text-align:right;font-family:monospace;" class="prep-cri-add-ml">' + addMl.toFixed(3) + '</td>';
-      html += '</tr>';
-    });
-    html += '</tbody></table>';
-
-    html += '<div style="margin-top:6px;padding:6px 8px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);border-radius:6px;font-size:10px;color:var(--accent-yellow);">';
-    html += '📋 選んだ速度の添加量を輸液パックに混注 → 設定した流量(mL/hr)で投与';
-    html += '</div>';
+    // Rate steps table
+    if (mode === 'bag') {
+      html += '<table><thead><tr><th>' + d.rateUnit + '</th><th style="text-align:right;">添加量(mL)</th></tr></thead><tbody>';
+      var steps2 = generateRateSteps(d);
+      var fluidVol = defs.bagVol;
+      var fluidRate = defs.bagFlowRate;
+      steps2.forEach(function(rate) {
+        var addMl = calcInfusionAddMl(rate, d.rateUnit, d.conc, d.concUnit, w, fluidVol, fluidRate);
+        var isDefault = (Math.abs(rate - d.rateDefault) < 0.001);
+        html += '<tr class="prep-cri-infusion-row' + (isDefault ? ' cri-default' : '') + '" data-rate="' + rate + '">';
+        html += '<td>' + rate + '</td>';
+        html += '<td style="text-align:right;font-family:monospace;" class="prep-cri-add-ml">' + addMl.toFixed(3) + '</td>';
+        html += '</tr>';
+      });
+      html += '</tbody></table>';
+    } else {
+      html += '<table><thead><tr><th>' + d.rateUnit + '</th><th style="text-align:right;">原液量(mL)</th><th style="text-align:right;">mL/hr</th></tr></thead><tbody>';
+      var steps3 = generateRateSteps(d);
+      var syrVol = defs.syringeVol;
+      var syrRate = parseFloat((document.getElementById('prepCriSyringeRate') || {}).value) || 1;
+      steps3.forEach(function(rate) {
+        var mgHr = _calcMgPerHr(rate, d.rateUnit, w);
+        var stockMg = _concToMgPerMl(d.conc, d.concUnit);
+        // drug needed in syringe = mgHr / syrRate * syrVol ... no
+        // reqConc = mgHr / syrRate, drugMl = reqConc * syrVol / stockMg
+        var reqConc = mgHr / syrRate;
+        var drugMl = reqConc * syrVol / stockMg;
+        var deliveryRate = syrRate;
+        var isDefault = (Math.abs(rate - d.rateDefault) < 0.001);
+        html += '<tr' + (isDefault ? ' class="cri-default"' : '') + '>';
+        html += '<td>' + rate + '</td>';
+        html += '<td style="text-align:right;font-family:monospace;">' + drugMl.toFixed(3) + '</td>';
+        html += '<td style="text-align:right;font-family:monospace;">' + deliveryRate.toFixed(2) + '</td>';
+        html += '</tr>';
+      });
+      html += '</tbody></table>';
+    }
   }
 
   resultEl.innerHTML = html;
+
+  // Now calculate and render result box
+  recalcPrepCriInfusion();
 }
 
 function recalcPrepCriInfusion() {
-  var fluidVolEl = document.getElementById('prepCriFluidVol');
-  var fluidRateEl = document.getElementById('prepCriFluidRate');
-  if (!fluidVolEl || !fluidRateEl) return;
-  var fluidVol = parseFloat(fluidVolEl.value) || 50;
-  var fluidRate = parseFloat(fluidRateEl.value) || 10;
-
   var sp = state.patient.species || 'dog';
   var drugs = CRI_MASTER[sp] || CRI_MASTER.dog;
   var sel = document.getElementById('prepCriDrugSelect');
+  if (!sel) return;
   var idx = parseInt(sel.value) || 0;
+  if (idx < 0 || idx >= drugs.length) idx = 0;
   var d = drugs[idx];
-  var w = state.patient.weight || 1;
+  var mode = window._prepCriMode || 'bag';
 
-  var rows = document.querySelectorAll('.prep-cri-infusion-row');
-  rows.forEach(function(row) {
-    var rate = parseFloat(row.dataset.rate);
-    var addMl = calcInfusionAddMl(rate, d.rateUnit, d.conc, d.concUnit, w, fluidVol, fluidRate);
-    var td = row.querySelector('.prep-cri-add-ml');
-    if (td) td.textContent = addMl.toFixed(3);
-  });
+  var wEl = document.getElementById('prepCriWeight');
+  var rateEl = document.getElementById('prepCriRate');
+  var w = wEl ? parseFloat(wEl.value) || 1 : (state.patient.weight || 1);
+  var targetRate = rateEl ? parseFloat(rateEl.value) || d.rateDefault : d.rateDefault;
+
+  var resultBox = document.getElementById('prepCriCalcResult');
+
+  if (d.calcType === 'simple') {
+    var useConc = d.diluted ? d.diluted.conc : d.conc;
+    var useConcUnit = d.diluted ? d.diluted.concUnit : d.concUnit;
+    var mlhr = calcSimpleMlHr(targetRate, d.rateUnit, useConc, useConcUnit, w);
+
+    if (mode === 'syringe') {
+      var syrVolEl = document.getElementById('prepCriSyringeVol');
+      var syrRateEl = document.getElementById('prepCriSyringeRate');
+      var syrVol = syrVolEl ? parseFloat(syrVolEl.value) || 20 : 20;
+      var syrRate = syrRateEl ? parseFloat(syrRateEl.value) || mlhr : mlhr;
+
+      // For simple drugs in syringe: we need mlhr of stock per hour
+      // If using syringe at syrRate mL/hr, required conc in syringe = (mlhr * useConc) / syrRate
+      // drugMl of stock = (mlhr / syrRate) * syrVol
+      var stockMlNeeded = (mlhr / syrRate) * syrVol;
+      var salineMl = syrVol - stockMlNeeded;
+      if (salineMl < 0) salineMl = 0;
+
+      var stockLabel = d.diluted ? '希釈液' : '原液';
+      var rhtml = '<div class="prep-cri-result-box">';
+      rhtml += '<strong>' + stockLabel + ' ' + stockMlNeeded.toFixed(3) + ' mL</strong> (' + useConc + ' ' + useConcUnit + ')';
+      rhtml += ' + 生食 <strong>' + salineMl.toFixed(2) + ' mL</strong>';
+      rhtml += ' = <strong>' + syrVol + ' mL</strong> シリンジ';
+      rhtml += '<br>→ <strong>' + syrRate.toFixed(2) + ' mL/hr</strong> で投与';
+      rhtml += '<br><span style="font-size:10px;color:var(--text-muted);">(= ' + targetRate + ' ' + d.rateUnit + ')</span>';
+      rhtml += '</div>';
+      if (resultBox) resultBox.innerHTML = rhtml;
+    } else {
+      // Bag mode for simple: just show direct rate
+      var rhtml = '<div class="prep-cri-result-box">';
+      rhtml += targetRate + ' ' + d.rateUnit + ' → <strong>' + mlhr.toFixed(3) + ' mL/hr</strong>';
+      if (d.diluted) rhtml += '（希釈液 ' + useConc + ' ' + useConcUnit + ' 使用）';
+      else rhtml += '（原液 ' + useConc + ' ' + useConcUnit + ' 使用）';
+      rhtml += '</div>';
+      if (resultBox) resultBox.innerHTML = rhtml;
+    }
+
+  } else {
+    // Infusion type
+    var mgHr = _calcMgPerHr(targetRate, d.rateUnit, w);
+    var stockMgMl = _concToMgPerMl(d.conc, d.concUnit);
+
+    if (mode === 'bag') {
+      var fluidVolEl = document.getElementById('prepCriFluidVol');
+      var fluidRateEl = document.getElementById('prepCriFluidRate');
+      var fluidVol = fluidVolEl ? parseFloat(fluidVolEl.value) || 100 : 100;
+      var fluidRate = fluidRateEl ? parseFloat(fluidRateEl.value) || 10 : 10;
+
+      // Required conc in bag (mg/mL) = mgHr / fluidRate
+      var needConcMgMl = mgHr / fluidRate;
+      // Drug volume to add (mL) = needConcMgMl * fluidVol / stockMgMl
+      var addMl = needConcMgMl * fluidVol / stockMgMl;
+      // After-mix concentration
+      var mixedConc = (addMl * stockMgMl) / fluidVol;
+      // Choose display unit
+      var dispConc, dispUnit;
+      if (mixedConc < 0.01) {
+        dispConc = (mixedConc * 1000).toFixed(3);
+        dispUnit = 'μg/mL';
+      } else {
+        dispConc = mixedConc.toFixed(4);
+        dispUnit = 'mg/mL';
+      }
+
+      var rhtml = '<div class="prep-cri-result-box">';
+      rhtml += '添加する原液量: <strong>' + addMl.toFixed(3) + ' mL</strong>（' + d.conc + ' ' + d.concUnit + '）';
+      rhtml += '<br>混注後の濃度: <strong>' + dispConc + ' ' + dispUnit + '</strong>';
+      rhtml += '</div>';
+
+      // Withdraw warning
+      if (addMl > 0.001) {
+        rhtml += '<div class="prep-cri-warn-box">';
+        rhtml += '⚠️ あらかじめ <strong>' + addMl.toFixed(2) + ' mL</strong> を輸液パックから抜いてください（総量を一定に保つため）';
+        rhtml += '</div>';
+      }
+
+      if (resultBox) resultBox.innerHTML = rhtml;
+
+      // Update table rows
+      var rows = document.querySelectorAll('.prep-cri-infusion-row');
+      rows.forEach(function(row) {
+        var rate = parseFloat(row.dataset.rate);
+        var rowAddMl = calcInfusionAddMl(rate, d.rateUnit, d.conc, d.concUnit, w, fluidVol, fluidRate);
+        var td = row.querySelector('.prep-cri-add-ml');
+        if (td) td.textContent = rowAddMl.toFixed(3);
+      });
+
+    } else {
+      // Syringe mode
+      var syrVolEl = document.getElementById('prepCriSyringeVol');
+      var syrRateEl = document.getElementById('prepCriSyringeRate');
+      var syrVol = syrVolEl ? parseFloat(syrVolEl.value) || 20 : 20;
+      var syrRate = syrRateEl ? parseFloat(syrRateEl.value) || 1 : 1;
+
+      // Required conc in syringe (mg/mL) = mgHr / syrRate
+      var needConc = mgHr / syrRate;
+      // Drug volume = needConc * syrVol / stockMgMl
+      var drugMl = needConc * syrVol / stockMgMl;
+      var salineMl = syrVol - drugMl;
+      if (salineMl < 0) salineMl = 0;
+      // Mixed concentration
+      var mixedConc = (drugMl * stockMgMl) / syrVol;
+      var dispConc2, dispUnit2;
+      if (mixedConc < 0.01) {
+        dispConc2 = (mixedConc * 1000).toFixed(3);
+        dispUnit2 = 'μg/mL';
+      } else {
+        dispConc2 = mixedConc.toFixed(4);
+        dispUnit2 = 'mg/mL';
+      }
+
+      var rhtml = '<div class="prep-cri-result-box">';
+      rhtml += '原液 <strong>' + drugMl.toFixed(3) + ' mL</strong>（' + d.conc + ' ' + d.concUnit + '）';
+      rhtml += ' + 生食 <strong>' + salineMl.toFixed(2) + ' mL</strong>';
+      rhtml += ' = <strong>' + syrVol + ' mL</strong> シリンジ';
+      rhtml += '<br>→ <strong>' + syrRate.toFixed(2) + ' mL/hr</strong> で投与';
+      rhtml += '<br>混注後の濃度: <strong>' + dispConc2 + ' ' + dispUnit2 + '</strong>';
+      rhtml += '<br><span style="font-size:10px;color:var(--text-muted);">(= ' + targetRate + ' ' + d.rateUnit + ')</span>';
+      rhtml += '</div>';
+
+      // Withdraw warning for syringe
+      if (drugMl > 0.001) {
+        rhtml += '<div class="prep-cri-warn-box">';
+        rhtml += '⚠️ あらかじめ <strong>' + drugMl.toFixed(2) + ' mL</strong> をシリンジから抜いてください（総量を一定に保つため）';
+        rhtml += '</div>';
+      }
+
+      if (resultBox) resultBox.innerHTML = rhtml;
+    }
+  }
 }
 
 function completeDrugPrep() {
