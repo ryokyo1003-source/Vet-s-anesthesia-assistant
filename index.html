@@ -1549,15 +1549,14 @@
         <div class="mv-field"><label>HR</label><input type="text" inputmode="none" id="mvHR" placeholder="--" class="auto-zen2han" readonly onfocus="this.blur();openVitalPicker('mvHR')"></div>
         <div class="mv-field"><label>SpO2</label><input type="text" inputmode="none" id="mvSpO2" placeholder="--" class="auto-zen2han" readonly onfocus="this.blur();openVitalPicker('mvSpO2')"></div>
         <div class="mv-field"><label>RR</label><input type="text" inputmode="none" id="mvRR" placeholder="--" class="auto-zen2han" readonly onfocus="this.blur();openVitalPicker('mvRR')"></div>
-        <div class="mv-field"><label>CO2 In</label><input type="text" inputmode="none" id="mvEtCO2In" placeholder="--" class="auto-zen2han" readonly onfocus="this.blur();openVitalPicker('mvEtCO2In')"></div>
-        <div class="mv-field"><label>CO2 Ex</label><input type="text" inputmode="none" id="mvEtCO2Ex" placeholder="--" class="auto-zen2han" readonly onfocus="this.blur();openVitalPicker('mvEtCO2Ex')"></div>
-        <div class="mv-field"><label>Sys</label><input type="text" inputmode="none" id="mvSys" placeholder="--" class="auto-zen2han" readonly onfocus="this.blur();openVitalPicker('mvSys')"></div>
-        <div class="mv-field"><label>Dia</label><input type="text" inputmode="none" id="mvDia" placeholder="--" class="auto-zen2han" readonly onfocus="this.blur();openVitalPicker('mvDia')"></div>
+        <div class="mv-field"><label>CO2</label><input type="text" inputmode="none" id="mvEtCO2Ex" placeholder="--" class="auto-zen2han" readonly onfocus="this.blur();openVitalPicker('mvEtCO2Ex')"></div>
+        <div class="mv-field"><label>MAP</label><input type="text" inputmode="none" id="mvMAP" placeholder="--" class="auto-zen2han" readonly onfocus="this.blur();openVitalPicker('mvMAP')"></div>
         <div class="mv-field"><label>T℃</label><input type="text" inputmode="none" id="mvTemp" placeholder="--" class="auto-zen2han" readonly onfocus="this.blur();openVitalPicker('mvTemp')"></div>
-        <div class="mv-field"><label>Gas In</label><input type="text" inputmode="none" id="mvGasIn" placeholder="--" class="auto-zen2han" readonly onfocus="this.blur();openVitalPicker('mvGasIn')"></div>
-        <div class="mv-field"><label>Gas Ex</label><input type="text" inputmode="none" id="mvGasEx" placeholder="--" class="auto-zen2han" readonly onfocus="this.blur();openVitalPicker('mvGasEx')"></div>
+        <div class="mv-field"><label>Gas</label><input type="text" inputmode="none" id="mvGasIn" placeholder="--" class="auto-zen2han" readonly onfocus="this.blur();openVitalPicker('mvGasIn')"></div>
         <button class="btn-manual-apply" onclick="applyManualVitals()">✏️<br>適用</button>
       </div>
+      <!-- Hidden fields for camera/AI input (full set) -->
+      <input type="hidden" id="mvEtCO2In"><input type="hidden" id="mvSys"><input type="hidden" id="mvDia"><input type="hidden" id="mvGasEx">
 
       <div class="chart-container"><canvas id="vitalChart"></canvas></div>
 
@@ -2845,19 +2844,20 @@ function showNotesPopup() {
 //  MANUAL VITAL INPUT
 // ===================================================================
 function applyManualVitals() {
-  const get = id => { const v = document.getElementById(id).value; return v !== '' ? parseFloat(v) : null; };
+  const get = id => { var el = document.getElementById(id); return el && el.value !== '' ? parseFloat(el.value) : null; };
   const hr = get('mvHR'), spo2 = get('mvSpO2'), rr = get('mvRR');
   const etco2_in = get('mvEtCO2In'), etco2_ex = get('mvEtCO2Ex');
   const sys = get('mvSys'), dia = get('mvDia'), temp = get('mvTemp');
   const gas_in = get('mvGasIn'), gas_ex = get('mvGasEx');
+  const mapDirect = get('mvMAP');
 
-  if ([hr,spo2,rr,etco2_in,etco2_ex,sys,dia,temp,gas_in,gas_ex].every(v => v === null)) { return; }
+  if ([hr,spo2,rr,etco2_ex,mapDirect,temp,gas_in].every(v => v === null)) { return; }
 
   // Carry forward from current display for unfilled fields
   const cur = id => parseInt(document.getElementById(id).textContent) || 0;
   const curF = id => parseFloat(document.getElementById(id).textContent) || 0;
   const fSys = sys ?? cur('valSys'), fDia = dia ?? cur('valDia');
-  const mean = (fSys && fDia) ? Math.round(fDia + (fSys - fDia) / 3) : cur('valMean');
+  const mean = mapDirect ?? ((fSys && fDia) ? Math.round(fDia + (fSys - fDia) / 3) : cur('valMean'));
 
   const d = {
     hr: hr ?? cur('valHR'),
@@ -2873,7 +2873,7 @@ function applyManualVitals() {
 
   applyVitalData(d, null, true);
   // Clear inputs
-  ['mvHR','mvSpO2','mvRR','mvEtCO2In','mvEtCO2Ex','mvSys','mvDia','mvTemp','mvGasIn','mvGasEx'].forEach(id => document.getElementById(id).value = '');
+  ['mvHR','mvSpO2','mvRR','mvEtCO2In','mvEtCO2Ex','mvSys','mvDia','mvTemp','mvGasIn','mvGasEx','mvMAP'].forEach(id => { var el = document.getElementById(id); if (el) el.value = ''; });
   resetTimer();
 }
 
@@ -5465,6 +5465,7 @@ var VITAL_PICKER_CONFIG = {
   mvTemp:     { label: '体温',    unit: '℃',   min: 34.0, max: 42.0, step: 0.1, decimal: 1 },
   mvGasIn:    { label: 'Gas In',  unit: '%',    min: 0.0,  max: 5.0,  step: 0.1, decimal: 1 },
   mvGasEx:    { label: 'Gas Ex',  unit: '%',    min: 0.0,  max: 5.0,  step: 0.1, decimal: 1 },
+  mvMAP:      { label: 'MAP',    unit: 'mmHg', min: 20,   max: 200,  step: 5,   decimal: 0 },
 };
 
 function openVitalPicker(inputId) {
@@ -5485,7 +5486,7 @@ function openVitalPicker(inputId) {
     // Try to get from current display
     var dispMap = { mvHR:'valHR', mvSpO2:'valSpO2', mvRR:'valRR', mvEtCO2In:'valEtCO2In',
                     mvEtCO2Ex:'valEtCO2Ex', mvSys:'valSys', mvDia:'valDia', mvTemp:'valTemp',
-                    mvGasIn:'valGasIn', mvGasEx:'valGasEx' };
+                    mvGasIn:'valGasIn', mvGasEx:'valGasEx', mvMAP:'valMean' };
     var dispEl = document.getElementById(dispMap[inputId]);
     if (dispEl) currentVal = parseFloat(dispEl.textContent);
   }
