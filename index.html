@@ -2426,7 +2426,10 @@ function openPrepDrugEdit(catKey, drugIndex) {
 
 function savePrepDrugEdit(catKey, drugIndex) {
   const sp = state.patient.species || 'dog';
-  if (!PREMED_MASTER[sp]) PREMED_MASTER[sp] = {};
+  // If species has no data, clone from dog defaults to preserve all categories
+  if (!PREMED_MASTER[sp]) {
+    PREMED_MASTER[sp] = JSON.parse(JSON.stringify(PREMED_MASTER.dog));
+  }
   if (!PREMED_MASTER[sp][catKey]) PREMED_MASTER[sp][catKey] = [];
   const arr = PREMED_MASTER[sp][catKey];
 
@@ -2463,7 +2466,11 @@ function savePrepDrugEdit(catKey, drugIndex) {
 
 function deletePrepDrug(catKey, drugIndex) {
   const sp = state.patient.species || 'dog';
-  const master = PREMED_MASTER[sp] || PREMED_MASTER.dog;
+  // Ensure species has its own copy before modifying
+  if (!PREMED_MASTER[sp]) {
+    PREMED_MASTER[sp] = JSON.parse(JSON.stringify(PREMED_MASTER.dog));
+  }
+  const master = PREMED_MASTER[sp];
   const arr = master[catKey];
   if (!arr || !arr[drugIndex]) return;
 
