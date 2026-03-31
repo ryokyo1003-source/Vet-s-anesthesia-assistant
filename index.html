@@ -2148,6 +2148,17 @@ function startSession() {
   const weight = parseFloat(document.getElementById('inputWeight').value);
   if (!name || !weight || weight <= 0) { alert('患者名と体重を入力してください'); return; }
 
+  // Clear any leftover intervals/state from previous session
+  if (state.elapsedInterval) { clearInterval(state.elapsedInterval); state.elapsedInterval = null; }
+  if (state.timerInterval) { clearInterval(state.timerInterval); state.timerInterval = null; }
+  if (state.announceInterval) { clearInterval(state.announceInterval); state.announceInterval = null; }
+  state.vitals = { hr:[], spo2:[], rr:[], etco2_in:[], etco2_ex:[], sys:[], dia:[], mean:[], temp:[], gas_in:[], gas_ex:[] };
+  state.timeLabels = [];
+  state.events = [];
+  state.logEntries = {};
+  state.capturedImages = [];
+  clearSavedSession();
+
   const species = document.getElementById('inputSpecies').value;
   state.patient = {
     id: document.getElementById('inputId').value.trim() || '-',
@@ -3818,6 +3829,8 @@ function toggleVoice(){
 // ===================================================================
 let vitalChart=null;
 function initChart(){
+  // Destroy existing chart to prevent canvas reuse errors
+  if (vitalChart) { try { vitalChart.destroy(); } catch(e) {} vitalChart = null; }
   const ctx=document.getElementById('vitalChart').getContext('2d');
   const predPlugin={id:'predZone',afterDraw(ch){
     const lb=ch.data.labels;if(lb.length<2)return;const li=lb.length-2,pi=lb.length-1;
@@ -5580,12 +5593,16 @@ function backToStartScreen() {
   if (state.announceInterval) { clearInterval(state.announceInterval); state.announceInterval = null; }
   if (state.voiceActive && state.recognition) { state.voiceActive = false; state.recognition.stop(); }
 
-  // Hide main app, show startup screen
+  // Hide ALL screens, then show startup
   document.getElementById('mainApp').style.display = 'none';
+  document.getElementById('drugPrepScreen').style.display = 'none';
+  document.getElementById('reportScreen').style.display = 'none';
+  document.getElementById('settingsScreen').style.display = 'none';
   document.getElementById('startupScreen').style.display = 'flex';
 
   // Show resume button if there's a saved session
   updateResumeButton();
+  updateHistoryButton();
 }
 
 function saveCurrentSession() {
@@ -5967,6 +5984,9 @@ function endAnesthesia() {
 
   generateReport();
 
+  // Hide main app after report is shown
+  document.getElementById('mainApp').style.display = 'none';
+
   // Save to history and clear active session
   saveSessionToHistory();
   clearSavedSession();
@@ -6128,12 +6148,11 @@ function printReport() {
 
 function closeReport() {
   document.getElementById('reportScreen').style.display = 'none';
-  // If coming from history view, just close
-  // If coming from ending session, go back to start
-  if (document.getElementById('mainApp').style.display === 'block') {
-    // Still in active session viewing report mid-session (shouldn't happen normally)
-  } else {
-    // Session ended or viewing from history, return to startup
+  // If no other screen is visible, go to startup
+  var mainVisible = document.getElementById('mainApp').style.display === 'block';
+  var startVisible = document.getElementById('startupScreen').style.display === 'flex';
+  var historyVisible = document.getElementById('historyScreen').style.display === 'flex';
+  if (!mainVisible && !startVisible && !historyVisible) {
     resetStateForNewSession();
     document.getElementById('startupScreen').style.display = 'flex';
     updateResumeButton();
