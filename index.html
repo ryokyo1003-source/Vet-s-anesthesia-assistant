@@ -1528,6 +1528,7 @@
 <!-- ========== DRUG PREPARATION SCREEN ========== -->
 <div id="drugPrepScreen">
   <div class="prep-card">
+    <button onclick="backFromDrugPrep()" style="display:inline-flex;align-items:center;gap:4px;padding:6px 14px;margin-bottom:10px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;color:var(--text-secondary);font-size:14px;font-weight:600;cursor:pointer;">◀ 戻る</button>
     <h1 style="font-size:22px; font-weight:700; margin-bottom:4px; background:linear-gradient(135deg,var(--accent-green),var(--accent-cyan)); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">💉 薬剤準備チェックリスト</h1>
     <p class="sub" style="color:var(--text-secondary); margin-bottom:12px; font-size:13px;">体重から投与量・シリンジ準備量を自動計算</p>
     <div class="prep-patient-bar" id="prepPatientBar"></div>
@@ -1738,7 +1739,26 @@ const state = {
   claudeApiKey: '',
   claudeModel: 'claude-haiku',  // 'claude-haiku' or 'claude-sonnet'
   apiMode: 'ai',  // 'ai' or 'demo'
+  _reportSource: null,  // Track where report was opened from: 'history' or 'session'
 };
+
+// ===================================================================
+//  CENTRALIZED SCREEN NAVIGATION
+// ===================================================================
+function showScreen(screenId) {
+  ['startupScreen', 'drugPrepScreen', 'mainApp', 'reportScreen', 'historyScreen'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+  var target = document.getElementById(screenId);
+  if (target) {
+    target.style.display = (screenId === 'mainApp') ? 'block' : 'flex';
+  }
+}
+
+function backFromDrugPrep() {
+  showScreen('startupScreen');
+}
 
 // ===================================================================
 //  SPECIES CONFIG
@@ -2173,7 +2193,7 @@ function startSession() {
   };
 
   // Show drug prep screen
-  document.getElementById('startupScreen').style.display = 'none';
+  showScreen('drugPrepScreen');
   showDrugPrepScreen();
 }
 
@@ -3152,7 +3172,7 @@ function completeDrugPrep() {
     }
   });
 
-  document.getElementById('drugPrepScreen').style.display = 'none';
+  showScreen('mainApp');
   startMonitoring();
 
   if (selected.length > 0) {
@@ -3161,7 +3181,7 @@ function completeDrugPrep() {
 }
 
 function skipDrugPrep() {
-  document.getElementById('drugPrepScreen').style.display = 'none';
+  showScreen('mainApp');
   startMonitoring();
 }
 
@@ -3179,10 +3199,13 @@ function startMonitoring() {
   const procBadge = document.getElementById('dispProcedure');
   procBadge.textContent = state.patient.procedure;
   procBadge.title = state.patient.procedure;
+  var notesBadge = document.getElementById('dispNotes');
   if (state.patient.notes) {
-    const notesBadge = document.getElementById('dispNotes');
     notesBadge.style.display = 'block';
     notesBadge.title = state.patient.notes;
+  } else {
+    notesBadge.style.display = 'none';
+    notesBadge.title = '';
   }
 
   buildEmergencyDrugs(); buildCriDrugSelect(); resetTimer();
@@ -5594,11 +5617,9 @@ function backToStartScreen() {
   if (state.voiceActive && state.recognition) { state.voiceActive = false; state.recognition.stop(); }
 
   // Hide ALL screens, then show startup
-  document.getElementById('mainApp').style.display = 'none';
-  document.getElementById('drugPrepScreen').style.display = 'none';
-  document.getElementById('reportScreen').style.display = 'none';
+  showScreen('startupScreen');
+  // Settings is an overlay, close it separately
   document.getElementById('settingsScreen').style.display = 'none';
-  document.getElementById('startupScreen').style.display = 'flex';
 
   // Show resume button if there's a saved session
   updateResumeButton();
@@ -5656,8 +5677,8 @@ function resumeSession() {
   state.capturedImages = saved.capturedImages || [];
   state.selectedSex = saved.patient.sex || '';
 
-  // Hide startup, show main app
-  document.getElementById('startupScreen').style.display = 'none';
+  // Hide all screens, show main app
+  showScreen('mainApp');
 
   // Set up monitoring display (same as startMonitoring but without resetting sessionStart)
   document.getElementById('dispId').textContent = state.patient.id;
@@ -5671,10 +5692,13 @@ function resumeSession() {
   var procBadge = document.getElementById('dispProcedure');
   procBadge.textContent = state.patient.procedure;
   procBadge.title = state.patient.procedure;
+  var notesBadge = document.getElementById('dispNotes');
   if (state.patient.notes) {
-    var notesBadge = document.getElementById('dispNotes');
     notesBadge.style.display = 'block';
     notesBadge.title = state.patient.notes;
+  } else {
+    notesBadge.style.display = 'none';
+    notesBadge.title = '';
   }
 
   buildEmergencyDrugs();
@@ -5684,9 +5708,9 @@ function resumeSession() {
   initChart();
 
   // Restore chart data
-  if (window.vitalChartInstance && state.timeLabels.length > 0) {
-    window.vitalChartInstance.data.labels = state.timeLabels;
-    window.vitalChartInstance.update();
+  if (vitalChart && state.timeLabels.length > 0) {
+    vitalChart.data.labels = state.timeLabels;
+    vitalChart.update();
   }
 
   // Restore event log display
@@ -5703,7 +5727,6 @@ function resumeSession() {
     }
   }
 
-  document.getElementById('mainApp').style.display = 'block';
   addLog('🔄 セッション再開');
 }
 
@@ -5794,21 +5817,49 @@ function resetStateForNewSession() {
   state.logEntries = {};
   state.capturedImages = [];
   state.selectedSex = '';
+  state._reportSource = null;
+  state._importedDrugLog = null;
+  state._importedFromHistory = null;
   if (state.elapsedInterval) { clearInterval(state.elapsedInterval); state.elapsedInterval = null; }
   if (state.timerInterval) { clearInterval(state.timerInterval); state.timerInterval = null; }
   if (state.announceInterval) { clearInterval(state.announceInterval); state.announceInterval = null; }
 
   // Reset date field
   try { document.getElementById('inputDate').value = new Date().toISOString().split('T')[0]; } catch(e) {}
+
+  // Reset dispNotes badge
+  try { var nb = document.getElementById('dispNotes'); if (nb) { nb.style.display = 'none'; nb.title = ''; } } catch(e) {}
+
+  // Reset sex toggle
+  try {
+    document.querySelectorAll('#sexToggle button').forEach(function(b) {
+      b.classList.remove('active-male','active-female','active-castrated','active-spayed','active-unknown');
+    });
+  } catch(e) {}
+
+  // Clear startup form fields
+  try {
+    document.getElementById('inputId').value = '';
+    document.getElementById('inputName').value = '';
+    document.getElementById('inputSpecies').value = 'dog';
+    document.getElementById('inputWeight').value = '';
+    document.getElementById('inputAge').value = '';
+    document.getElementById('inputProcedure').value = '';
+    document.getElementById('inputNotes').value = '';
+    document.getElementById('inputSurgeon').value = '';
+    document.getElementById('inputAnesthetist').value = '';
+  } catch(e) {}
 }
 
 function openHistoryScreen() {
   renderHistoryList();
-  document.getElementById('historyScreen').style.display = 'flex';
+  showScreen('historyScreen');
 }
 
 function closeHistoryScreen() {
-  document.getElementById('historyScreen').style.display = 'none';
+  showScreen('startupScreen');
+  updateResumeButton();
+  updateHistoryButton();
 }
 
 function renderHistoryList() {
@@ -5897,8 +5948,8 @@ function viewHistoryRecord(id) {
     content.innerHTML = html;
   }
 
-  document.getElementById('historyScreen').style.display = 'none';
-  document.getElementById('reportScreen').style.display = 'flex';
+  state._reportSource = 'history';
+  showScreen('reportScreen');
 }
 
 function deleteHistoryRecord(id) {
@@ -5982,10 +6033,12 @@ function endAnesthesia() {
   if (state.announceInterval) { clearInterval(state.announceInterval); state.announceInterval = null; }
   if (state.voiceActive && state.recognition) { state.voiceActive = false; state.recognition.stop(); }
 
-  generateReport();
+  state._reportSource = 'session';
 
-  // Hide main app after report is shown
-  document.getElementById('mainApp').style.display = 'none';
+  // generateReport() needs to read the chart canvas while mainApp is still visible
+  generateReport();
+  // Now switch screens
+  showScreen('reportScreen');
 
   // Save to history and clear active session
   saveSessionToHistory();
@@ -6139,7 +6192,6 @@ function generateReport() {
   html += '</div>';
 
   content.innerHTML = html;
-  document.getElementById('reportScreen').style.display = 'flex';
 }
 
 function printReport() {
@@ -6147,14 +6199,16 @@ function printReport() {
 }
 
 function closeReport() {
-  document.getElementById('reportScreen').style.display = 'none';
-  // If no other screen is visible, go to startup
-  var mainVisible = document.getElementById('mainApp').style.display === 'block';
-  var startVisible = document.getElementById('startupScreen').style.display === 'flex';
-  var historyVisible = document.getElementById('historyScreen').style.display === 'flex';
-  if (!mainVisible && !startVisible && !historyVisible) {
+  if (state._reportSource === 'history') {
+    // Came from history view -> go back to history screen
+    state._reportSource = null;
+    showScreen('historyScreen');
+    renderHistoryList();
+  } else {
+    // Came from ending session or unknown -> go to startup
+    state._reportSource = null;
     resetStateForNewSession();
-    document.getElementById('startupScreen').style.display = 'flex';
+    showScreen('startupScreen');
     updateResumeButton();
     updateHistoryButton();
   }
