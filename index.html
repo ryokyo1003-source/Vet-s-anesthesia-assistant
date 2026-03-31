@@ -2186,7 +2186,46 @@ function showDrugPrepScreen() {
   document.getElementById('drugPrepScreen').style.display = 'flex';
 }
 
+function _savePrepInputState() {
+  var saved = {};
+  document.querySelectorAll('.prep-drug-row').forEach(function(row) {
+    var nameEl = row.querySelector('.prep-drug-name');
+    if (!nameEl) return;
+    var drugName = nameEl.textContent.replace(/院内/g, '').trim();
+    var chk = row.querySelector('input[type="checkbox"]');
+    var input = row.querySelector('.prep-drug-input');
+    saved[drugName] = {
+      checked: chk ? chk.checked : false,
+      value: input ? input.value : null
+    };
+  });
+  return saved;
+}
+
+function _restorePrepInputState(saved) {
+  if (!saved || Object.keys(saved).length === 0) return;
+  document.querySelectorAll('.prep-drug-row').forEach(function(row) {
+    var nameEl = row.querySelector('.prep-drug-name');
+    if (!nameEl) return;
+    var drugName = nameEl.textContent.replace(/院内/g, '').trim();
+    var s = saved[drugName];
+    if (!s) return;
+    var chk = row.querySelector('input[type="checkbox"]');
+    if (chk && s.checked) {
+      chk.checked = true;
+      row.classList.add('checked');
+    }
+    var input = row.querySelector('.prep-drug-input');
+    if (input && s.value != null) {
+      input.value = s.value;
+    }
+  });
+}
+
 function buildPrepDrugList(species, weight) {
+  // Save current input state before rebuilding
+  var prevState = _savePrepInputState();
+
   const container = document.getElementById('prepDrugList');
   container.innerHTML = '';
   const master = PREMED_MASTER[species] || PREMED_MASTER.dog;
@@ -2360,6 +2399,15 @@ function buildPrepDrugList(species, weight) {
     });
     state._importedDrugLog = null; // clear after use
   }
+
+  // Restore previous input state (after delete/edit rebuild)
+  _restorePrepInputState(prevState);
+
+  // Recalculate all restored inputs
+  document.querySelectorAll('.prep-drug-input').forEach(function(input) {
+    var idx = input.dataset.idx;
+    if (idx != null) updatePrepCalc(parseInt(idx));
+  });
 }
 
 // ===================================================================
@@ -5023,8 +5071,26 @@ function loadDrugMasterFromStorage() {
     if (data) {
       const custom = JSON.parse(data);
       Object.keys(custom).forEach(sp => {
-        if (PREMED_MASTER[sp] !== undefined) {
-          PREMED_MASTER[sp] = custom[sp];
+        if (PREMED_MASTER[sp] !== undefined || PREMED_MASTER_DEFAULTS[sp] !== undefined) {
+          const defaults = PREMED_MASTER_DEFAULTS[sp];
+          const customSp = custom[sp];
+          // Merge new default fields (e.g. recMlPerKg) into saved data
+          if (defaults && customSp) {
+            Object.keys(customSp).forEach(cat => {
+              var defCat = defaults[cat] || [];
+              var custCat = customSp[cat] || [];
+              custCat.forEach(function(drug) {
+                var defDrug = defCat.find(function(d) { return d.name === drug.name; });
+                if (defDrug) {
+                  // Carry forward new fields from code defaults that aren't in saved data
+                  if (defDrug.recMlPerKg != null && drug.recMlPerKg == null) {
+                    drug.recMlPerKg = defDrug.recMlPerKg;
+                  }
+                }
+              });
+            });
+          }
+          PREMED_MASTER[sp] = customSp;
         }
       });
     }
