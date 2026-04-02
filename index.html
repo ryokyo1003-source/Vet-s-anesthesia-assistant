@@ -1946,14 +1946,12 @@ let PREMED_MASTER = {
   },
   rabbit: {
     premed: [
-      { name:'アトロピン', conc:0.5, concUnit:'mg/mL', doseMin:0.05, doseMax:0.1, doseUnit:'mg/kg', route:'sc', recMlPerKg:0.1 },
-      { name:'ミダゾラム', conc:5, concUnit:'mg/mL', doseMin:0.5, doseMax:1.0, doseUnit:'mg/kg', route:'im', recMlPerKg:0.02 },
-      { name:'ブトルファノール', conc:5, concUnit:'mg/mL', doseMin:0.1, doseMax:0.5, doseUnit:'mg/kg', route:'im/sc', recMlPerKg:0.04 },
+      { name:'ミダゾラム', conc:5, concUnit:'mg/mL', doseMin:0.5, doseMax:1.0, doseUnit:'mg/kg', route:'im', recMlPerKg:0.04 },
+      { name:'ブトルファノール', conc:5, concUnit:'mg/mL', doseMin:0.1, doseMax:0.5, doseUnit:'mg/kg', route:'im/sc', recMlPerKg:0.06 },
       { name:'メデトミジン (×100希釈)', conc:1, concUnit:'mg/mL', doseMin:0.1, doseMax:0.25, doseUnit:'mg/kg', route:'im', recMlPerKg:0.1 },
       { name:'メロキシカム', conc:5, concUnit:'mg/mL', doseMin:0.3, doseMax:0.5, doseUnit:'mg/kg', route:'sc', recMlPerKg:0.1 },
     ],
     induction: [
-      { name:'プロポフォール', conc:10, concUnit:'mg/mL', doseMin:3, doseMax:10, doseUnit:'mg/kg', route:'iv slow' },
       { name:'アルファキサロン', conc:10, concUnit:'mg/mL', doseMin:3, doseMax:6, doseUnit:'mg/kg', route:'iv', recMlPerKg:0.2 },
       { name:'ケタミン', conc:50, concUnit:'mg/mL', doseMin:10, doseMax:35, doseUnit:'mg/kg', route:'im' },
     ],
@@ -1963,6 +1961,7 @@ let PREMED_MASTER = {
     analgesic: [
       { name:'ブプレノルフィン', conc:0.3, concUnit:'mg/mL', doseMin:0.01, doseMax:0.05, doseUnit:'mg/kg', route:'sc/iv' },
       { name:'メロキシカム', conc:5, concUnit:'mg/mL', doseMin:0.3, doseMax:0.5, doseUnit:'mg/kg', route:'sc' },
+      { name:'リドカイン', conc:20, concUnit:'mg/mL', doseMin:1, doseMax:2, doseUnit:'mg/kg', route:'iv', recMlPerKg:0.1 },
     ],
     antibiotic: [
       { name:'セファゾリン', conc:100, concUnit:'mg/mL', doseMin:20, doseMax:25, doseUnit:'mg/kg', route:'iv' },
@@ -2011,9 +2010,8 @@ let PREMED_MASTER = {
   },
   guinea_pig: {
     premed: [
-      { name:'アトロピン', conc:0.5, concUnit:'mg/mL', doseMin:0.05, doseMax:0.1, doseUnit:'mg/kg', route:'sc', recMlPerKg:0.1 },
-      { name:'ミダゾラム', conc:5, concUnit:'mg/mL', doseMin:0.5, doseMax:1.0, doseUnit:'mg/kg', route:'im', recMlPerKg:0.02 },
-      { name:'ブトルファノール', conc:5, concUnit:'mg/mL', doseMin:0.2, doseMax:0.4, doseUnit:'mg/kg', route:'sc', recMlPerKg:0.04 },
+      { name:'ミダゾラム', conc:5, concUnit:'mg/mL', doseMin:0.5, doseMax:1.0, doseUnit:'mg/kg', route:'im', recMlPerKg:0.04 },
+      { name:'ブトルファノール', conc:5, concUnit:'mg/mL', doseMin:0.2, doseMax:0.4, doseUnit:'mg/kg', route:'sc', recMlPerKg:0.06 },
       { name:'メデトミジン (×100希釈)', conc:1, concUnit:'mg/mL', doseMin:0.05, doseMax:0.1, doseUnit:'mg/kg', route:'im', recMlPerKg:0.1 },
       { name:'メロキシカム', conc:5, concUnit:'mg/mL', doseMin:0.2, doseMax:0.5, doseUnit:'mg/kg', route:'sc', recMlPerKg:0.1 },
     ],
@@ -2027,6 +2025,7 @@ let PREMED_MASTER = {
     analgesic: [
       { name:'ブプレノルフィン', conc:0.3, concUnit:'mg/mL', doseMin:0.05, doseMax:0.1, doseUnit:'mg/kg', route:'sc' },
       { name:'メロキシカム', conc:5, concUnit:'mg/mL', doseMin:0.2, doseMax:0.5, doseUnit:'mg/kg', route:'sc' },
+      { name:'リドカイン', conc:20, concUnit:'mg/mL', doseMin:1, doseMax:2, doseUnit:'mg/kg', route:'iv', recMlPerKg:0.1 },
     ],
     antibiotic: [
       { name:'エンロフロキサシン', conc:50, concUnit:'mg/mL', doseMin:5, doseMax:10, doseUnit:'mg/kg', route:'sc', recMlPerKg:0.2 },
@@ -5144,7 +5143,7 @@ function loadDrugMasterFromStorage() {
   } catch(e) { console.warn('Drug master load error:', e); }
 }
 
-var DRUG_MASTER_VERSION = 7; // Increment when default data changes to force merge
+var DRUG_MASTER_VERSION = 8; // Increment when default data changes to force merge
 
 function saveDrugMasterToStorage() {
   try {
