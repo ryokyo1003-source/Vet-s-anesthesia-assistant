@@ -2485,7 +2485,7 @@ function openPrepDrugEdit(catKey, drugIndex) {
     <div class="prep-edit-row">
       <div class="prep-edit-field">
         <label>投与経路</label>
-        <input type="text" id="peditRoute" value="${drug.route}" readonly style="cursor:pointer;" onclick="openListPicker('peditRoute','💊 投与経路',['iv','iv slow','im','sc','po','ip','io','it','im/sc','im/iv','sc/iv','吸入'],this.value)">
+        <input type="text" id="peditRoute" value="${drug.route}" readonly style="cursor:pointer;" onclick="openListPicker('peditRoute','💊 投与経路',['iv','iv slow','im','sc','po','ip','io','im/sc','im/iv','sc/iv','吸入'],this.value)">
       </div>
       <div class="prep-edit-field">
         <label>院内推奨 mL/kg</label>
@@ -6524,7 +6524,7 @@ function openDrugNamePicker() {
 
 function openRoutePicker() {
   var el = document.getElementById('drugAdminRoute');
-  var routes = ['iv', 'iv slow', 'im', 'sc', 'po', 'ip', 'io', 'it', 'cri', 'topical', '吸入'];
+  var routes = ['iv', 'iv slow', 'im', 'sc', 'po', 'ip', 'io', 'cri', 'topical', '吸入'];
   var current = el.value || 'iv';
   window._listPickerCallback = function(val) {
     el.value = val;
