@@ -1964,10 +1964,10 @@ let PREMED_MASTER = {
       { name:'リドカイン', conc:20, concUnit:'mg/mL', doseMin:1, doseMax:2, doseUnit:'mg/kg', route:'iv', recMlPerKg:0.1 },
     ],
     antibiotic: [
-      { name:'セファゾリン', conc:100, concUnit:'mg/mL', doseMin:20, doseMax:25, doseUnit:'mg/kg', route:'iv' },
       { name:'エンロフロキサシン', conc:50, concUnit:'mg/mL', doseMin:5, doseMax:10, doseUnit:'mg/kg', route:'sc', recMlPerKg:0.2 },
       { name:'トランサミン', conc:100, concUnit:'mg/mL', doseMin:10, doseMax:25, doseUnit:'mg/kg', route:'iv' },
       { name:'アドナ', conc:10, concUnit:'mg/mL', doseMin:0.5, doseMax:1.0, doseUnit:'mg/kg', route:'iv', recMlPerKg:0.1 },
+      { name:'プリンペラン', conc:5, concUnit:'mg/mL', doseMin:0.5, doseMax:1.0, doseUnit:'mg/kg', route:'sc', recMlPerKg:0.2 },
       { name:'ガスター', conc:10, concUnit:'mg/mL', doseMin:0.5, doseMax:1.0, doseUnit:'mg/kg', route:'iv', recMlPerKg:0.1 },
     ],
     fluid: [
@@ -5143,7 +5143,7 @@ function loadDrugMasterFromStorage() {
   } catch(e) { console.warn('Drug master load error:', e); }
 }
 
-var DRUG_MASTER_VERSION = 8; // Increment when default data changes to force merge
+var DRUG_MASTER_VERSION = 9; // Increment when default data changes to force merge
 
 function saveDrugMasterToStorage() {
   try {
