@@ -1885,15 +1885,14 @@ let PREMED_MASTER = {
     ],
     induction: [
       { name:'プロポフォール', conc:10, concUnit:'mg/mL', doseMin:2, doseMax:6, doseUnit:'mg/kg', route:'iv slow', recMlPerKg:0.5 },
-      { name:'アルファキサロン', conc:10, concUnit:'mg/mL', doseMin:1, doseMax:3, doseUnit:'mg/kg', route:'iv slow' },
+      { name:'アルファキサロン', conc:10, concUnit:'mg/mL', doseMin:1, doseMax:3, doseUnit:'mg/kg', route:'iv slow', recMlPerKg:0.2 },
       { name:'ケタミン', conc:50, concUnit:'mg/mL', doseMin:5, doseMax:10, doseUnit:'mg/kg', route:'iv/im' },
     ],
     maintenance: [
       { name:'イソフルラン', conc:null, concUnit:null, doseMin:1.0, doseMax:2.5, doseUnit:'%', route:'吸入' },
     ],
     analgesic: [
-      { name:'フェンタニル', conc:0.05, concUnit:'mg/mL', doseMin:0.002, doseMax:0.005, doseUnit:'mg/kg', route:'iv' },
-      { name:'レミフェンタニル', conc:0.02, concUnit:'mg/mL', doseMin:0.005, doseMax:0.02, doseUnit:'mg/kg', route:'iv(CRI)' },
+      { name:'フェンタニル (×5希釈)', conc:0.05, concUnit:'mg/mL', doseMin:0.002, doseMax:0.005, doseUnit:'mg/kg', route:'iv', recMlPerKg:0.5 },
       { name:'ブプレノルフィン', conc:0.3, concUnit:'mg/mL', doseMin:0.01, doseMax:0.02, doseUnit:'mg/kg', route:'im/iv', recMlPerKg:0.05 },
     ],
     antibiotic: [
@@ -1901,14 +1900,13 @@ let PREMED_MASTER = {
       { name:'セファゾリン', conc:100, concUnit:'mg/mL', doseMin:20, doseMax:25, doseUnit:'mg/kg', route:'iv' },
       { name:'エンロフロキサシン', conc:50, concUnit:'mg/mL', doseMin:5, doseMax:10, doseUnit:'mg/kg', route:'sc/iv' },
       { name:'トランサミン', conc:100, concUnit:'mg/mL', doseMin:10, doseMax:25, doseUnit:'mg/kg', route:'iv' },
-      { name:'アドナ', conc:10, concUnit:'mg/mL', doseMin:0.5, doseMax:1.0, doseUnit:'mg/kg', route:'iv' },
-      { name:'ガスター', conc:10, concUnit:'mg/mL', doseMin:0.5, doseMax:1.0, doseUnit:'mg/kg', route:'iv' },
+      { name:'アドナ', conc:10, concUnit:'mg/mL', doseMin:0.5, doseMax:1.0, doseUnit:'mg/kg', route:'iv', recMlPerKg:0.1 },
+      { name:'ガスター', conc:10, concUnit:'mg/mL', doseMin:0.5, doseMax:1.0, doseUnit:'mg/kg', route:'iv', recMlPerKg:0.1 },
     ],
     fluid: [
-      { name:'ソルラクト', conc:null, concUnit:null, doseMin:50, doseMax:50, doseUnit:'mL', route:'iv' },
-      { name:'ソルアセト', conc:null, concUnit:null, doseMin:50, doseMax:50, doseUnit:'mL', route:'iv' },
-      { name:'生理食塩水', conc:null, concUnit:null, doseMin:50, doseMax:50, doseUnit:'mL', route:'iv' },
-      { name:'ヘスパンダー', conc:null, concUnit:null, doseMin:50, doseMax:50, doseUnit:'mL', route:'iv' },
+      { name:'ソルラクト', conc:null, concUnit:null, doseMin:5, doseMax:10, doseUnit:'mL/kg/hr', route:'iv' },
+      { name:'ソルアセト', conc:null, concUnit:null, doseMin:5, doseMax:10, doseUnit:'mL/kg/hr', route:'iv' },
+      { name:'生理食塩水', conc:null, concUnit:null, doseMin:5, doseMax:10, doseUnit:'mL/kg/hr', route:'iv' },
     ],
   },
   cat: {
@@ -1922,14 +1920,14 @@ let PREMED_MASTER = {
     ],
     induction: [
       { name:'プロポフォール', conc:10, concUnit:'mg/mL', doseMin:2, doseMax:6, doseUnit:'mg/kg', route:'iv slow', recMlPerKg:0.5 },
-      { name:'アルファキサロン', conc:10, concUnit:'mg/mL', doseMin:2, doseMax:5, doseUnit:'mg/kg', route:'iv/im' },
+      { name:'アルファキサロン', conc:10, concUnit:'mg/mL', doseMin:2, doseMax:5, doseUnit:'mg/kg', route:'iv/im', recMlPerKg:0.2 },
       { name:'ケタミン', conc:50, concUnit:'mg/mL', doseMin:5, doseMax:10, doseUnit:'mg/kg', route:'im' },
     ],
     maintenance: [
       { name:'イソフルラン', conc:null, concUnit:null, doseMin:1.0, doseMax:2.5, doseUnit:'%', route:'吸入' },
     ],
     analgesic: [
-      { name:'フェンタニル', conc:0.05, concUnit:'mg/mL', doseMin:0.001, doseMax:0.003, doseUnit:'mg/kg', route:'iv' },
+      { name:'フェンタニル (×5希釈)', conc:0.05, concUnit:'mg/mL', doseMin:0.001, doseMax:0.003, doseUnit:'mg/kg', route:'iv', recMlPerKg:0.5 },
       { name:'ブプレノルフィン', conc:0.3, concUnit:'mg/mL', doseMin:0.01, doseMax:0.02, doseUnit:'mg/kg', route:'im/iv', recMlPerKg:0.05 },
     ],
     antibiotic: [
@@ -1937,13 +1935,13 @@ let PREMED_MASTER = {
       { name:'セファゾリン', conc:100, concUnit:'mg/mL', doseMin:20, doseMax:25, doseUnit:'mg/kg', route:'iv' },
       { name:'エンロフロキサシン', conc:50, concUnit:'mg/mL', doseMin:5, doseMax:5, doseUnit:'mg/kg', route:'sc' },
       { name:'トランサミン', conc:100, concUnit:'mg/mL', doseMin:10, doseMax:25, doseUnit:'mg/kg', route:'iv' },
-      { name:'アドナ', conc:10, concUnit:'mg/mL', doseMin:0.5, doseMax:1.0, doseUnit:'mg/kg', route:'iv' },
-      { name:'ガスター', conc:10, concUnit:'mg/mL', doseMin:0.5, doseMax:1.0, doseUnit:'mg/kg', route:'iv' },
+      { name:'アドナ', conc:10, concUnit:'mg/mL', doseMin:0.5, doseMax:1.0, doseUnit:'mg/kg', route:'iv', recMlPerKg:0.1 },
+      { name:'ガスター', conc:10, concUnit:'mg/mL', doseMin:0.5, doseMax:1.0, doseUnit:'mg/kg', route:'iv', recMlPerKg:0.1 },
     ],
     fluid: [
-      { name:'ソルラクト', conc:null, concUnit:null, doseMin:50, doseMax:50, doseUnit:'mL', route:'iv' },
-      { name:'ソルアセト', conc:null, concUnit:null, doseMin:50, doseMax:50, doseUnit:'mL', route:'iv' },
-      { name:'生理食塩水', conc:null, concUnit:null, doseMin:50, doseMax:50, doseUnit:'mL', route:'iv' },
+      { name:'ソルラクト', conc:null, concUnit:null, doseMin:5, doseMax:10, doseUnit:'mL/kg/hr', route:'iv' },
+      { name:'ソルアセト', conc:null, concUnit:null, doseMin:5, doseMax:10, doseUnit:'mL/kg/hr', route:'iv' },
+      { name:'生理食塩水', conc:null, concUnit:null, doseMin:5, doseMax:10, doseUnit:'mL/kg/hr', route:'iv' },
     ],
   },
   rabbit: {
@@ -1956,7 +1954,7 @@ let PREMED_MASTER = {
     ],
     induction: [
       { name:'プロポフォール', conc:10, concUnit:'mg/mL', doseMin:3, doseMax:10, doseUnit:'mg/kg', route:'iv slow' },
-      { name:'アルファキサロン', conc:10, concUnit:'mg/mL', doseMin:3, doseMax:6, doseUnit:'mg/kg', route:'iv' },
+      { name:'アルファキサロン', conc:10, concUnit:'mg/mL', doseMin:3, doseMax:6, doseUnit:'mg/kg', route:'iv', recMlPerKg:0.2 },
       { name:'ケタミン', conc:50, concUnit:'mg/mL', doseMin:10, doseMax:35, doseUnit:'mg/kg', route:'im' },
     ],
     maintenance: [
@@ -1970,13 +1968,13 @@ let PREMED_MASTER = {
       { name:'セファゾリン', conc:100, concUnit:'mg/mL', doseMin:20, doseMax:25, doseUnit:'mg/kg', route:'iv' },
       { name:'エンロフロキサシン', conc:50, concUnit:'mg/mL', doseMin:5, doseMax:10, doseUnit:'mg/kg', route:'sc' },
       { name:'トランサミン', conc:100, concUnit:'mg/mL', doseMin:10, doseMax:25, doseUnit:'mg/kg', route:'iv' },
-      { name:'アドナ', conc:10, concUnit:'mg/mL', doseMin:0.5, doseMax:1.0, doseUnit:'mg/kg', route:'iv' },
-      { name:'ガスター', conc:10, concUnit:'mg/mL', doseMin:0.5, doseMax:1.0, doseUnit:'mg/kg', route:'iv' },
+      { name:'アドナ', conc:10, concUnit:'mg/mL', doseMin:0.5, doseMax:1.0, doseUnit:'mg/kg', route:'iv', recMlPerKg:0.1 },
+      { name:'ガスター', conc:10, concUnit:'mg/mL', doseMin:0.5, doseMax:1.0, doseUnit:'mg/kg', route:'iv', recMlPerKg:0.1 },
     ],
     fluid: [
-      { name:'ソルラクト', conc:null, concUnit:null, doseMin:50, doseMax:50, doseUnit:'mL', route:'iv' },
-      { name:'ソルアセト', conc:null, concUnit:null, doseMin:50, doseMax:50, doseUnit:'mL', route:'iv' },
-      { name:'生理食塩水', conc:null, concUnit:null, doseMin:50, doseMax:50, doseUnit:'mL', route:'iv' },
+      { name:'ソルラクト', conc:null, concUnit:null, doseMin:5, doseMax:10, doseUnit:'mL/kg/hr', route:'iv' },
+      { name:'ソルアセト', conc:null, concUnit:null, doseMin:5, doseMax:10, doseUnit:'mL/kg/hr', route:'iv' },
+      { name:'生理食塩水', conc:null, concUnit:null, doseMin:5, doseMax:10, doseUnit:'mL/kg/hr', route:'iv' },
     ],
   },
   ferret: {
@@ -1989,7 +1987,7 @@ let PREMED_MASTER = {
     ],
     induction: [
       { name:'プロポフォール', conc:10, concUnit:'mg/mL', doseMin:2, doseMax:8, doseUnit:'mg/kg', route:'iv slow' },
-      { name:'アルファキサロン', conc:10, concUnit:'mg/mL', doseMin:2, doseMax:5, doseUnit:'mg/kg', route:'iv' },
+      { name:'アルファキサロン', conc:10, concUnit:'mg/mL', doseMin:2, doseMax:5, doseUnit:'mg/kg', route:'iv', recMlPerKg:0.2 },
       { name:'ケタミン', conc:50, concUnit:'mg/mL', doseMin:5, doseMax:10, doseUnit:'mg/kg', route:'im' },
     ],
     maintenance: [
@@ -2003,12 +2001,12 @@ let PREMED_MASTER = {
       { name:'セファゾリン', conc:100, concUnit:'mg/mL', doseMin:20, doseMax:25, doseUnit:'mg/kg', route:'iv' },
       { name:'エンロフロキサシン', conc:50, concUnit:'mg/mL', doseMin:5, doseMax:10, doseUnit:'mg/kg', route:'sc' },
       { name:'トランサミン', conc:100, concUnit:'mg/mL', doseMin:10, doseMax:25, doseUnit:'mg/kg', route:'iv' },
-      { name:'アドナ', conc:10, concUnit:'mg/mL', doseMin:0.5, doseMax:1.0, doseUnit:'mg/kg', route:'iv' },
-      { name:'ガスター', conc:10, concUnit:'mg/mL', doseMin:0.5, doseMax:1.0, doseUnit:'mg/kg', route:'iv' },
+      { name:'アドナ', conc:10, concUnit:'mg/mL', doseMin:0.5, doseMax:1.0, doseUnit:'mg/kg', route:'iv', recMlPerKg:0.1 },
+      { name:'ガスター', conc:10, concUnit:'mg/mL', doseMin:0.5, doseMax:1.0, doseUnit:'mg/kg', route:'iv', recMlPerKg:0.1 },
     ],
     fluid: [
-      { name:'ソルラクト', conc:null, concUnit:null, doseMin:50, doseMax:50, doseUnit:'mL', route:'iv/sc' },
-      { name:'ソルアセト', conc:null, concUnit:null, doseMin:50, doseMax:50, doseUnit:'mL', route:'iv/sc' },
+      { name:'ソルラクト', conc:null, concUnit:null, doseMin:5, doseMax:10, doseUnit:'mL/kg/hr', route:'iv/sc' },
+      { name:'ソルアセト', conc:null, concUnit:null, doseMin:5, doseMax:10, doseUnit:'mL/kg/hr', route:'iv/sc' },
     ],
   },
   guinea_pig: {
@@ -2020,7 +2018,7 @@ let PREMED_MASTER = {
       { name:'メロキシカム', conc:5, concUnit:'mg/mL', doseMin:0.2, doseMax:0.5, doseUnit:'mg/kg', route:'sc', recMlPerKg:0.1 },
     ],
     induction: [
-      { name:'アルファキサロン', conc:10, concUnit:'mg/mL', doseMin:5, doseMax:10, doseUnit:'mg/kg', route:'iv/im' },
+      { name:'アルファキサロン', conc:10, concUnit:'mg/mL', doseMin:5, doseMax:10, doseUnit:'mg/kg', route:'iv/im', recMlPerKg:0.2 },
       { name:'ケタミン', conc:50, concUnit:'mg/mL', doseMin:20, doseMax:40, doseUnit:'mg/kg', route:'im' },
     ],
     maintenance: [
@@ -2033,12 +2031,12 @@ let PREMED_MASTER = {
     antibiotic: [
       { name:'エンロフロキサシン', conc:50, concUnit:'mg/mL', doseMin:5, doseMax:10, doseUnit:'mg/kg', route:'sc' },
       { name:'トランサミン', conc:100, concUnit:'mg/mL', doseMin:10, doseMax:25, doseUnit:'mg/kg', route:'iv' },
-      { name:'アドナ', conc:10, concUnit:'mg/mL', doseMin:0.5, doseMax:1.0, doseUnit:'mg/kg', route:'iv' },
-      { name:'ガスター', conc:10, concUnit:'mg/mL', doseMin:0.5, doseMax:1.0, doseUnit:'mg/kg', route:'iv' },
+      { name:'アドナ', conc:10, concUnit:'mg/mL', doseMin:0.5, doseMax:1.0, doseUnit:'mg/kg', route:'iv', recMlPerKg:0.1 },
+      { name:'ガスター', conc:10, concUnit:'mg/mL', doseMin:0.5, doseMax:1.0, doseUnit:'mg/kg', route:'iv', recMlPerKg:0.1 },
     ],
     fluid: [
-      { name:'ソルラクト', conc:null, concUnit:null, doseMin:50, doseMax:50, doseUnit:'mL', route:'iv/sc' },
-      { name:'ソルアセト', conc:null, concUnit:null, doseMin:50, doseMax:50, doseUnit:'mL', route:'iv/sc' },
+      { name:'ソルラクト', conc:null, concUnit:null, doseMin:5, doseMax:10, doseUnit:'mL/kg/hr', route:'iv/sc' },
+      { name:'ソルアセト', conc:null, concUnit:null, doseMin:5, doseMax:10, doseUnit:'mL/kg/hr', route:'iv/sc' },
     ],
   },
   hamster: {
@@ -2049,7 +2047,7 @@ let PREMED_MASTER = {
       { name:'メデトミジン', conc:1, concUnit:'mg/mL', doseMin:0.1, doseMax:0.3, doseUnit:'mg/kg', route:'im' },
     ],
     induction: [
-      { name:'アルファキサロン', conc:10, concUnit:'mg/mL', doseMin:5, doseMax:10, doseUnit:'mg/kg', route:'ip' },
+      { name:'アルファキサロン', conc:10, concUnit:'mg/mL', doseMin:5, doseMax:10, doseUnit:'mg/kg', route:'ip', recMlPerKg:0.2 },
       { name:'ケタミン', conc:50, concUnit:'mg/mL', doseMin:50, doseMax:100, doseUnit:'mg/kg', route:'ip' },
     ],
     maintenance: [
@@ -2063,12 +2061,12 @@ let PREMED_MASTER = {
       { name:'アンピシリン', conc:100, concUnit:'mg/mL', doseMin:20, doseMax:25, doseUnit:'mg/kg', route:'iv' },
       { name:'エンロフロキサシン', conc:50, concUnit:'mg/mL', doseMin:5, doseMax:10, doseUnit:'mg/kg', route:'sc' },
       { name:'トランサミン', conc:100, concUnit:'mg/mL', doseMin:10, doseMax:25, doseUnit:'mg/kg', route:'iv' },
-      { name:'アドナ', conc:10, concUnit:'mg/mL', doseMin:0.5, doseMax:1.0, doseUnit:'mg/kg', route:'iv' },
-      { name:'ガスター', conc:10, concUnit:'mg/mL', doseMin:0.5, doseMax:1.0, doseUnit:'mg/kg', route:'iv' },
+      { name:'アドナ', conc:10, concUnit:'mg/mL', doseMin:0.5, doseMax:1.0, doseUnit:'mg/kg', route:'iv', recMlPerKg:0.1 },
+      { name:'ガスター', conc:10, concUnit:'mg/mL', doseMin:0.5, doseMax:1.0, doseUnit:'mg/kg', route:'iv', recMlPerKg:0.1 },
     ],
     fluid: [
-      { name:'ソルラクト', conc:null, concUnit:null, doseMin:50, doseMax:50, doseUnit:'mL', route:'sc' },
-      { name:'ソルアセト', conc:null, concUnit:null, doseMin:50, doseMax:50, doseUnit:'mL', route:'sc' },
+      { name:'ソルラクト', conc:null, concUnit:null, doseMin:5, doseMax:10, doseUnit:'mL/kg/hr', route:'sc' },
+      { name:'ソルアセト', conc:null, concUnit:null, doseMin:5, doseMax:10, doseUnit:'mL/kg/hr', route:'sc' },
     ],
   },
   bird: {
@@ -2080,7 +2078,7 @@ let PREMED_MASTER = {
     ],
     induction: [
       { name:'プロポフォール', conc:10, concUnit:'mg/mL', doseMin:3, doseMax:5, doseUnit:'mg/kg', route:'iv slow' },
-      { name:'アルファキサロン', conc:10, concUnit:'mg/mL', doseMin:10, doseMax:20, doseUnit:'mg/kg', route:'iv/im' },
+      { name:'アルファキサロン', conc:10, concUnit:'mg/mL', doseMin:10, doseMax:20, doseUnit:'mg/kg', route:'iv/im', recMlPerKg:0.2 },
       { name:'ケタミン', conc:50, concUnit:'mg/mL', doseMin:10, doseMax:30, doseUnit:'mg/kg', route:'im' },
     ],
     maintenance: [
@@ -2094,12 +2092,12 @@ let PREMED_MASTER = {
       { name:'アンピシリン', conc:100, concUnit:'mg/mL', doseMin:100, doseMax:200, doseUnit:'mg/kg', route:'im' },
       { name:'エンロフロキサシン', conc:50, concUnit:'mg/mL', doseMin:10, doseMax:15, doseUnit:'mg/kg', route:'im' },
       { name:'トランサミン', conc:100, concUnit:'mg/mL', doseMin:10, doseMax:25, doseUnit:'mg/kg', route:'iv' },
-      { name:'アドナ', conc:10, concUnit:'mg/mL', doseMin:0.5, doseMax:1.0, doseUnit:'mg/kg', route:'iv' },
-      { name:'ガスター', conc:10, concUnit:'mg/mL', doseMin:0.5, doseMax:1.0, doseUnit:'mg/kg', route:'iv' },
+      { name:'アドナ', conc:10, concUnit:'mg/mL', doseMin:0.5, doseMax:1.0, doseUnit:'mg/kg', route:'iv', recMlPerKg:0.1 },
+      { name:'ガスター', conc:10, concUnit:'mg/mL', doseMin:0.5, doseMax:1.0, doseUnit:'mg/kg', route:'iv', recMlPerKg:0.1 },
     ],
     fluid: [
-      { name:'ソルラクト', conc:null, concUnit:null, doseMin:50, doseMax:50, doseUnit:'mL', route:'iv/io' },
-      { name:'ソルアセト', conc:null, concUnit:null, doseMin:50, doseMax:50, doseUnit:'mL', route:'iv/io' },
+      { name:'ソルラクト', conc:null, concUnit:null, doseMin:5, doseMax:10, doseUnit:'mL/kg/hr', route:'iv/io' },
+      { name:'ソルアセト', conc:null, concUnit:null, doseMin:5, doseMax:10, doseUnit:'mL/kg/hr', route:'iv/io' },
     ],
   },
   reptile: {
@@ -2111,7 +2109,7 @@ let PREMED_MASTER = {
     ],
     induction: [
       { name:'プロポフォール', conc:10, concUnit:'mg/mL', doseMin:5, doseMax:15, doseUnit:'mg/kg', route:'iv slow' },
-      { name:'アルファキサロン', conc:10, concUnit:'mg/mL', doseMin:5, doseMax:15, doseUnit:'mg/kg', route:'iv/im' },
+      { name:'アルファキサロン', conc:10, concUnit:'mg/mL', doseMin:5, doseMax:15, doseUnit:'mg/kg', route:'iv/im', recMlPerKg:0.2 },
       { name:'ケタミン', conc:50, concUnit:'mg/mL', doseMin:20, doseMax:60, doseUnit:'mg/kg', route:'im' },
     ],
     maintenance: [
@@ -2126,12 +2124,12 @@ let PREMED_MASTER = {
       { name:'エンロフロキサシン', conc:50, concUnit:'mg/mL', doseMin:5, doseMax:10, doseUnit:'mg/kg', route:'im' },
       { name:'セフタジジム', conc:100, concUnit:'mg/mL', doseMin:20, doseMax:40, doseUnit:'mg/kg', route:'im' },
       { name:'トランサミン', conc:100, concUnit:'mg/mL', doseMin:10, doseMax:25, doseUnit:'mg/kg', route:'iv' },
-      { name:'アドナ', conc:10, concUnit:'mg/mL', doseMin:0.5, doseMax:1.0, doseUnit:'mg/kg', route:'iv' },
-      { name:'ガスター', conc:10, concUnit:'mg/mL', doseMin:0.5, doseMax:1.0, doseUnit:'mg/kg', route:'iv' },
+      { name:'アドナ', conc:10, concUnit:'mg/mL', doseMin:0.5, doseMax:1.0, doseUnit:'mg/kg', route:'iv', recMlPerKg:0.1 },
+      { name:'ガスター', conc:10, concUnit:'mg/mL', doseMin:0.5, doseMax:1.0, doseUnit:'mg/kg', route:'iv', recMlPerKg:0.1 },
     ],
     fluid: [
-      { name:'ソルラクト', conc:null, concUnit:null, doseMin:50, doseMax:50, doseUnit:'mL', route:'sc/ico' },
-      { name:'ソルアセト', conc:null, concUnit:null, doseMin:50, doseMax:50, doseUnit:'mL', route:'sc/ico' },
+      { name:'ソルラクト', conc:null, concUnit:null, doseMin:5, doseMax:10, doseUnit:'mL/kg/hr', route:'sc/ico' },
+      { name:'ソルアセト', conc:null, concUnit:null, doseMin:5, doseMax:10, doseUnit:'mL/kg/hr', route:'sc/ico' },
     ],
   },
   other: null, // uses dog defaults
@@ -5139,7 +5137,7 @@ function loadDrugMasterFromStorage() {
   } catch(e) { console.warn('Drug master load error:', e); }
 }
 
-var DRUG_MASTER_VERSION = 3; // Increment when default data changes to force merge
+var DRUG_MASTER_VERSION = 4; // Increment when default data changes to force merge
 
 function saveDrugMasterToStorage() {
   try {
