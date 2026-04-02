@@ -2376,7 +2376,7 @@ function buildPrepDrugList(species, weight) {
         doseRangeHtml +
         inputHtml +
         calcHtml +
-        `<span class="prep-drug-route">${drug.route}</span>` +
+        `<span class="prep-drug-route" style="cursor:pointer;" onclick="event.stopPropagation();openPrepRoutePicker(this,'${catKey}',${drugIndexInCat},${entry.isCustom ? "'"+entry.customId+"'" : 'null'})">${drug.route}</span>` +
         `<span class="prep-drug-actions-row">` +
           (entry.isCustom
             ? `<button class="prep-btn-edit" onclick="event.stopPropagation();openCustomDrugModal('${entry.customId}')" title="編集">✏</button>` +
@@ -2485,7 +2485,7 @@ function openPrepDrugEdit(catKey, drugIndex) {
     <div class="prep-edit-row">
       <div class="prep-edit-field">
         <label>投与経路</label>
-        <input type="text" id="peditRoute" value="${drug.route}" placeholder="iv, im, sc, po...">
+        <input type="text" id="peditRoute" value="${drug.route}" readonly style="cursor:pointer;" onclick="openListPicker('peditRoute','💊 投与経路',['iv','iv slow','im','sc','po','ip','io','it','im/sc','im/iv','sc/iv','吸入'],this.value)">
       </div>
       <div class="prep-edit-field">
         <label>院内推奨 mL/kg</label>
@@ -6532,6 +6532,28 @@ function openRoutePicker() {
     btn.textContent = val + ' ▾';
   };
   openListPicker('_callback_route', '💊 投与経路', routes, current);
+}
+
+function openPrepRoutePicker(spanEl, catKey, drugIndex, customId) {
+  var routes = ['iv', 'iv slow', 'im', 'sc', 'po', 'ip', 'io', 'it', 'im/sc', 'im/iv', 'sc/iv', '吸入'];
+  var current = spanEl.textContent.trim();
+  window._listPickerCallback = function(val) {
+    spanEl.textContent = val;
+    // Update in PREMED_MASTER
+    if (customId) {
+      var preps = getCustomPreparations();
+      var cp = preps.find(function(p) { return p.id === customId; });
+      if (cp) { cp.route = val; saveCustomPreparations(preps); }
+    } else if (drugIndex >= 0) {
+      var sp = state.patient.species || 'dog';
+      var master = PREMED_MASTER[sp] || PREMED_MASTER.dog;
+      if (master[catKey] && master[catKey][drugIndex]) {
+        master[catKey][drugIndex].route = val;
+        saveDrugMasterToStorage();
+      }
+    }
+  };
+  openListPicker('_callback_prepRoute', '💊 投与経路', routes, current);
 }
 
 // ===================================================================
