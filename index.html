@@ -1876,15 +1876,15 @@ const DRUG_MASTER = {
 let PREMED_MASTER = {
   dog: {
     premed: [
-      { name:'アトロピン', conc:0.5, concUnit:'mg/mL', doseMin:0.02, doseMax:0.04, doseUnit:'mg/kg', route:'im/sc' },
-      { name:'ミダゾラム', conc:5, concUnit:'mg/mL', doseMin:0.2, doseMax:0.5, doseUnit:'mg/kg', route:'iv/im' },
-      { name:'ブトルファノール', conc:5, concUnit:'mg/mL', doseMin:0.2, doseMax:0.4, doseUnit:'mg/kg', route:'im' },
+      { name:'アトロピン', conc:0.5, concUnit:'mg/mL', doseMin:0.02, doseMax:0.04, doseUnit:'mg/kg', route:'im/sc', recMlPerKg:0.05 },
+      { name:'ミダゾラム', conc:5, concUnit:'mg/mL', doseMin:0.2, doseMax:0.5, doseUnit:'mg/kg', route:'iv/im', recMlPerKg:0.02 },
+      { name:'ブトルファノール', conc:5, concUnit:'mg/mL', doseMin:0.2, doseMax:0.4, doseUnit:'mg/kg', route:'im', recMlPerKg:0.04 },
       { name:'メデトミジン', conc:1, concUnit:'mg/mL', doseMin:0.005, doseMax:0.02, doseUnit:'mg/kg', route:'im' },
       { name:'マロピタント', conc:10, concUnit:'mg/mL', doseMin:1.0, doseMax:1.0, doseUnit:'mg/kg', route:'sc' },
       { name:'メロキシカム', conc:5, concUnit:'mg/mL', doseMin:0.2, doseMax:0.2, doseUnit:'mg/kg', route:'sc', recMlPerKg:0.04 },
     ],
     induction: [
-      { name:'プロポフォール', conc:10, concUnit:'mg/mL', doseMin:2, doseMax:6, doseUnit:'mg/kg', route:'iv slow' },
+      { name:'プロポフォール', conc:10, concUnit:'mg/mL', doseMin:2, doseMax:6, doseUnit:'mg/kg', route:'iv slow', recMlPerKg:0.5 },
       { name:'アルファキサロン', conc:10, concUnit:'mg/mL', doseMin:1, doseMax:3, doseUnit:'mg/kg', route:'iv slow' },
       { name:'ケタミン', conc:50, concUnit:'mg/mL', doseMin:5, doseMax:10, doseUnit:'mg/kg', route:'iv/im' },
     ],
@@ -1894,7 +1894,7 @@ let PREMED_MASTER = {
     analgesic: [
       { name:'フェンタニル', conc:0.05, concUnit:'mg/mL', doseMin:0.002, doseMax:0.005, doseUnit:'mg/kg', route:'iv' },
       { name:'レミフェンタニル', conc:0.02, concUnit:'mg/mL', doseMin:0.005, doseMax:0.02, doseUnit:'mg/kg', route:'iv(CRI)' },
-      { name:'ブプレノルフィン', conc:0.3, concUnit:'mg/mL', doseMin:0.01, doseMax:0.02, doseUnit:'mg/kg', route:'im/iv' },
+      { name:'ブプレノルフィン', conc:0.3, concUnit:'mg/mL', doseMin:0.01, doseMax:0.02, doseUnit:'mg/kg', route:'im/iv', recMlPerKg:0.05 },
     ],
     antibiotic: [
       { name:'アンピシリン', conc:100, concUnit:'mg/mL', doseMin:20, doseMax:25, doseUnit:'mg/kg', route:'iv' },
@@ -5105,6 +5105,8 @@ function loadDrugMasterFromStorage() {
   try {
     const data = localStorage.getItem('vetanes_drug_master_custom');
     if (data) {
+      const savedVersion = parseInt(localStorage.getItem('vetanes_drug_master_version')) || 0;
+      const needsMerge = savedVersion < DRUG_MASTER_VERSION;
       const custom = JSON.parse(data);
       Object.keys(custom).forEach(sp => {
         if (PREMED_MASTER[sp] !== undefined || PREMED_MASTER_DEFAULTS[sp] !== undefined) {
@@ -5118,8 +5120,8 @@ function loadDrugMasterFromStorage() {
               custCat.forEach(function(drug) {
                 var defDrug = defCat.find(function(d) { return d.name === drug.name; });
                 if (defDrug) {
-                  // Carry forward new fields from code defaults that aren't in saved data
-                  if (defDrug.recMlPerKg != null && drug.recMlPerKg == null) {
+                  // Always carry forward recMlPerKg from defaults if not user-modified
+                  if (defDrug.recMlPerKg != null && (drug.recMlPerKg == null || needsMerge)) {
                     drug.recMlPerKg = defDrug.recMlPerKg;
                   }
                 }
@@ -5129,9 +5131,15 @@ function loadDrugMasterFromStorage() {
           PREMED_MASTER[sp] = customSp;
         }
       });
+      // Re-save with updated version if merge was needed
+      if (needsMerge) {
+        saveDrugMasterToStorage();
+      }
     }
   } catch(e) { console.warn('Drug master load error:', e); }
 }
+
+var DRUG_MASTER_VERSION = 2; // Increment when default data changes to force merge
 
 function saveDrugMasterToStorage() {
   try {
@@ -5140,6 +5148,7 @@ function saveDrugMasterToStorage() {
       if (PREMED_MASTER[sp]) toSave[sp] = PREMED_MASTER[sp];
     });
     localStorage.setItem('vetanes_drug_master_custom', JSON.stringify(toSave));
+    localStorage.setItem('vetanes_drug_master_version', DRUG_MASTER_VERSION);
   } catch(e) { console.warn('Drug master save error:', e); }
 }
 
