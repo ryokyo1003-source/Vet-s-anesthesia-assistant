@@ -5110,15 +5110,22 @@ function loadDrugMasterFromStorage() {
         if (PREMED_MASTER[sp] !== undefined || PREMED_MASTER_DEFAULTS[sp] !== undefined) {
           const defaults = PREMED_MASTER_DEFAULTS[sp];
           const customSp = custom[sp];
-          // Merge new default fields (e.g. recMlPerKg) into saved data
+          // Merge new default fields and update names from defaults
           if (defaults && customSp) {
             Object.keys(customSp).forEach(cat => {
               var defCat = defaults[cat] || [];
               var custCat = customSp[cat] || [];
-              custCat.forEach(function(drug) {
-                var defDrug = defCat.find(function(d) { return d.name === drug.name; });
+              custCat.forEach(function(drug, idx) {
+                // Match by exact name OR by base name (before parenthetical)
+                var drugBase = drug.name.replace(/\s*\(.*\)$/, '');
+                var defDrug = defCat.find(function(d) { return d.name === drug.name; })
+                  || defCat.find(function(d) { return d.name.replace(/\s*\(.*\)$/, '') === drugBase; });
                 if (defDrug) {
-                  // Always carry forward recMlPerKg from defaults if not user-modified
+                  // Update name if default has changed (e.g. added dilution note)
+                  if (needsMerge && defDrug.name !== drug.name) {
+                    drug.name = defDrug.name;
+                  }
+                  // Carry forward recMlPerKg from defaults
                   if (defDrug.recMlPerKg != null && (drug.recMlPerKg == null || needsMerge)) {
                     drug.recMlPerKg = defDrug.recMlPerKg;
                   }
@@ -5137,7 +5144,7 @@ function loadDrugMasterFromStorage() {
   } catch(e) { console.warn('Drug master load error:', e); }
 }
 
-var DRUG_MASTER_VERSION = 5; // Increment when default data changes to force merge
+var DRUG_MASTER_VERSION = 6; // Increment when default data changes to force merge
 
 function saveDrugMasterToStorage() {
   try {
