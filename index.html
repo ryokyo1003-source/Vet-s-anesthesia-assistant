@@ -1876,7 +1876,7 @@ const DRUG_MASTER = {
 let PREMED_MASTER = {
   dog: {
     premed: [
-      { name:'アトロピン', conc:0.5, concUnit:'mg/mL', doseMin:0.02, doseMax:0.04, doseUnit:'mg/kg', route:'im/sc', recMlPerKg:0.05 },
+      { name:'アトロピン', conc:0.5, concUnit:'mg/mL', doseMin:0.02, doseMax:0.04, doseUnit:'mg/kg', route:'sc', recMlPerKg:0.1 },
       { name:'ミダゾラム', conc:5, concUnit:'mg/mL', doseMin:0.2, doseMax:0.5, doseUnit:'mg/kg', route:'iv/im', recMlPerKg:0.02 },
       { name:'ブトルファノール', conc:5, concUnit:'mg/mL', doseMin:0.2, doseMax:0.4, doseUnit:'mg/kg', route:'im', recMlPerKg:0.04 },
       { name:'メデトミジン', conc:1, concUnit:'mg/mL', doseMin:0.005, doseMax:0.02, doseUnit:'mg/kg', route:'im' },
@@ -1913,7 +1913,7 @@ let PREMED_MASTER = {
   },
   cat: {
     premed: [
-      { name:'アトロピン', conc:0.5, concUnit:'mg/mL', doseMin:0.02, doseMax:0.04, doseUnit:'mg/kg', route:'im/sc', recMlPerKg:0.05 },
+      { name:'アトロピン', conc:0.5, concUnit:'mg/mL', doseMin:0.02, doseMax:0.04, doseUnit:'mg/kg', route:'sc', recMlPerKg:0.1 },
       { name:'ミダゾラム', conc:5, concUnit:'mg/mL', doseMin:0.2, doseMax:0.3, doseUnit:'mg/kg', route:'im', recMlPerKg:0.02 },
       { name:'ブトルファノール', conc:5, concUnit:'mg/mL', doseMin:0.2, doseMax:0.4, doseUnit:'mg/kg', route:'im', recMlPerKg:0.04 },
       { name:'メデトミジン', conc:1, concUnit:'mg/mL', doseMin:0.01, doseMax:0.04, doseUnit:'mg/kg', route:'im' },
@@ -1948,7 +1948,7 @@ let PREMED_MASTER = {
   },
   rabbit: {
     premed: [
-      { name:'アトロピン', conc:0.5, concUnit:'mg/mL', doseMin:0.05, doseMax:0.1, doseUnit:'mg/kg', route:'sc', recMlPerKg:0.05 },
+      { name:'アトロピン', conc:0.5, concUnit:'mg/mL', doseMin:0.05, doseMax:0.1, doseUnit:'mg/kg', route:'sc', recMlPerKg:0.1 },
       { name:'ミダゾラム', conc:5, concUnit:'mg/mL', doseMin:0.5, doseMax:1.0, doseUnit:'mg/kg', route:'im', recMlPerKg:0.02 },
       { name:'ブトルファノール', conc:5, concUnit:'mg/mL', doseMin:0.1, doseMax:0.5, doseUnit:'mg/kg', route:'im/sc', recMlPerKg:0.04 },
       { name:'メデトミジン', conc:1, concUnit:'mg/mL', doseMin:0.1, doseMax:0.25, doseUnit:'mg/kg', route:'im' },
@@ -2013,7 +2013,7 @@ let PREMED_MASTER = {
   },
   guinea_pig: {
     premed: [
-      { name:'アトロピン', conc:0.5, concUnit:'mg/mL', doseMin:0.05, doseMax:0.1, doseUnit:'mg/kg', route:'sc', recMlPerKg:0.05 },
+      { name:'アトロピン', conc:0.5, concUnit:'mg/mL', doseMin:0.05, doseMax:0.1, doseUnit:'mg/kg', route:'sc', recMlPerKg:0.1 },
       { name:'ミダゾラム', conc:5, concUnit:'mg/mL', doseMin:0.5, doseMax:1.0, doseUnit:'mg/kg', route:'im', recMlPerKg:0.02 },
       { name:'ブトルファノール', conc:5, concUnit:'mg/mL', doseMin:0.2, doseMax:0.4, doseUnit:'mg/kg', route:'sc', recMlPerKg:0.04 },
       { name:'メデトミジン', conc:1, concUnit:'mg/mL', doseMin:0.05, doseMax:0.1, doseUnit:'mg/kg', route:'im' },
@@ -5139,7 +5139,7 @@ function loadDrugMasterFromStorage() {
   } catch(e) { console.warn('Drug master load error:', e); }
 }
 
-var DRUG_MASTER_VERSION = 2; // Increment when default data changes to force merge
+var DRUG_MASTER_VERSION = 3; // Increment when default data changes to force merge
 
 function saveDrugMasterToStorage() {
   try {
