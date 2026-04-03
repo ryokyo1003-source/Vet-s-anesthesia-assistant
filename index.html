@@ -1345,6 +1345,7 @@
       <textarea id="inputNotes" placeholder="アレルギー、既往歴、特記事項など"></textarea>
     </div>
 
+    <div id="savedPrepsArea"></div>
     <button class="btn-resume-session" id="btnResumeSession" onclick="resumeSession()" style="display:none;">🔄 セッション再開</button>
     <button class="btn-start" onclick="startSession()">麻酔セッション開始</button>
   </div>
@@ -1539,6 +1540,7 @@
 
     <button class="btn-prep-done" onclick="completeDrugPrep()">✅ 準備完了 → モニタリング開始</button>
     <button class="btn-prep-skip" onclick="skipDrugPrep()">スキップ（準備済み）</button>
+    <button class="btn-prep-skip" onclick="savePrepAndGoHome()" style="color:var(--accent-orange);">💾 一時保存して別の準備へ</button>
   </div>
 </div>
 
@@ -1758,6 +1760,114 @@ function showScreen(screenId) {
 
 function backFromDrugPrep() {
   showScreen('startupScreen');
+  updateSavedPrepsDisplay();
+}
+
+// ===================================================================
+//  DRUG PREP: SAVE / RESUME
+// ===================================================================
+function getSavedPreps() {
+  try { return JSON.parse(localStorage.getItem('vetanes_saved_preps') || '[]'); }
+  catch(e) { return []; }
+}
+
+function saveSavedPreps(arr) {
+  try { localStorage.setItem('vetanes_saved_preps', JSON.stringify(arr)); }
+  catch(e) {}
+}
+
+function savePrepAndGoHome() {
+  var prepState = _savePrepInputState();
+  var saved = getSavedPreps();
+  var id = 'prep_' + Date.now();
+  saved.unshift({
+    id: id,
+    patient: JSON.parse(JSON.stringify(state.patient)),
+    prepInputs: prepState,
+    savedAt: new Date().toISOString()
+  });
+  // Max 10
+  if (saved.length > 10) saved = saved.slice(0, 10);
+  saveSavedPreps(saved);
+  showScreen('startupScreen');
+  updateSavedPrepsDisplay();
+  // Reset form for next patient
+  resetStartupForm();
+}
+
+function resetStartupForm() {
+  try {
+    document.getElementById('inputId').value = '';
+    document.getElementById('inputName').value = '';
+    document.getElementById('inputWeight').value = '';
+    document.getElementById('inputAge').value = '';
+    document.getElementById('inputProcedure').value = '';
+    document.getElementById('inputNotes').value = '';
+    document.getElementById('inputSpecies').value = 'dog';
+    document.getElementById('inputDate').value = new Date().toISOString().split('T')[0];
+    state.selectedSex = '';
+    document.querySelectorAll('#sexToggle button').forEach(function(b) {
+      b.classList.remove('active-male','active-female','active-castrated','active-spayed','active-unknown');
+    });
+  } catch(e) {}
+}
+
+function updateSavedPrepsDisplay() {
+  var area = document.getElementById('savedPrepsArea');
+  if (!area) return;
+  var saved = getSavedPreps();
+  if (saved.length === 0) { area.innerHTML = ''; return; }
+
+  var html = '<div style="margin-bottom:12px;">';
+  html += '<div style="font-size:13px;font-weight:700;color:var(--accent-orange);margin-bottom:8px;">💾 一時保存中の薬剤準備</div>';
+  saved.forEach(function(s) {
+    var p = s.patient;
+    var emoji = SPECIES_EMOJI[p.species] || '🐾';
+    var wDisp = p.weight < 1 ? (p.weight*1000).toFixed(0)+'g' : p.weight.toFixed(1)+'kg';
+    var time = new Date(s.savedAt);
+    var timeStr = time.toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'});
+    var drugCount = Object.keys(s.prepInputs).filter(function(k) { return s.prepInputs[k].checked; }).length;
+    html += '<div style="display:flex;align-items:center;gap:8px;background:var(--bg-secondary);border:1px solid var(--accent-orange);border-radius:10px;padding:10px 12px;margin-bottom:6px;">';
+    html += '<span style="font-size:20px;">' + emoji + '</span>';
+    html += '<div style="flex:1;min-width:0;">';
+    html += '<div style="font-size:14px;font-weight:700;">' + (p.name||'-') + ' <span style="font-size:12px;color:var(--accent-blue);">' + wDisp + '</span></div>';
+    html += '<div style="font-size:11px;color:var(--text-secondary);">' + (p.procedure||'-') + ' | ' + drugCount + '剤選択 | ' + timeStr + '</div>';
+    html += '</div>';
+    html += '<button onclick="resumeSavedPrep(\'' + s.id + '\')" style="padding:8px 12px;background:var(--accent-orange);border:none;border-radius:8px;color:white;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">再開</button>';
+    html += '<button onclick="deleteSavedPrep(\'' + s.id + '\')" style="padding:8px 8px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:8px;color:var(--accent-red);font-size:12px;cursor:pointer;">✕</button>';
+    html += '</div>';
+  });
+  html += '</div>';
+  area.innerHTML = html;
+}
+
+function resumeSavedPrep(id) {
+  var saved = getSavedPreps();
+  var prep = saved.find(function(s) { return s.id === id; });
+  if (!prep) { alert('保存データが見つかりません'); return; }
+
+  // Restore patient info
+  state.patient = prep.patient;
+  state.selectedSex = prep.patient.sex || '';
+
+  // Store prep inputs for restoration after buildPrepDrugList
+  state._importedPrepInputs = prep.prepInputs;
+
+  // Remove from saved list
+  saved = saved.filter(function(s) { return s.id !== id; });
+  saveSavedPreps(saved);
+
+  // Show drug prep screen
+  showDrugPrepScreen();
+  showScreen('drugPrepScreen');
+}
+
+function deleteSavedPrep(id) {
+  if (!confirm('この一時保存を削除しますか？')) return;
+  var saved = getSavedPreps();
+  saved = saved.filter(function(s) { return s.id !== id; });
+  saveSavedPreps(saved);
+  updateSavedPrepsDisplay();
 }
 
 // ===================================================================
@@ -2438,8 +2548,14 @@ function buildPrepDrugList(species, weight) {
     state._importedDrugLog = null; // clear after use
   }
 
-  // Restore previous input state (after delete/edit rebuild)
-  _restorePrepInputState(prevState);
+  // Restore from saved prep (resume)
+  if (state._importedPrepInputs) {
+    _restorePrepInputState(state._importedPrepInputs);
+    state._importedPrepInputs = null;
+  } else {
+    // Restore previous input state (after delete/edit rebuild)
+    _restorePrepInputState(prevState);
+  }
 
   // Recalculate all restored inputs
   document.querySelectorAll('.prep-drug-input').forEach(function(input) {
@@ -6735,9 +6851,10 @@ document.addEventListener('DOMContentLoaded', () => {
   // Custom preparations (院内製剤) init
   try { renderCustomDrugsList(); } catch(e) { console.warn('init custom drugs error:', e); }
 
-  // Session resume & history buttons init
+  // Session resume & history & saved preps init
   try { updateResumeButton(); } catch(e) { console.warn('init resume button error:', e); }
   try { updateHistoryButton(); } catch(e) { console.warn('init history button error:', e); }
+  try { updateSavedPrepsDisplay(); } catch(e) { console.warn('init saved preps error:', e); }
 
   // Long-press on event buttons for cancel/undo
   document.querySelectorAll('.btn-event').forEach(function(btn) {
