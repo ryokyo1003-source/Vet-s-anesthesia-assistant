@@ -2798,8 +2798,8 @@ function buildPrepCriSection(species, weight) {
 
   // Mode toggle
   html += '<div class="prep-cri-mode-toggle" id="prepCriModeToggle">';
-  html += '<button type="button" class="prep-cri-mode-btn active" data-mode="bag" onclick="setPrepCriMode(\'bag\')">輸液バッグ混注</button>';
-  html += '<button type="button" class="prep-cri-mode-btn" data-mode="syringe" onclick="setPrepCriMode(\'syringe\')">シリンジポンプ</button>';
+  html += '<button type="button" class="prep-cri-mode-btn active" data-mode="syringe" onclick="setPrepCriMode(\'syringe\')">シリンジポンプ</button>';
+  html += '<button type="button" class="prep-cri-mode-btn" data-mode="bag" onclick="setPrepCriMode(\'bag\')">輸液バッグ混注</button>';
   html += '</div>';
 
   // Result area
@@ -2809,7 +2809,7 @@ function buildPrepCriSection(species, weight) {
   container.innerHTML = html;
 
   // Store current mode
-  if (!window._prepCriMode) window._prepCriMode = 'bag';
+  if (!window._prepCriMode) window._prepCriMode = 'syringe';
 
   // Initial calc
   updatePrepCri();
@@ -2868,7 +2868,7 @@ function updatePrepCri() {
   if (idx < 0 || idx >= drugs.length) idx = 0;
   var d = drugs[idx];
   var w = state.patient.weight || 1;
-  var mode = window._prepCriMode || 'bag';
+  var mode = window._prepCriMode || 'syringe';
   var defs = _prepCriDefaults(w);
 
   var html = '';
@@ -3013,7 +3013,7 @@ function recalcPrepCriInfusion() {
   var idx = parseInt(sel.value) || 0;
   if (idx < 0 || idx >= drugs.length) idx = 0;
   var d = drugs[idx];
-  var mode = window._prepCriMode || 'bag';
+  var mode = window._prepCriMode || 'syringe';
 
   var wEl = document.getElementById('prepCriWeight');
   var rateEl = document.getElementById('prepCriRate');
