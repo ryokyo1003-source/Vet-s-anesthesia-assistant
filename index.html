@@ -3156,24 +3156,41 @@ function recalcPrepCriInfusion() {
 
 function completeDrugPrep() {
   // Log selected drugs
-  const checks = document.querySelectorAll('[id^="prepChk_"]');
-  const selected = [];
-  checks.forEach(chk => {
-    if (chk.checked) {
-      const row = chk.closest('.prep-drug-row');
-      var nameEl = row.querySelector('.prep-drug-name');
-      var calcEl = row.querySelector('.prep-drug-calc');
-      const name = nameEl ? nameEl.textContent : '';
-      const calc = calcEl ? calcEl.textContent : '';
-      selected.push(`${name} ${calc.replace(/\n/g,' ').trim()}`);
-    }
+  // Collect selected drugs by category
+  var catDrugs = {};
+  document.querySelectorAll('.prep-drug-row').forEach(function(row) {
+    var chk = row.querySelector('input[type="checkbox"]');
+    if (!chk || !chk.checked) return;
+    var catKey = row.dataset.catKey || 'other';
+    var nameEl = row.querySelector('.prep-drug-name');
+    var calcEl = row.querySelector('.prep-drug-calc');
+    var routeEl = row.querySelector('.prep-drug-route');
+    var inputEl = row.querySelector('.prep-drug-input');
+    var name = nameEl ? nameEl.textContent.replace(/院内/g,'').trim() : '';
+    var calc = calcEl ? calcEl.textContent.replace(/\n/g,' ').trim() : '';
+    var route = routeEl ? routeEl.textContent.trim() : '';
+    var dose = inputEl ? inputEl.value + ' ' + (inputEl.dataset.mode === 'mlkg' ? 'mL/kg' : (inputEl.dataset.unit || '')) : '';
+    if (!catDrugs[catKey]) catDrugs[catKey] = [];
+    catDrugs[catKey].push({ name, calc, route, dose });
   });
 
   showScreen('mainApp');
   startMonitoring();
 
-  if (selected.length > 0) {
-    addLog(`💉 薬剤準備: ${selected.join(', ')}`);
+  // Log each category separately
+  var catLabels = { premed:'前投薬', induction:'麻酔導入', maintenance:'維持麻酔', analgesic:'鎮痛', antibiotic:'抗生剤・その他', fluid:'輸液' };
+  var hasAny = false;
+  Object.keys(catDrugs).forEach(function(cat) {
+    var drugs = catDrugs[cat];
+    if (drugs.length === 0) return;
+    hasAny = true;
+    var label = catLabels[cat] || cat;
+    drugs.forEach(function(d) {
+      addLog(`💉 [${label}] ${d.name} ${d.calc} ${d.route}`);
+    });
+  });
+  if (!hasAny) {
+    // No drugs selected
   }
 }
 
@@ -6156,26 +6173,59 @@ function generateReport() {
     html += '<p style="color:#999; font-size:10px;">イベント記録なし</p>';
   }
 
-  // --- Section C: Drug Administration Summary ---
+  // --- Section C: Drug Administration Summary (by category) ---
   html += '<div class="report-section-title">C. 薬剤投与記録</div>';
-  // Collect drug entries from log
-  var drugLogs = [];
+  var drugByCategory = {};
+  var drugOther = [];
   var logIds = Object.keys(state.logEntries);
   for (var li = 0; li < logIds.length; li++) {
     var le = state.logEntries[logIds[li]];
-    if (le && le.text) {
-      if (le.text.startsWith('💊') || le.text.startsWith('💉')) {
-        drugLogs.push(le.text);
+    if (!le || !le.text) continue;
+    if (le.text.startsWith('💉')) {
+      // Parse category from [カテゴリ] format
+      var catMatch = le.text.match(/\[(.+?)\]/);
+      if (catMatch) {
+        var cat = catMatch[1];
+        var detail = le.text.replace(/^💉\s*\[.+?\]\s*/, '');
+        if (!drugByCategory[cat]) drugByCategory[cat] = [];
+        drugByCategory[cat].push(detail);
+      } else {
+        drugOther.push(le.text.replace(/^💉\s*/, ''));
       }
+    } else if (le.text.startsWith('💊')) {
+      drugOther.push(le.text.replace(/^💊\s*/, ''));
     }
   }
-  if (drugLogs.length > 0) {
-    html += '<table class="report-drug-table"><thead><tr><th>投与内容</th><th>備考</th></tr></thead><tbody>';
-    for (var di = 0; di < drugLogs.length; di++) {
-      var dText = drugLogs[di].replace(/^[💊💉]\s*/, '');
-      html += '<tr><td>' + dText + '</td><td></td></tr>';
+  var hasDrugs = Object.keys(drugByCategory).length > 0 || drugOther.length > 0;
+  if (hasDrugs) {
+    var catOrder = ['前投薬','麻酔導入','維持麻酔','鎮痛','抗生剤・その他','輸液'];
+    catOrder.forEach(function(cat) {
+      if (!drugByCategory[cat] || drugByCategory[cat].length === 0) return;
+      html += '<div style="font-size:11px;font-weight:700;color:#555;margin:8px 0 3px;border-bottom:1px solid #ddd;padding-bottom:2px;">' + cat + '</div>';
+      html += '<table class="report-drug-table"><tbody>';
+      drugByCategory[cat].forEach(function(d) {
+        html += '<tr><td>' + d + '</td></tr>';
+      });
+      html += '</tbody></table>';
+    });
+    // Any remaining categories not in catOrder
+    Object.keys(drugByCategory).forEach(function(cat) {
+      if (catOrder.indexOf(cat) >= 0) return;
+      html += '<div style="font-size:11px;font-weight:700;color:#555;margin:8px 0 3px;">' + cat + '</div>';
+      html += '<table class="report-drug-table"><tbody>';
+      drugByCategory[cat].forEach(function(d) {
+        html += '<tr><td>' + d + '</td></tr>';
+      });
+      html += '</tbody></table>';
+    });
+    if (drugOther.length > 0) {
+      html += '<div style="font-size:11px;font-weight:700;color:#555;margin:8px 0 3px;">術中投与</div>';
+      html += '<table class="report-drug-table"><tbody>';
+      drugOther.forEach(function(d) {
+        html += '<tr><td>' + d + '</td></tr>';
+      });
+      html += '</tbody></table>';
     }
-    html += '</tbody></table>';
   } else {
     html += '<p style="color:#999; font-size:10px;">薬剤投与記録なし</p>';
   }
