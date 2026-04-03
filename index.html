@@ -4418,17 +4418,44 @@ function parseVitalsFromAI(text) {
     }
     console.log('[VetAnes] Parsed JSON:', obj);
 
+    // キー名を正規化（大文字/小文字/バリエーション対応）
+    var norm = {};
+    if (obj) {
+      Object.keys(obj).forEach(function(k) {
+        var v = obj[k];
+        if (v === null || v === undefined) return;
+        if (typeof v === 'string') v = parseFloat(v);
+        if (isNaN(v)) return;
+        var lk = k.toLowerCase().replace(/[_\-\s]/g, '');
+        // Map common variations
+        if (lk === 'hr' || lk === 'heartrate' || lk === 'pulse') norm.hr = v;
+        else if (lk === 'spo2' || lk === 'sp02' || lk === 'o2sat') norm.spo2 = v;
+        else if (lk === 'rr' || lk === 'resp' || lk === 'respiratoryrate' || lk === 'awrr') norm.rr = v;
+        else if (lk === 'etco2in' || lk === 'fico2' || lk === 'inspco2' || lk === 'co2in') norm.etco2_in = v;
+        else if (lk === 'etco2ex' || lk === 'etco2' || lk === 'co2ex' || lk === 'endtidalco2') norm.etco2_ex = v;
+        else if (lk === 'sys' || lk === 'systolic' || lk === 'nbps' || lk === 'ibps' || lk === 'sbp') norm.sys = v;
+        else if (lk === 'dia' || lk === 'diastolic' || lk === 'nbpd' || lk === 'ibpd' || lk === 'dbp') norm.dia = v;
+        else if (lk === 'map' || lk === 'mean' || lk === 'meanarterialpressure' || lk === 'nbpm') { norm.sys = norm.sys || 0; norm.dia = norm.dia || 0; norm._map = v; }
+        else if (lk === 'temp' || lk === 'temperature' || lk === 't1' || lk === 't2' || lk === 'bodytemp') norm.temp = v;
+        else if (lk === 'gasin' || lk === 'fiaa' || lk === 'fiiso' || lk === 'fisev' || lk === 'fi' || lk === 'inspagent') norm.gas_in = v;
+        else if (lk === 'gasex' || lk === 'etaa' || lk === 'etiso' || lk === 'etsev' || lk === 'et' || lk === 'expagent') norm.gas_ex = v;
+      });
+    }
+    console.log('[VetAnes] Normalized:', norm);
+
     // 数値の妥当性チェック（範囲を広めに設定）
-    var hr = (typeof obj.hr === 'number' && obj.hr > 0 && obj.hr < 500) ? Math.round(obj.hr) : null;
-    var spo2 = (typeof obj.spo2 === 'number' && obj.spo2 > 0 && obj.spo2 <= 100) ? Math.round(obj.spo2) : null;
-    var rr = (typeof obj.rr === 'number' && obj.rr >= 0 && obj.rr < 200) ? Math.round(obj.rr) : null;
-    var etco2_in = (typeof obj.etco2_in === 'number' && obj.etco2_in >= 0 && obj.etco2_in < 150) ? Math.round(obj.etco2_in) : null;
-    var etco2_ex = (typeof obj.etco2_ex === 'number' && obj.etco2_ex >= 0 && obj.etco2_ex < 150) ? Math.round(obj.etco2_ex) : null;
-    var sys = (typeof obj.sys === 'number' && obj.sys > 0 && obj.sys < 400) ? Math.round(obj.sys) : null;
-    var dia = (typeof obj.dia === 'number' && obj.dia > 0 && obj.dia < 400) ? Math.round(obj.dia) : null;
-    var temp = (typeof obj.temp === 'number' && obj.temp > 10 && obj.temp < 50) ? +obj.temp.toFixed(1) : null;
-    var gas_in = (typeof obj.gas_in === 'number' && obj.gas_in >= 0 && obj.gas_in < 15) ? +obj.gas_in.toFixed(1) : null;
-    var gas_ex = (typeof obj.gas_ex === 'number' && obj.gas_ex >= 0 && obj.gas_ex < 15) ? +obj.gas_ex.toFixed(1) : null;
+    var hr = (typeof norm.hr === 'number' && norm.hr > 0 && norm.hr < 500) ? Math.round(norm.hr) : null;
+    var spo2 = (typeof norm.spo2 === 'number' && norm.spo2 > 0 && norm.spo2 <= 100) ? Math.round(norm.spo2) : null;
+    var rr = (typeof norm.rr === 'number' && norm.rr >= 0 && norm.rr < 200) ? Math.round(norm.rr) : null;
+    var etco2_in = (typeof norm.etco2_in === 'number' && norm.etco2_in >= 0 && norm.etco2_in < 150) ? Math.round(norm.etco2_in) : null;
+    var etco2_ex = (typeof norm.etco2_ex === 'number' && norm.etco2_ex >= 0 && norm.etco2_ex < 150) ? Math.round(norm.etco2_ex) : null;
+    var sys = (typeof norm.sys === 'number' && norm.sys > 0 && norm.sys < 400) ? Math.round(norm.sys) : null;
+    var dia = (typeof norm.dia === 'number' && norm.dia > 0 && norm.dia < 400) ? Math.round(norm.dia) : null;
+    var temp = (typeof norm.temp === 'number' && norm.temp > 10 && norm.temp < 50) ? +norm.temp.toFixed(1) : null;
+    var gas_in = (typeof norm.gas_in === 'number' && norm.gas_in >= 0 && norm.gas_in < 15) ? +norm.gas_in.toFixed(1) : null;
+    var gas_ex = (typeof norm.gas_ex === 'number' && norm.gas_ex >= 0 && norm.gas_ex < 15) ? +norm.gas_ex.toFixed(1) : null;
+    // MAP直接読取の場合、sys/diaが無ければMAPから推定
+    if (norm._map && !sys && !dia) { sys = Math.round(norm._map * 1.2); dia = Math.round(norm._map * 0.8); }
 
     // 1項目以上読めていれば成功とする（前回値で補完するため）
     var count = [hr, spo2, rr, etco2_in, etco2_ex, sys, dia, temp, gas_in, gas_ex].filter(function(v) { return v !== null; }).length;
