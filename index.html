@@ -1935,7 +1935,7 @@ const SPECIES_EMOJI = {
 const DRUG_MASTER_DEFAULT = {
   emergency: [
     { name:'アトロピン',     conc:0.5,  unit:'mg/mL', dosePerKg:0.05,  doseUnit:'mg/kg', targetMlPerKg:0.1, dilFactor:1,   dilConc:0.5 },
-    { name:'エフェドリン',   conc:40,   unit:'mg/mL', dosePerKg:0.1,   doseUnit:'mg/kg', targetMlPerKg:0.1, dilFactor:40,  dilConc:1 },
+    { name:'エフェドリン',   conc:40,   unit:'mg/mL', dosePerKg:0.06, doseMax:0.1, doseUnit:'mg/kg', targetMlPerKg:0.06, dilFactor:40, dilConc:1 },
     { name:'エピネフリン',   conc:1,    unit:'mg/mL', dosePerKg:0.01,  doseUnit:'mg/kg', targetMlPerKg:0.1, dilFactor:10,  dilConc:0.1 },
     { name:'ナロキソン',     conc:0.4,  unit:'mg/mL', dosePerKg:0.04,  doseUnit:'mg/kg', targetMlPerKg:0.1, dilFactor:1,   dilConc:0.4 },
     { name:'ドキサプラム',   conc:20,   unit:'mg/mL', dosePerKg:1,     doseUnit:'mg/kg', targetMlPerKg:0.05, dilFactor:1,  dilConc:20 },
@@ -2010,7 +2010,7 @@ const DRUG_MASTER = {
   cat: {
     emergency: [
       { name:'アトロピン',     conc:0.5,  unit:'mg/mL', dosePerKg:0.05,  doseUnit:'mg/kg', targetMlPerKg:0.1, dilFactor:1,   dilConc:0.5 },
-      { name:'エフェドリン',   conc:40,   unit:'mg/mL', dosePerKg:0.1,   doseUnit:'mg/kg', targetMlPerKg:0.1, dilFactor:40,  dilConc:1 },
+      { name:'エフェドリン',   conc:40,   unit:'mg/mL', dosePerKg:0.06, doseMax:0.1, doseUnit:'mg/kg', targetMlPerKg:0.06, dilFactor:40, dilConc:1 },
       { name:'エピネフリン',   conc:1,    unit:'mg/mL', dosePerKg:0.01,  doseUnit:'mg/kg', targetMlPerKg:0.1, dilFactor:10,  dilConc:0.1 },
       { name:'ナロキソン',     conc:0.4,  unit:'mg/mL', dosePerKg:0.04,  doseUnit:'mg/kg', targetMlPerKg:0.1, dilFactor:1,   dilConc:0.4 },
       { name:'ドキサプラム',   conc:20,   unit:'mg/mL', dosePerKg:1,     doseUnit:'mg/kg', targetMlPerKg:0.05, dilFactor:1,  dilConc:20 },
@@ -3840,11 +3840,12 @@ function buildEmergencyDrugs(){
     var mainLabel = _fmtMlHr(totalMl) + ' mL';
     var line1, line2;
 
+    var doseDisp = drug.doseMax ? (drug.dosePerKg + '〜' + drug.doseMax) : drug.dosePerKg;
     if (dilF > 1) {
       line1 = '<span style="color:var(--accent-cyan);font-weight:700;">' + dilF + '倍希釈</span>';
-      line2 = mlPerKg + ' mL/kg';
+      line2 = doseDisp + ' ' + drug.doseUnit;
     } else {
-      line1 = drug.dosePerKg + ' ' + drug.doseUnit;
+      line1 = doseDisp + ' ' + drug.doseUnit;
       line2 = mlPerKg + ' mL/kg';
     }
 
