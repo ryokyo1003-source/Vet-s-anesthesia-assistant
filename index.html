@@ -3151,7 +3151,7 @@ function _buildFentanylUI(d, w) {
   html += '<div style="font-size:12px;font-weight:600;color:var(--accent-cyan);margin-bottom:6px;">調製方法（5倍希釈 → ' + dilConc + ' ' + dilUnit + '）</div>';
   html += '<div style="display:flex;gap:6px;margin-bottom:6px;">';
   for (var n = 1; n <= 4; n++) {
-    html += '<button type="button" class="prep-cri-mode-btn' + (selVials === n ? ' active' : '') + '" onclick="window._fentVials=' + n + ';updatePrepCri()" style="flex:1;">' + n + '本</button>';
+    html += '<button type="button" class="prep-cri-mode-btn' + (selVials === n ? ' active' : '') + '" ontouchend="event.preventDefault();window._fentVials=' + n + ';updatePrepCri()" onclick="window._fentVials=' + n + ';updatePrepCri()" style="flex:1;min-height:44px;">' + n + '本</button>';
   }
   html += '</div>';
   var stockMl = selVials * 2;
