@@ -3094,7 +3094,13 @@ function _buildInfusionBagUI(d, w, defs) {
   var html = '';
 
   // Drug info
-  html += '<div style="font-size:11px;color:var(--text-secondary);margin-bottom:6px;">原液: ' + d.conc + ' ' + d.concUnit + '　推奨: ' + d.rateMin + '〜' + d.rateMax + ' ' + d.rateUnit + '</div>';
+  var rateInfo = d.rateMin + '〜' + d.rateMax + ' ' + d.rateUnit;
+  if (d.rateUnit.indexOf('/min') >= 0) {
+    rateInfo += '（= ' + (d.rateMin * 60) + '〜' + (d.rateMax * 60) + ' ' + d.rateUnit.replace('/min', '/hr') + '）';
+  } else if (d.rateUnit.indexOf('/hr') >= 0 && d.rateUnit.indexOf('/min') < 0) {
+    rateInfo += '（= ' + +(d.rateMin / 60).toFixed(2) + '〜' + +(d.rateMax / 60).toFixed(2) + ' ' + d.rateUnit.replace('/hr', '/min') + '）';
+  }
+  html += '<div style="font-size:11px;color:var(--text-secondary);margin-bottom:6px;">原液: ' + d.conc + ' ' + d.concUnit + '　推奨: ' + rateInfo + '</div>';
 
   // Input fields
   html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:4px;">';
