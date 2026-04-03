@@ -38,6 +38,16 @@
     --etco2-in-color: #a78bfa;
     --etco2-ex-color: #8b5cf6;
   }
+  body.light-mode {
+    --bg-primary: #f0f2f5;
+    --bg-secondary: #ffffff;
+    --bg-card: #ffffff;
+    --bg-card-hover: #f5f7fa;
+    --border: #d1d5db;
+    --text-primary: #1f2937;
+    --text-secondary: #6b7280;
+    --text-muted: #9ca3af;
+  }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif;
@@ -1367,6 +1377,7 @@
     <button class="settings-tab" data-tab="tabDrugMaster" id="tabBtnDrugMaster">💊 薬剤マスタ</button>
     <button class="settings-tab" data-tab="tabApiSettings" id="tabBtnApi">🔑 AI読取設定</button>
     <button class="settings-tab" data-tab="tabCustomDrugs" id="tabBtnCustomDrugs">🏥 院内製剤</button>
+    <button class="settings-tab" data-tab="tabTheme" id="tabBtnTheme">🎨 テーマ</button>
   </div>
 
   <!-- Tab 1: Monitor Calibration -->
@@ -1527,6 +1538,26 @@
       </div>
       <div id="customDrugsList"></div>
       <button type="button" onclick="openCustomDrugModal(-1)" style="width:100%; padding:14px; margin-top:12px; background:linear-gradient(135deg, var(--accent-purple), var(--accent-blue)); border:none; border-radius:10px; color:white; font-size:15px; font-weight:700; cursor:pointer; min-height:48px;">＋ 院内製剤を追加</button>
+    </div>
+  </div>
+
+  <!-- Tab 5: Theme -->
+  <div class="settings-tab-content" id="tabTheme">
+    <div style="padding:20px; max-width:400px; margin:0 auto;">
+      <div style="text-align:center; margin-bottom:20px;">
+        <div style="font-size:40px; margin-bottom:8px;">🎨</div>
+        <h3 style="font-size:16px; margin-bottom:4px;">テーマ設定</h3>
+      </div>
+      <div style="display:flex; gap:10px;">
+        <button type="button" id="btnThemeDark" onclick="setTheme('dark')" style="flex:1; padding:20px; border:2px solid var(--border); border-radius:12px; cursor:pointer; background:#0a0e1a; text-align:center;">
+          <div style="font-size:24px; margin-bottom:6px;">🌙</div>
+          <div style="color:#e8ecf4; font-size:14px; font-weight:700;">ダーク</div>
+        </button>
+        <button type="button" id="btnThemeLight" onclick="setTheme('light')" style="flex:1; padding:20px; border:2px solid var(--border); border-radius:12px; cursor:pointer; background:#f0f2f5; text-align:center;">
+          <div style="font-size:24px; margin-bottom:6px;">☀️</div>
+          <div style="color:#1f2937; font-size:14px; font-weight:700;">ライト</div>
+        </button>
+      </div>
     </div>
   </div>
 </div>
@@ -4955,6 +4986,25 @@ function saveCalibProfilesToStorage() {
   } catch(e) { console.warn('Calib profile save error:', e); }
 }
 
+function setTheme(theme) {
+  if (theme === 'light') {
+    document.body.classList.add('light-mode');
+  } else {
+    document.body.classList.remove('light-mode');
+  }
+  localStorage.setItem('vetanes_theme', theme);
+  // Update button borders
+  var darkBtn = document.getElementById('btnThemeDark');
+  var lightBtn = document.getElementById('btnThemeLight');
+  if (darkBtn) darkBtn.style.borderColor = theme === 'dark' ? 'var(--accent-blue)' : 'var(--border)';
+  if (lightBtn) lightBtn.style.borderColor = theme === 'light' ? 'var(--accent-blue)' : 'var(--border)';
+}
+
+function loadTheme() {
+  var theme = localStorage.getItem('vetanes_theme') || 'dark';
+  setTheme(theme);
+}
+
 function openSettings(tabId) {
   // Show screen FIRST, then load data
   var screen = document.getElementById('settingsScreen');
@@ -6921,6 +6971,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // 日付フィールド初期化
   try { document.getElementById('inputDate').value = new Date().toISOString().split('T')[0]; } catch(e) { console.warn('init date error:', e); }
 
+  try { loadTheme(); } catch(e) {}
   try { loadCalibProfiles(); } catch(e) { console.warn('init calib error:', e); }
   try { loadDrugMasterFromStorage(); } catch(e) { console.warn('init drug master error:', e); }
   try { loadApiSettings(); } catch(e) { console.warn('init api settings error:', e); }
