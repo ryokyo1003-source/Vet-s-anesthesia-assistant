@@ -1607,14 +1607,22 @@
     <div class="right-panel">
       <!-- Timer -->
       <div class="panel-section">
-        <div class="panel-title">⏱ タイマー / アナウンス</div>
+        <div class="panel-title">⏱ 撮影タイマー</div>
         <div class="timer-bar-wrap"><div class="timer-bar" id="timerBar"></div></div>
         <div class="timer-text" id="timerText">5:00</div>
+      </div>
+
+      <!-- Elapsed timers -->
+      <div class="panel-section">
+        <div class="panel-title">⏱ 経過時間</div>
         <div class="announce-row">
           <button class="btn-announce" id="btnInduction" onclick="startAnnounce('induction')">導入</button>
           <button class="btn-announce" id="btnIncision" onclick="startAnnounce('incision')">切皮</button>
         </div>
-        <div class="announce-status" id="announceStatus">-</div>
+        <div id="announceStatusArea" style="margin-top:4px;">
+          <div class="announce-status" id="announceStatusInduction" style="display:none;"></div>
+          <div class="announce-status" id="announceStatusIncision" style="display:none;"></div>
+        </div>
       </div>
 
       <!-- CRI -->
@@ -3429,23 +3437,68 @@ function updateTimerDisplay() {
   const tt=document.getElementById('timerText');
   if(pct<=10)tt.style.color='var(--accent-red)';else if(pct<=30)tt.style.color='var(--accent-orange)';else if(pct<=50)tt.style.color='var(--accent-yellow)';else tt.style.color='var(--text-primary)';
 }
+// Independent elapsed timers for induction and incision
+if (!state._announceTimers) state._announceTimers = {};
+
 function startAnnounce(type) {
-  if(state.announceType===type){clearInterval(state.announceInterval);state.announceType=null;state.announceStart=null;document.getElementById('btnInduction').classList.remove('active');document.getElementById('btnIncision').classList.remove('active');document.getElementById('announceStatus').textContent='-';return;}
-  state.announceType=type;state.announceStart=Date.now();
-  document.getElementById('btnInduction').classList.toggle('active',type==='induction');
-  document.getElementById('btnIncision').classList.toggle('active',type==='incision');
-  if(state.announceInterval)clearInterval(state.announceInterval);state.announceInterval=setInterval(checkAnnounce,1000);
-  const l=type==='induction'?'導入':'切皮'; addLog(`${l} タイマー開始`); updateAnnounceStatus();
+  var timer = state._announceTimers[type];
+  var btnId = type === 'induction' ? 'btnInduction' : 'btnIncision';
+  var statusId = type === 'induction' ? 'announceStatusInduction' : 'announceStatusIncision';
+  var label = type === 'induction' ? '導入' : '切皮';
+
+  if (timer && timer.active) {
+    // Toggle off
+    timer.active = false;
+    document.getElementById(btnId).classList.remove('active');
+    document.getElementById(statusId).style.display = 'none';
+    return;
+  }
+
+  // Start new timer (independent, doesn't affect other)
+  state._announceTimers[type] = { start: Date.now(), active: true };
+  document.getElementById(btnId).classList.add('active');
+  document.getElementById(statusId).style.display = 'block';
+  addLog(`⏱ ${label} タイマー開始`);
+
+  // Start interval if not running
+  if (!state.announceInterval) {
+    state.announceInterval = setInterval(checkAnnounce, 1000);
+  }
+  updateAnnounceStatus();
 }
+
 function checkAnnounce() {
-  if(!state.announceStart)return; updateAnnounceStatus();
-  const e=Math.floor((Date.now()-state.announceStart)/1000);
-  if(e>0&&e%1800===0){const m=e/60,l=state.announceType==='induction'?'導入':'切皮';speak(`${l}から${m}分経過`);addLog(`🔊 ${l}から${m}分経過`);}
+  var anyActive = false;
+  ['induction', 'incision'].forEach(function(type) {
+    var timer = state._announceTimers[type];
+    if (!timer || !timer.active) return;
+    anyActive = true;
+    var e = Math.floor((Date.now() - timer.start) / 1000);
+    var label = type === 'induction' ? '導入' : '切皮';
+    if (e > 0 && e % 1800 === 0) {
+      speak(label + 'から' + (e/60) + '分経過');
+      addLog('🔊 ' + label + 'から' + (e/60) + '分経過');
+    }
+  });
+  updateAnnounceStatus();
+  if (!anyActive && state.announceInterval) {
+    clearInterval(state.announceInterval);
+    state.announceInterval = null;
+  }
 }
+
 function updateAnnounceStatus() {
-  if(!state.announceStart)return;const e=Math.floor((Date.now()-state.announceStart)/1000);
-  const l=state.announceType==='induction'?'導入':'切皮';
-  document.getElementById('announceStatus').textContent=`${l}から ${Math.floor(e/60)}:${String(e%60).padStart(2,'0')} 経過`;
+  ['induction', 'incision'].forEach(function(type) {
+    var timer = state._announceTimers[type];
+    var statusId = type === 'induction' ? 'announceStatusInduction' : 'announceStatusIncision';
+    var el = document.getElementById(statusId);
+    if (!el) return;
+    if (!timer || !timer.active) { el.style.display = 'none'; return; }
+    var e = Math.floor((Date.now() - timer.start) / 1000);
+    var label = type === 'induction' ? '導入' : '切皮';
+    el.style.display = 'block';
+    el.textContent = label + 'から ' + Math.floor(e/60) + ':' + String(e%60).padStart(2,'0') + ' 経過';
+  });
 }
 function speak(text){if('speechSynthesis' in window){const u=new SpeechSynthesisUtterance(text);u.lang='ja-JP';u.rate=1.0;speechSynthesis.speak(u);}}
 
