@@ -4380,36 +4380,40 @@ function callClaudeVision(imageDataUrl, captureId, btn) {
 }
 
 function parseVitalsFromAI(text) {
-  // AI応答からJSONを抽出
+  // AI応答からバイタル値を抽出（複数の方法で試行）
   try {
     console.log('[VetAnes] AI raw response:', text);
+    if (!text || text.trim().length === 0) return null;
 
-    // ```json ... ``` を除去
-    var cleaned = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
-    // JSONオブジェクト部分を抽出（最後の } まで貪欲にマッチ）
-    var jsonMatch = cleaned.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      console.warn('[VetAnes] No JSON found in AI response');
-      return null;
+    var obj = null;
+
+    // 方法1: テキスト全体をそのままJSONパース
+    try { obj = JSON.parse(text.trim()); } catch(e) {}
+
+    // 方法2: マークダウン除去してパース
+    if (!obj) {
+      try {
+        var cleaned = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+        var jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          var jsonStr = jsonMatch[0];
+          jsonStr = jsonStr.replace(/'/g, '"');
+          jsonStr = jsonStr.replace(/([{,]\s*)(\w+)\s*:/g, '$1"$2":');
+          jsonStr = jsonStr.replace(/:\s*None\b/g, ':null');
+          obj = JSON.parse(jsonStr);
+        }
+      } catch(e) {}
     }
-    var jsonStr = jsonMatch[0];
-    // シングルクォート→ダブルクォートに変換（Python形式対応）
-    jsonStr = jsonStr.replace(/'/g, '"');
-    // キーにクォートがない場合に対応 (hr: → "hr":)
-    jsonStr = jsonStr.replace(/([{,]\s*)(\w+)\s*:/g, '$1"$2":');
-    // null文字列対応
-    jsonStr = jsonStr.replace(/:\s*None\b/g, ':null');
-    var obj;
-    try {
-      obj = JSON.parse(jsonStr);
-    } catch(e2) {
-      // 最終手段: 正規表現で個別に値を抽出
-      console.warn('[VetAnes] JSON.parse failed, trying regex extraction:', jsonStr);
+
+    // 方法3: 正規表現で個別に値を抽出（最終手段）
+    if (!obj) {
+      console.warn('[VetAnes] JSON.parse failed, trying regex extraction');
       obj = {};
+      var rawText = text;
       var fields = ['hr','spo2','rr','etco2_in','etco2_ex','sys','dia','temp','gas_in','gas_ex'];
       fields.forEach(function(f) {
-        var m = jsonStr.match(new RegExp('"?' + f + '"?\\s*:\\s*([\\d.]+|null)'));
-        if (m && m[1] !== 'null') obj[f] = parseFloat(m[1]);
+        var m = rawText.match(new RegExp('["\']?' + f + '["\']?\\s*[=:]\\s*([\\d.]+|null|None)', 'i'));
+        if (m && m[1] !== 'null' && m[1] !== 'None') obj[f] = parseFloat(m[1]);
       });
     }
     console.log('[VetAnes] Parsed JSON:', obj);
