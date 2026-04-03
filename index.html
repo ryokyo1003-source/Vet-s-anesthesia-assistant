@@ -2075,7 +2075,6 @@ let PREMED_MASTER = {
     ],
     analgesic: [
       { name:'ブプレノルフィン', conc:0.3, concUnit:'mg/mL', doseMin:0.01, doseMax:0.05, doseUnit:'mg/kg', route:'sc/iv' },
-      { name:'メロキシカム', conc:5, concUnit:'mg/mL', doseMin:0.3, doseMax:0.5, doseUnit:'mg/kg', route:'sc' },
       { name:'リドカイン', conc:20, concUnit:'mg/mL', doseMin:1, doseMax:2, doseUnit:'mg/kg', route:'iv', recMlPerKg:0.1 },
     ],
     antibiotic: [
@@ -5340,7 +5339,7 @@ function loadDrugMasterFromStorage() {
   } catch(e) { console.warn('Drug master load error:', e); }
 }
 
-var DRUG_MASTER_VERSION = 11; // Increment when default data changes to force merge
+var DRUG_MASTER_VERSION = 12; // Increment when default data changes to force merge
 
 function saveDrugMasterToStorage() {
   try {
