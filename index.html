@@ -4194,7 +4194,8 @@ function callGeminiVision(imageDataUrl, captureId, btn) {
     }],
     generationConfig: {
       maxOutputTokens: 512,
-      temperature: 0.1
+      temperature: 0.1,
+      responseMimeType: "application/json"
     }
   });
 
@@ -5685,7 +5686,7 @@ function aiReadConcentration() {
         { inline_data: { mime_type: mimeType, data: base64Data } },
         { text: prompt }
       ]}],
-      generationConfig: { maxOutputTokens: 256, temperature: 0.1 }
+      generationConfig: { maxOutputTokens: 256, temperature: 0.1, responseMimeType: "application/json" }
     });
     var xhrG = new XMLHttpRequest();
     xhrG.open('POST', apiUrl, true);
