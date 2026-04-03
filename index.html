@@ -3145,15 +3145,11 @@ function _buildFentanylUI(d, w) {
   var dilConc = d.diluted.conc;       // 10 μg/mL
   var dilUnit = d.diluted.concUnit;   // μg/mL
 
-  // Preparation method selector (1-4 vials)
+  // Preparation method selector (1-4 vials) via picker
   var selVials = window._fentVials || 1;
   html += '<div style="background:rgba(6,182,212,0.1);border:1px solid rgba(6,182,212,0.3);border-radius:8px;padding:8px 10px;margin-bottom:10px;">';
   html += '<div style="font-size:12px;font-weight:600;color:var(--accent-cyan);margin-bottom:6px;">調製方法（5倍希釈 → ' + dilConc + ' ' + dilUnit + '）</div>';
-  html += '<div style="display:flex;gap:6px;margin-bottom:6px;">';
-  for (var n = 1; n <= 4; n++) {
-    html += '<button type="button" class="prep-cri-mode-btn' + (selVials === n ? ' active' : '') + '" ontouchend="event.preventDefault();window._fentVials=' + n + ';updatePrepCri()" onclick="window._fentVials=' + n + ';updatePrepCri()" style="flex:1;min-height:44px;">' + n + '本</button>';
-  }
-  html += '</div>';
+  html += '<button type="button" onclick="openFentVialPicker()" style="width:100%;padding:10px;background:var(--bg-secondary);border:1px solid var(--accent-cyan);border-radius:8px;color:var(--accent-cyan);font-size:16px;font-weight:700;cursor:pointer;min-height:44px;">' + selVials + '本（' + (selVials*10) + 'mLシリンジ）▾</button>';
   var stockMl = selVials * 2;
   var salineMl = selVials * 8;
   var totalMl = selVials * 10;
@@ -3185,6 +3181,21 @@ function _buildFentanylUI(d, w) {
 }
 
 /* ---- プロポフォール etc: direct simple UI ---- */
+function openFentVialPicker() {
+  var options = [
+    { label: '1本（10mLシリンジ）', value: '1' },
+    { label: '2本（20mLシリンジ）', value: '2' },
+    { label: '3本（30mLシリンジ）', value: '3' },
+    { label: '4本（40mLシリンジ）', value: '4' },
+  ];
+  var current = String(window._fentVials || 1);
+  window._listPickerCallback = function(val) {
+    window._fentVials = parseInt(val) || 1;
+    updatePrepCri();
+  };
+  openListPicker('_callback_fentVial', '💉 フェンタニル本数', options, current);
+}
+
 function _buildSimpleDirectUI(d, w) {
   var html = '';
   var useConc = d.conc;
