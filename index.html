@@ -3597,47 +3597,43 @@ function updateCRI() {
     html += '</tbody></table>';
 
   } else {
-    // === Infusion bag CRI (ドパミン、ドブタミン、ケタミン、リドカイン、メトクロプラミド) ===
-    // Excelワークシート方式: 輸液パックに薬剤を添加
-    var fluidVol = 50;  // デフォルト輸液量(mL)
-    if (w >= 10) fluidVol = 250;
-    else if (w >= 5) fluidVol = 100;
+    // === Infusion bag CRI (running) ===
+    // 調製済み → 流速を変えて投与速度を確認
+    var defs = _prepCriDefaults(w);
+    var defAddMl = calcInfusionAddMl(d.rateDefault, d.rateUnit, d.conc, d.concUnit, w, defs.bagVol, defs.flowRate);
 
-    var fluidRate = 10; // デフォルト点滴流量(mL/hr)
-    if (w >= 10) fluidRate = 20;
-    else if (w >= 3) fluidRate = 8;
-    else if (w >= 1) fluidRate = 5;
-    else fluidRate = 2;
+    var rateInfo = d.rateMin + '〜' + d.rateMax + ' ' + d.rateUnit;
+    if (d.rateUnit.indexOf('/min') >= 0) {
+      rateInfo += '（= ' + (d.rateMin * 60) + '〜' + (d.rateMax * 60) + ' ' + d.rateUnit.replace('/min', '/hr') + '）';
+    }
+    html += '<div style="font-size:11px;color:var(--text-secondary);margin-bottom:4px;">推奨: ' + rateInfo + '</div>';
 
-    html += '<div style="font-size:11px;color:var(--text-secondary);margin-bottom:4px;">推奨: ' + d.rateMin + '〜' + d.rateMax + ' ' + d.rateUnit + '</div>';
-
-    // 入力フォーム
-    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:6px;">';
-    html += '<div style="font-size:10px;"><label style="color:var(--text-muted);">輸液量(mL)</label><input type="number" id="criFluidVol" value="' + fluidVol + '" min="1" step="1" style="width:100%;padding:4px;background:var(--bg-card);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:12px;" onchange="recalcInfusionCRI()"></div>';
-    html += '<div style="font-size:10px;"><label style="color:var(--text-muted);">点滴流量(mL/hr)</label><input type="number" id="criFluidRate" value="' + fluidRate + '" min="0.1" step="0.1" style="width:100%;padding:4px;background:var(--bg-card);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:12px;" onchange="recalcInfusionCRI()"></div>';
+    // 調製情報（固定表示）
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;margin-bottom:6px;font-size:10px;">';
+    html += '<div><span style="color:var(--text-muted);">輸液量</span><div style="font-weight:600;" id="criFluidVolDisp">' + defs.bagVol + ' mL</div></div>';
+    html += '<div><span style="color:var(--text-muted);">添加量</span><div style="font-weight:600;color:var(--accent-cyan);" id="criAddMlDisp">' + _fmtMlHr(defAddMl) + ' mL</div></div>';
+    html += '<div><span style="color:var(--text-muted);">原液</span><div style="font-weight:600;">' + d.conc + ' ' + d.concUnit + '</div></div>';
     html += '</div>';
 
-    // 速度テーブル
-    html += '<table style="width:100%;border-collapse:collapse;font-size:11px;">';
-    html += '<thead><tr><th style="text-align:left;padding:3px 6px;border-bottom:1px solid var(--border);color:var(--text-secondary);">' + d.rateUnit + '</th>';
-    html += '<th style="text-align:right;padding:3px 6px;border-bottom:1px solid var(--border);color:var(--text-secondary);">添加量(mL)</th></tr></thead><tbody>';
-
-    var steps2 = generateRateSteps(d);
-    steps2.forEach(function(rate) {
-      var addMl = calcInfusionAddMl(rate, d.rateUnit, d.conc, d.concUnit, w, fluidVol, fluidRate);
-      var isDefault = (rate === d.rateDefault);
-      var style = isDefault ? 'background:rgba(59,130,246,0.12);font-weight:700;' : '';
-      html += '<tr style="' + style + '" class="cri-infusion-row" data-rate="' + rate + '"><td style="padding:3px 6px;border-bottom:1px solid rgba(42,53,80,0.3);">' + rate + '</td>';
-      html += '<td style="padding:3px 6px;border-bottom:1px solid rgba(42,53,80,0.3);text-align:right;font-family:monospace;" class="cri-add-ml"><strong>' + addMl.toFixed(3) + '</strong></td></tr>';
-    });
-    html += '</tbody></table>';
-
-    html += '<div style="margin-top:6px;padding:6px 8px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);border-radius:6px;font-size:10px;color:var(--accent-yellow);">';
-    html += '📋 選んだ速度の添加量を輸液パックに混注 → 設定した流量(mL/hr)で投与';
+    // 流速入力 → 投与速度を逆算
+    html += '<div style="font-size:10px;margin-bottom:6px;">';
+    html += '<label style="color:var(--text-muted);">点滴流量 (mL/hr)</label>';
+    html += '<input type="number" id="criFluidRate" value="' + defs.flowRate + '" min="0.1" step="0.1" style="width:100%;padding:5px;background:var(--bg-card);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:14px;font-weight:700;" onchange="recalcRunningCRI()" oninput="recalcRunningCRI()">';
     html += '</div>';
+
+    // 逆算結果
+    html += '<div id="criRunningResult" style="text-align:center;padding:8px;background:rgba(6,182,212,0.08);border:1px solid rgba(6,182,212,0.2);border-radius:8px;margin-bottom:6px;"></div>';
+
+    // Store drug info for recalc
+    html += '<input type="hidden" id="criDrugIdx" value="' + idx + '">';
   }
 
   panel.innerHTML = html;
+
+  // Initial calc for running CRI
+  if (d.calcType === 'infusion') {
+    setTimeout(recalcRunningCRI, 10);
+  }
 }
 
 function generateRateSteps(d) {
@@ -3724,6 +3720,55 @@ function calcInfusionAddMl(rate, rateUnit, conc, concUnit, w, fluidVol, fluidRat
   return addMl;
 }
 
+function recalcRunningCRI() {
+  var sp = state.patient.species || 'dog';
+  var drugs = CRI_MASTER[sp] || CRI_MASTER.dog;
+  var idxEl = document.getElementById('criDrugIdx');
+  if (!idxEl) return;
+  var idx = parseInt(idxEl.value) || 0;
+  var d = drugs[idx];
+  var w = state.patient.weight || 1;
+  var defs = _prepCriDefaults(w);
+
+  var fluidRateEl = document.getElementById('criFluidRate');
+  if (!fluidRateEl) return;
+  var flowRate = parseFloat(fluidRateEl.value) || defs.flowRate;
+
+  // 調製時の添加量（デフォルト速度で作った前提）
+  var addMl = calcInfusionAddMl(d.rateDefault, d.rateUnit, d.conc, d.concUnit, w, defs.bagVol, defs.flowRate);
+  // パック中の薬剤濃度 (mg/mL)
+  var stockMgMl = _concToMgPerMl(d.conc, d.concUnit);
+  var totalDrugMg = addMl * stockMgMl;
+  var bagConcMgMl = totalDrugMg / defs.bagVol;
+
+  // 現在の流速での投与速度を逆算
+  var mgPerHr = bagConcMgMl * flowRate;
+  var mgPerMin = mgPerHr / 60;
+
+  // μg/kg/min or mg/kg/hr etc. に変換
+  var ratePerMin = (mgPerMin / w) * 1000; // μg/kg/min
+  var ratePerHr = ratePerMin * 60; // μg/kg/hr
+
+  var resultEl = document.getElementById('criRunningResult');
+  if (resultEl) {
+    var html = '<div style="font-size:20px;font-weight:800;color:var(--accent-cyan);">' + ratePerMin.toFixed(1) + ' μg/kg/min</div>';
+    html += '<div style="font-size:12px;color:var(--text-secondary);">= ' + ratePerHr.toFixed(0) + ' μg/kg/hr</div>';
+    // 範囲内かチェック
+    var minRate = d.rateMin, maxRate = d.rateMax;
+    var currentRate = ratePerMin;
+    if (d.rateUnit.indexOf('/hr') >= 0) currentRate = ratePerHr;
+    if (currentRate < minRate) {
+      html += '<div style="font-size:11px;color:var(--accent-yellow);margin-top:2px;">⚠ 推奨下限未満</div>';
+    } else if (currentRate > maxRate) {
+      html += '<div style="font-size:11px;color:var(--accent-red);margin-top:2px;">⚠ 推奨上限超過</div>';
+    } else {
+      html += '<div style="font-size:11px;color:var(--accent-green);margin-top:2px;">✓ 推奨範囲内</div>';
+    }
+    resultEl.innerHTML = html;
+  }
+}
+
+// Legacy - no longer used for running CRI but keep for prep screen calls
 function recalcInfusionCRI() {
   var fluidVolEl = document.getElementById('criFluidVol');
   var fluidRateEl = document.getElementById('criFluidRate');
