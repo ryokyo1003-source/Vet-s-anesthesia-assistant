@@ -1939,9 +1939,9 @@ let PREMED_MASTER = {
       { name:'ガスター', conc:10, concUnit:'mg/mL', doseMin:0.5, doseMax:1.0, doseUnit:'mg/kg', route:'iv', recMlPerKg:0.1 },
     ],
     fluid: [
-      { name:'ソルラクト', conc:null, concUnit:null, doseMin:5, doseMax:10, doseUnit:'mL/hr', route:'iv' },
-      { name:'ソルアセト', conc:null, concUnit:null, doseMin:5, doseMax:10, doseUnit:'mL/hr', route:'iv' },
-      { name:'生理食塩水', conc:null, concUnit:null, doseMin:5, doseMax:10, doseUnit:'mL/hr', route:'iv' },
+      { name:'ソルラクト', conc:null, concUnit:null, doseMin:5, doseMax:10, doseUnit:'mL/kg/hr', route:'iv' },
+      { name:'ソルアセト', conc:null, concUnit:null, doseMin:5, doseMax:10, doseUnit:'mL/kg/hr', route:'iv' },
+      { name:'生理食塩水', conc:null, concUnit:null, doseMin:5, doseMax:10, doseUnit:'mL/kg/hr', route:'iv' },
     ],
   },
   rabbit: {
@@ -2342,8 +2342,11 @@ function buildPrepDrugList(species, weight) {
         const volDisp = totalMl < 0.01 ? totalMl.toFixed(4) : totalMl < 0.1 ? totalMl.toFixed(3) : totalMl.toFixed(2);
         const mgDisp = equivMgPerKg < 0.001 ? equivMgPerKg.toFixed(4) : equivMgPerKg < 0.01 ? equivMgPerKg.toFixed(3) : equivMgPerKg.toFixed(2);
         calcHtml = `<span class="prep-drug-calc" id="prepCalc_${idx}"><strong>${volDisp} mL</strong><br><span class="calc-detail-mgkg">${mgDisp} mg/kg</span></span>`;
+      } else if (isFluidUnit && defaultInputVal > 0) {
+        // Fluid drugs: show actual flow rate (mL/kg/hr × weight = mL/hr)
+        const actualRate = defaultInputVal * weight;
+        calcHtml = `<span class="prep-drug-calc" id="prepCalc_${idx}"><strong>${actualRate.toFixed(1)} mL/hr</strong><br><span class="calc-detail">${defaultInputVal} mL/kg/hr</span></span>`;
       } else if (!isInhale && defaultInputVal > 0) {
-        // Fluid drugs: keep old behavior
         const doseMg = defaultInputVal * weight;
         calcHtml = `<span class="prep-drug-calc" id="prepCalc_${idx}"><strong>${doseMg.toFixed(2)}</strong><br><span class="calc-detail">${drug.doseUnit}</span></span>`;
       } else {
@@ -2588,8 +2591,12 @@ function updatePrepCalc(idx) {
     const volDisp = totalMl < 0.01 ? totalMl.toFixed(4) : totalMl < 0.1 ? totalMl.toFixed(3) : totalMl.toFixed(2);
     const mgDisp = equivMgPerKg < 0.001 ? equivMgPerKg.toFixed(4) : equivMgPerKg < 0.01 ? equivMgPerKg.toFixed(3) : equivMgPerKg.toFixed(2);
     calcEl.innerHTML = `<strong>${volDisp} mL</strong><br><span class="calc-detail-mgkg">${mgDisp} mg/kg</span>`;
+  } else if (unit && unit.indexOf('mL/kg/hr') >= 0) {
+    // Fluid: input is mL/kg/hr → show actual mL/hr
+    const actualRate = inputVal * w;
+    calcEl.innerHTML = `<strong>${actualRate.toFixed(1)} mL/hr</strong><br><span class="calc-detail">${inputVal} mL/kg/hr</span>`;
   } else {
-    // Legacy: input is in original doseUnit (mg/kg or mL/kg/hr etc.)
+    // Legacy: input is in original doseUnit (mg/kg etc.)
     const dosePerKg = inputVal;
     const doseMg = dosePerKg * w;
     if (conc > 0) {
@@ -5160,7 +5167,7 @@ function loadDrugMasterFromStorage() {
   } catch(e) { console.warn('Drug master load error:', e); }
 }
 
-var DRUG_MASTER_VERSION = 10; // Increment when default data changes to force merge
+var DRUG_MASTER_VERSION = 11; // Increment when default data changes to force merge
 
 function saveDrugMasterToStorage() {
   try {
