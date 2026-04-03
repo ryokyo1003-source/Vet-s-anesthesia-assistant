@@ -1921,7 +1921,7 @@ let PREMED_MASTER = {
     induction: [
       { name:'プロポフォール', conc:10, concUnit:'mg/mL', doseMin:2, doseMax:6, doseUnit:'mg/kg', route:'iv slow', recMlPerKg:0.5 },
       { name:'アルファキサロン', conc:10, concUnit:'mg/mL', doseMin:2, doseMax:5, doseUnit:'mg/kg', route:'iv/im', recMlPerKg:0.3 },
-      { name:'ケタミン', conc:50, concUnit:'mg/mL', doseMin:5, doseMax:10, doseUnit:'mg/kg', route:'im' },
+      { name:'ケタミン', conc:10, concUnit:'mg/mL', doseMin:5, doseMax:10, doseUnit:'mg/kg', route:'iv', recMlPerKg:0.5 },
     ],
     maintenance: [
       { name:'イソフルラン', conc:null, concUnit:null, doseMin:1.0, doseMax:2.5, doseUnit:'%', route:'吸入' },
@@ -1939,9 +1939,9 @@ let PREMED_MASTER = {
       { name:'ガスター', conc:10, concUnit:'mg/mL', doseMin:0.5, doseMax:1.0, doseUnit:'mg/kg', route:'iv', recMlPerKg:0.1 },
     ],
     fluid: [
-      { name:'ソルラクト', conc:null, concUnit:null, doseMin:5, doseMax:10, doseUnit:'mL/kg/hr', route:'iv' },
-      { name:'ソルアセト', conc:null, concUnit:null, doseMin:5, doseMax:10, doseUnit:'mL/kg/hr', route:'iv' },
-      { name:'生理食塩水', conc:null, concUnit:null, doseMin:5, doseMax:10, doseUnit:'mL/kg/hr', route:'iv' },
+      { name:'ソルラクト', conc:null, concUnit:null, doseMin:5, doseMax:10, doseUnit:'mL/hr', route:'iv' },
+      { name:'ソルアセト', conc:null, concUnit:null, doseMin:5, doseMax:10, doseUnit:'mL/hr', route:'iv' },
+      { name:'生理食塩水', conc:null, concUnit:null, doseMin:5, doseMax:10, doseUnit:'mL/hr', route:'iv' },
     ],
   },
   rabbit: {
@@ -5143,7 +5143,7 @@ function loadDrugMasterFromStorage() {
   } catch(e) { console.warn('Drug master load error:', e); }
 }
 
-var DRUG_MASTER_VERSION = 9; // Increment when default data changes to force merge
+var DRUG_MASTER_VERSION = 10; // Increment when default data changes to force merge
 
 function saveDrugMasterToStorage() {
   try {
