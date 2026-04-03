@@ -2343,9 +2343,16 @@ function buildPrepDrugList(species, weight) {
         const mgDisp = equivMgPerKg < 0.001 ? equivMgPerKg.toFixed(4) : equivMgPerKg < 0.01 ? equivMgPerKg.toFixed(3) : equivMgPerKg.toFixed(2);
         calcHtml = `<span class="prep-drug-calc" id="prepCalc_${idx}"><strong>${volDisp} mL</strong><br><span class="calc-detail-mgkg">${mgDisp} mg/kg</span></span>`;
       } else if (isFluidUnit && defaultInputVal > 0) {
-        // Fluid drugs: show actual flow rate (mL/kg/hr × weight = mL/hr)
-        const actualRate = defaultInputVal * weight;
-        calcHtml = `<span class="prep-drug-calc" id="prepCalc_${idx}"><strong>${actualRate.toFixed(1)} mL/hr</strong><br><span class="calc-detail">${defaultInputVal} mL/kg/hr</span></span>`;
+        // Fluid drugs
+        if (drug.doseUnit === 'mL/kg') {
+          // SC fluid: show total mL
+          const totalMl = defaultInputVal * weight;
+          calcHtml = `<span class="prep-drug-calc" id="prepCalc_${idx}"><strong>${totalMl.toFixed(1)} mL</strong><br><span class="calc-detail">${defaultInputVal} mL/kg</span></span>`;
+        } else {
+          // IV fluid: show actual flow rate (mL/kg/hr × weight = mL/hr)
+          const actualRate = defaultInputVal * weight;
+          calcHtml = `<span class="prep-drug-calc" id="prepCalc_${idx}"><strong>${actualRate.toFixed(1)} mL/hr</strong><br><span class="calc-detail">${defaultInputVal} mL/kg/hr</span></span>`;
+        }
       } else if (!isInhale && defaultInputVal > 0) {
         const doseMg = defaultInputVal * weight;
         calcHtml = `<span class="prep-drug-calc" id="prepCalc_${idx}"><strong>${doseMg.toFixed(2)}</strong><br><span class="calc-detail">${drug.doseUnit}</span></span>`;
@@ -2592,9 +2599,13 @@ function updatePrepCalc(idx) {
     const mgDisp = equivMgPerKg < 0.001 ? equivMgPerKg.toFixed(4) : equivMgPerKg < 0.01 ? equivMgPerKg.toFixed(3) : equivMgPerKg.toFixed(2);
     calcEl.innerHTML = `<strong>${volDisp} mL</strong><br><span class="calc-detail-mgkg">${mgDisp} mg/kg</span>`;
   } else if (unit && unit.indexOf('mL/kg/hr') >= 0) {
-    // Fluid: input is mL/kg/hr → show actual mL/hr
+    // Fluid IV: input is mL/kg/hr → show actual mL/hr
     const actualRate = inputVal * w;
     calcEl.innerHTML = `<strong>${actualRate.toFixed(1)} mL/hr</strong><br><span class="calc-detail">${inputVal} mL/kg/hr</span>`;
+  } else if (unit && unit === 'mL/kg') {
+    // Fluid SC: input is mL/kg → show total mL
+    const totalMl = inputVal * w;
+    calcEl.innerHTML = `<strong>${totalMl.toFixed(1)} mL</strong><br><span class="calc-detail">${inputVal} mL/kg</span>`;
   } else {
     // Legacy: input is in original doseUnit (mg/kg etc.)
     const dosePerKg = inputVal;
@@ -6598,7 +6609,7 @@ function openRoutePicker() {
 }
 
 function openPrepRoutePicker(spanEl, catKey, drugIndex, customId) {
-  var routes = ['iv', 'iv slow', 'im', 'sc', 'po', 'ip', 'io', 'it', 'im/sc', 'im/iv', 'sc/iv', '吸入'];
+  var routes = ['iv', 'iv slow', 'im', 'sc', 'po', 'ip', 'io', 'im/sc', 'im/iv', 'sc/iv', '吸入'];
   var current = spanEl.textContent.trim();
   window._listPickerCallback = function(val) {
     spanEl.textContent = val;
@@ -6611,8 +6622,23 @@ function openPrepRoutePicker(spanEl, catKey, drugIndex, customId) {
       var sp = state.patient.species || 'dog';
       var master = PREMED_MASTER[sp] || PREMED_MASTER.dog;
       if (master[catKey] && master[catKey][drugIndex]) {
-        master[catKey][drugIndex].route = val;
+        var drug = master[catKey][drugIndex];
+        drug.route = val;
+        // If fluid drug and route changed to SC, switch to fixed mL/kg dose
+        if (catKey === 'fluid') {
+          if (val.toLowerCase() === 'sc') {
+            drug.doseUnit = 'mL/kg';
+            drug.doseMin = 10;
+            drug.doseMax = 20;
+          } else {
+            drug.doseUnit = 'mL/kg/hr';
+            drug.doseMin = 5;
+            drug.doseMax = 10;
+          }
+        }
         saveDrugMasterToStorage();
+        // Rebuild to reflect unit change
+        buildPrepDrugList(sp, state.patient.weight);
       }
     }
   };
