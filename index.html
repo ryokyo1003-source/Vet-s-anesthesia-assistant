@@ -4385,8 +4385,8 @@ function parseVitalsFromAI(text) {
 
     // ```json ... ``` を除去
     var cleaned = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
-    // JSONオブジェクト部分を抽出
-    var jsonMatch = cleaned.match(/\{[\s\S]*?\}/);
+    // JSONオブジェクト部分を抽出（最後の } まで貪欲にマッチ）
+    var jsonMatch = cleaned.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
       console.warn('[VetAnes] No JSON found in AI response');
       return null;
