@@ -4062,7 +4062,7 @@ function initChart(){
     {label:'RR',data:[],borderColor:'#f59e0b',backgroundColor:'rgba(245,158,11,0.1)',tension:0.3,pointRadius:3,borderWidth:2},
     {label:'CO2 Ex',data:[],borderColor:'#8b5cf6',backgroundColor:'rgba(139,92,246,0.1)',tension:0.3,pointRadius:3,borderWidth:2},
     {label:'MAP',data:[],borderColor:'#10b981',backgroundColor:'rgba(16,185,129,0.1)',tension:0.3,pointRadius:3,borderWidth:2},
-    {label:'Gas Ex',data:[],borderColor:'#ea580c',backgroundColor:'rgba(234,88,12,0.1)',tension:0.3,pointRadius:3,borderWidth:2,hidden:true},
+    {label:'Gas In',data:[],borderColor:'#f97316',backgroundColor:'rgba(249,115,22,0.1)',tension:0.3,pointRadius:3,borderWidth:2,hidden:true},
   ]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{position:'top',labels:{color:'#8892a8',usePointStyle:true,pointStyle:'circle',padding:12,font:{size:10,weight:'600'}}}},scales:{x:{grid:{color:'rgba(42,53,80,0.5)'},ticks:{color:'#5a6478',font:{size:9}}},y:{grid:{color:'rgba(42,53,80,0.5)'},ticks:{color:'#5a6478',font:{size:9}},min:0,max:200}},animation:{duration:400}},plugins:[predPlugin]});
 }
 function addVitalToChart(d){
@@ -4076,7 +4076,7 @@ function addVitalToChart(d){
   vitalChart.data.datasets[2].data=[...state.vitals.rr,null];
   vitalChart.data.datasets[3].data=[...state.vitals.etco2_ex,null];
   vitalChart.data.datasets[4].data=[...state.vitals.mean,null];
-  vitalChart.data.datasets[5].data=[...state.vitals.gas_ex,null];
+  vitalChart.data.datasets[5].data=[...state.vitals.gas_in,null];
   vitalChart.update();
 }
 
