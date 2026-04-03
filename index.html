@@ -2914,35 +2914,119 @@ function buildPrepCriSection(species, weight) {
     return;
   }
 
+  // Initialize CRI slots if needed
+  if (!window._criSlots || window._criSlots.length === 0) {
+    window._criSlots = [0]; // default: one slot with first drug selected
+  }
+
+  var w = weight || state.patient.weight || 1;
+  var maintRate = ((30 * w + 70) / 24);
+
   var html = '<div class="prep-cri-card">';
   html += '<div class="prep-cri-title" onclick="this.classList.toggle(\'collapsed\');this.nextElementSibling.classList.toggle(\'hidden\')">';
   html += '<span class="arrow">▼</span> 💊 CRI 計算（持続点滴）';
   html += '</div>';
   html += '<div class="prep-cri-body">';
-
-  // Maintenance fluid rate reference
-  var w = weight || state.patient.weight || 1;
-  var maintRate = ((30 * w + 70) / 24);
   html += '<div class="prep-cri-maint-ref">💧 維持輸液速度（参考）: <strong>' + maintRate.toFixed(1) + ' mL/hr</strong>　((30 × ' + w + ' + 70) ÷ 24)</div>';
 
-  // Drug selector
-  html += '<select class="prep-cri-drug-select" id="prepCriDrugSelect" onchange="updatePrepCri()">';
-  drugs.forEach(function(d, i) {
-    var label = d.name + ' (' + d.conc + d.concUnit;
-    if (d.diluted) label += ' → 希釈' + d.diluted.conc + d.diluted.concUnit;
-    label += ')';
-    html += '<option value="' + i + '">' + label + '</option>';
+  // Render each CRI slot
+  html += '<div id="prepCriSlots">';
+  window._criSlots.forEach(function(drugIdx, slotIdx) {
+    html += _buildCriSlotHtml(drugs, drugIdx, slotIdx, w);
   });
-  html += '</select>';
+  html += '</div>';
 
-  // Result area (no mode toggle needed)
-  html += '<div id="prepCriResult" class="prep-cri-result"></div>';
+  // Add button
+  html += '<button type="button" onclick="addCriSlot()" style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:8px;margin-top:8px;background:var(--bg-secondary);border:1px dashed var(--accent-purple);border-radius:8px;color:var(--accent-purple);font-size:12px;font-weight:600;cursor:pointer;">＋ CRI薬剤を追加</button>';
 
   html += '</div></div>';
   container.innerHTML = html;
 
-  // Initial calc
-  updatePrepCri();
+  // Calculate all slots
+  window._criSlots.forEach(function(drugIdx, slotIdx) {
+    updatePrepCriSlot(slotIdx);
+  });
+}
+
+function _buildCriSlotHtml(drugs, drugIdx, slotIdx, w) {
+  var html = '<div class="prep-cri-slot" id="criSlot_' + slotIdx + '" style="border:1px solid var(--border);border-radius:10px;padding:10px;margin-bottom:8px;background:var(--bg-secondary);">';
+
+  // Header with selector and remove button
+  html += '<div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;">';
+  html += '<select class="prep-cri-drug-select" id="prepCriDrugSelect_' + slotIdx + '" onchange="onCriSlotDrugChange(' + slotIdx + ')" style="flex:1;">';
+  drugs.forEach(function(d, i) {
+    var label = d.name + ' (' + d.conc + d.concUnit;
+    if (d.diluted) label += ' → 希釈' + d.diluted.conc + d.diluted.concUnit;
+    label += ')';
+    html += '<option value="' + i + '"' + (i === drugIdx ? ' selected' : '') + '>' + label + '</option>';
+  });
+  html += '</select>';
+  if (window._criSlots.length > 1) {
+    html += '<button type="button" onclick="removeCriSlot(' + slotIdx + ')" style="width:30px;height:30px;border-radius:6px;background:rgba(239,68,68,0.1);border:none;color:var(--accent-red);font-size:14px;cursor:pointer;flex-shrink:0;">✕</button>';
+  }
+  html += '</div>';
+
+  // Result area for this slot
+  html += '<div id="prepCriResult_' + slotIdx + '" class="prep-cri-result"></div>';
+  html += '</div>';
+  return html;
+}
+
+function addCriSlot() {
+  if (!window._criSlots) window._criSlots = [0];
+  window._criSlots.push(0);
+  var sp = state.patient.species || 'dog';
+  buildPrepCriSection(sp, state.patient.weight);
+}
+
+function removeCriSlot(slotIdx) {
+  if (!window._criSlots || window._criSlots.length <= 1) return;
+  window._criSlots.splice(slotIdx, 1);
+  var sp = state.patient.species || 'dog';
+  buildPrepCriSection(sp, state.patient.weight);
+}
+
+function onCriSlotDrugChange(slotIdx) {
+  var sel = document.getElementById('prepCriDrugSelect_' + slotIdx);
+  if (!sel) return;
+  window._criSlots[slotIdx] = parseInt(sel.value) || 0;
+  updatePrepCriSlot(slotIdx);
+}
+
+// Backward compatibility wrapper
+function updatePrepCri() {
+  if (window._criSlots) {
+    window._criSlots.forEach(function(drugIdx, slotIdx) {
+      updatePrepCriSlot(slotIdx);
+    });
+  }
+}
+
+function updatePrepCriSlot(slotIdx) {
+  var sel = document.getElementById('prepCriDrugSelect_' + slotIdx);
+  var resultEl = document.getElementById('prepCriResult_' + slotIdx);
+  if (!sel || !resultEl) return;
+
+  var sp = state.patient.species || 'dog';
+  var drugs = CRI_MASTER[sp] || CRI_MASTER.dog;
+  var idx = parseInt(sel.value) || 0;
+  if (idx < 0 || idx >= drugs.length) idx = 0;
+  var d = drugs[idx];
+  var w = state.patient.weight || 1;
+
+  var html = '';
+  if (d.calcType === 'simple' && d.diluted) {
+    html = _buildFentanylUI(d, w);
+  } else if (d.calcType === 'simple') {
+    html = _buildSimpleDirectUI(d, w);
+  } else {
+    html = _buildInfusionBagUI(d, w, slotIdx);
+  }
+  resultEl.innerHTML = html;
+
+  if (d.calcType === 'infusion') {
+    recalcPrepCriSlot(slotIdx);
+  }
 }
 
 // No longer needed - kept as no-op for any stray calls
@@ -3090,8 +3174,10 @@ function _buildSimpleDirectUI(d, w) {
 }
 
 /* ---- Infusion (bag mixing) UI ---- */
-function _buildInfusionBagUI(d, w, defs) {
+function _buildInfusionBagUI(d, w, slotIdx) {
   var html = '';
+  var defs = _prepCriDefaults(w);
+  var s = slotIdx != null ? slotIdx : 0;
 
   // Drug info
   var rateInfo = d.rateMin + '〜' + d.rateMax + ' ' + d.rateUnit;
@@ -3104,37 +3190,29 @@ function _buildInfusionBagUI(d, w, defs) {
 
   // Input fields
   html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:4px;">';
-  // Weight (display only)
   html += '<div class="prep-edit-field" style="margin-bottom:4px;"><label>体重 (kg)</label>';
   html += '<div style="padding:6px 8px;background:var(--bg-tertiary);border-radius:4px;font-weight:600;">' + w + '</div></div>';
-  // Rate (editable)
   html += '<div class="prep-edit-field" style="margin-bottom:4px;"><label>投与速度 (' + d.rateUnit + ')</label>';
-  html += '<input type="number" id="prepCriRate" value="' + d.rateDefault + '" min="0" step="any" onchange="recalcPrepCriInfusion()" oninput="recalcPrepCriInfusion()"></div>';
+  html += '<input type="number" id="prepCriRate_' + s + '" value="' + d.rateDefault + '" min="0" step="any" onchange="recalcPrepCriSlot(' + s + ')" oninput="recalcPrepCriSlot(' + s + ')"></div>';
   html += '</div>';
 
   html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;">';
-  // Flow rate (editable)
   html += '<div class="prep-edit-field" style="margin-bottom:4px;"><label>要求する点滴流量 (mL/hr)</label>';
-  html += '<input type="number" id="prepCriFluidRate" value="' + defs.flowRate + '" min="0.1" step="0.1" onchange="recalcPrepCriInfusion()" oninput="recalcPrepCriInfusion()"></div>';
-  // Bag volume (editable)
+  html += '<input type="number" id="prepCriFluidRate_' + s + '" value="' + defs.flowRate + '" min="0.1" step="0.1" onchange="recalcPrepCriSlot(' + s + ')" oninput="recalcPrepCriSlot(' + s + ')"></div>';
   html += '<div class="prep-edit-field" style="margin-bottom:4px;"><label>点滴全体量 (mL)</label>';
-  html += '<input type="number" id="prepCriFluidVol" value="' + defs.bagVol + '" min="1" step="1" onchange="recalcPrepCriInfusion()" oninput="recalcPrepCriInfusion()"></div>';
+  html += '<input type="number" id="prepCriFluidVol_' + s + '" value="' + defs.bagVol + '" min="1" step="1" onchange="recalcPrepCriSlot(' + s + ')" oninput="recalcPrepCriSlot(' + s + ')"></div>';
   html += '</div>';
 
-  // Result box placeholder
-  html += '<div id="prepCriCalcResult"></div>';
+  html += '<div id="prepCriCalcResult_' + s + '"></div>';
 
-  // Rate table with add amounts
   html += '<table><thead><tr><th>投与速度 (' + d.rateUnit + ')</th><th style="text-align:right;">添加量 (mL)</th></tr></thead><tbody>';
   var steps = generateRateSteps(d);
-  var fluidVol = defs.bagVol;
-  var fluidRate = defs.flowRate;
   steps.forEach(function(rate) {
-    var addMl = calcInfusionAddMl(rate, d.rateUnit, d.conc, d.concUnit, w, fluidVol, fluidRate);
+    var addMl = calcInfusionAddMl(rate, d.rateUnit, d.conc, d.concUnit, w, defs.bagVol, defs.flowRate);
     var isDefault = (Math.abs(rate - d.rateDefault) < 0.001);
-    html += '<tr class="prep-cri-infusion-row' + (isDefault ? ' cri-default' : '') + '" data-rate="' + rate + '">';
+    html += '<tr class="prep-cri-infusion-row-' + s + (isDefault ? ' cri-default' : '') + '" data-rate="' + rate + '">';
     html += '<td>' + rate + '</td>';
-    html += '<td style="text-align:right;font-family:monospace;font-weight:' + (isDefault ? '700' : '400') + ';" class="prep-cri-add-ml">' + addMl.toFixed(3) + '</td>';
+    html += '<td style="text-align:right;font-family:monospace;font-weight:' + (isDefault ? '700' : '400') + ';" class="prep-cri-add-ml">' + _fmtMlHr(addMl) + '</td>';
     html += '</tr>';
   });
   html += '</tbody></table>';
@@ -3143,22 +3221,28 @@ function _buildInfusionBagUI(d, w, defs) {
 }
 
 function recalcPrepCriInfusion() {
+  // Legacy wrapper - recalc all slots
+  if (window._criSlots) {
+    window._criSlots.forEach(function(di, si) { recalcPrepCriSlot(si); });
+  }
+}
+
+function recalcPrepCriSlot(slotIdx) {
+  var s = slotIdx != null ? slotIdx : 0;
   var sp = state.patient.species || 'dog';
   var drugs = CRI_MASTER[sp] || CRI_MASTER.dog;
-  var sel = document.getElementById('prepCriDrugSelect');
+  var sel = document.getElementById('prepCriDrugSelect_' + s);
   if (!sel) return;
   var idx = parseInt(sel.value) || 0;
   if (idx < 0 || idx >= drugs.length) idx = 0;
   var d = drugs[idx];
 
-  // Simple types don't need dynamic recalc (table is static based on weight)
   if (d.calcType === 'simple') return;
 
-  // Infusion type: recalculate result box and table
   var w = state.patient.weight || 1;
-  var rateEl = document.getElementById('prepCriRate');
-  var fluidVolEl = document.getElementById('prepCriFluidVol');
-  var fluidRateEl = document.getElementById('prepCriFluidRate');
+  var rateEl = document.getElementById('prepCriRate_' + s);
+  var fluidVolEl = document.getElementById('prepCriFluidVol_' + s);
+  var fluidRateEl = document.getElementById('prepCriFluidRate_' + s);
   var targetRate = rateEl ? parseFloat(rateEl.value) || d.rateDefault : d.rateDefault;
   var fluidVol = fluidVolEl ? parseFloat(fluidVolEl.value) || 100 : 100;
   var fluidRate = fluidRateEl ? parseFloat(fluidRateEl.value) || 10 : 10;
@@ -3170,33 +3254,30 @@ function recalcPrepCriInfusion() {
   var needConcMgMl = mgHr / fluidRate;
   var addMl = needConcMgMl * fluidVol / stockMgMl;
 
-  var resultBox = document.getElementById('prepCriCalcResult');
+  var resultBox = document.getElementById('prepCriCalcResult_' + s);
   if (resultBox) {
     var rhtml = '';
-    // Main result - prominent display
     rhtml += '<div class="prep-cri-result-box" style="text-align:center;">';
     rhtml += '<div style="font-size:11px;color:var(--text-secondary);margin-bottom:4px;">' + d.conc + ' ' + d.concUnit + ' の原液を点滴パックに加えてください</div>';
-    rhtml += '<div style="font-size:22px;font-weight:700;color:var(--accent-cyan);margin-bottom:2px;">添加量: ' + addMl.toFixed(3) + ' mL</div>';
+    rhtml += '<div style="font-size:22px;font-weight:700;color:var(--accent-cyan);margin-bottom:2px;">添加量: ' + _fmtMlHr(addMl) + ' mL</div>';
     rhtml += '<div style="font-size:11px;color:var(--text-secondary);">(' + targetRate + ' ' + d.rateUnit + ' × ' + w + 'kg → ' + fluidVol + 'mL パック, ' + fluidRate + ' mL/hr)</div>';
     rhtml += '</div>';
 
-    // Withdraw warning
     if (addMl > 0.001) {
       rhtml += '<div class="prep-cri-warn-box">';
-      rhtml += '⚠️ あらかじめ <strong>' + addMl.toFixed(1) + ' mL</strong> を輸液パックから抜いてください';
+      rhtml += '⚠️ あらかじめ <strong>' + _fmtMlHr(addMl) + ' mL</strong> を輸液パックから抜いてください';
       rhtml += '</div>';
     }
-
     resultBox.innerHTML = rhtml;
   }
 
-  // Update rate table rows
-  var rows = document.querySelectorAll('.prep-cri-infusion-row');
+  // Update rate table rows for this slot
+  var rows = document.querySelectorAll('.prep-cri-infusion-row-' + s);
   rows.forEach(function(row) {
     var rate = parseFloat(row.dataset.rate);
     var rowAddMl = calcInfusionAddMl(rate, d.rateUnit, d.conc, d.concUnit, w, fluidVol, fluidRate);
     var td = row.querySelector('.prep-cri-add-ml');
-    if (td) td.textContent = rowAddMl.toFixed(3);
+    if (td) td.textContent = _fmtMlHr(rowAddMl);
   });
 }
 
