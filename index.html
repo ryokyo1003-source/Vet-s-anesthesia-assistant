@@ -4219,12 +4219,14 @@ function callGeminiVision(imageDataUrl, captureId, btn) {
             text = parts2[0].text || '';
           }
         }
+        window._lastAIResponse = text;
+        addLog('🔍 AI生応答: ' + (text ? text.substring(0, 200) : '空'));
         var vitals = parseVitalsFromAI(text);
         if (vitals) {
           applyVitalData(vitals, captureId, false);
-          addLog('🤖 AI読取成功 (' + modelId + ') HR:' + vitals.hr + ' SpO2:' + vitals.spo2 + ' T:' + vitals.temp);
+          addLog('🤖 AI読取成功 (' + modelId + ') HR:' + vitals.hr + ' SpO2:' + vitals.spo2 + ' RR:' + vitals.rr + ' CO2:' + vitals.etco2_ex + ' BP:' + vitals.sys + '/' + vitals.dia + ' T:' + vitals.temp + ' Gas:' + vitals.gas_in + '/' + vitals.gas_ex);
         } else {
-          addLog('⚠ AI応答のパース失敗: ' + (text ? text.substring(0, 80) : '空') + ' → デモ値使用');
+          addLog('⚠ パース失敗 → デモ値使用');
           var d = generateMockVitals(state.patient.species);
           applyVitalData(d, captureId, false);
         }
