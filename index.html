@@ -4392,7 +4392,26 @@ function parseVitalsFromAI(text) {
       console.warn('[VetAnes] No JSON found in AI response');
       return null;
     }
-    var obj = JSON.parse(jsonMatch[0]);
+    var jsonStr = jsonMatch[0];
+    // シングルクォート→ダブルクォートに変換（Python形式対応）
+    jsonStr = jsonStr.replace(/'/g, '"');
+    // キーにクォートがない場合に対応 (hr: → "hr":)
+    jsonStr = jsonStr.replace(/([{,]\s*)(\w+)\s*:/g, '$1"$2":');
+    // null文字列対応
+    jsonStr = jsonStr.replace(/:\s*None\b/g, ':null');
+    var obj;
+    try {
+      obj = JSON.parse(jsonStr);
+    } catch(e2) {
+      // 最終手段: 正規表現で個別に値を抽出
+      console.warn('[VetAnes] JSON.parse failed, trying regex extraction:', jsonStr);
+      obj = {};
+      var fields = ['hr','spo2','rr','etco2_in','etco2_ex','sys','dia','temp','gas_in','gas_ex'];
+      fields.forEach(function(f) {
+        var m = jsonStr.match(new RegExp('"?' + f + '"?\\s*:\\s*([\\d.]+|null)'));
+        if (m && m[1] !== 'null') obj[f] = parseFloat(m[1]);
+      });
+    }
     console.log('[VetAnes] Parsed JSON:', obj);
 
     // 数値の妥当性チェック（範囲を広めに設定）
