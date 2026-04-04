@@ -3149,7 +3149,7 @@ function _buildFentanylUI(d, w) {
   var selVials = window._fentVials || 1;
   html += '<div style="background:rgba(6,182,212,0.1);border:1px solid rgba(6,182,212,0.3);border-radius:8px;padding:8px 10px;margin-bottom:10px;">';
   html += '<div style="font-size:12px;font-weight:600;color:var(--accent-cyan);margin-bottom:6px;">調製方法（5倍希釈 → ' + dilConc + ' ' + dilUnit + '）</div>';
-  html += '<button type="button" onclick="openFentVialPicker()" style="width:100%;padding:10px;background:var(--bg-secondary);border:1px solid var(--accent-cyan);border-radius:8px;color:var(--accent-cyan);font-size:16px;font-weight:700;cursor:pointer;min-height:44px;">' + selVials + '本（' + (selVials*10) + 'mLシリンジ）▾</button>';
+  html += '<button type="button" onclick="openFentVialPicker()" style="width:100%;padding:10px;background:var(--bg-secondary);border:1px solid var(--accent-cyan);border-radius:8px;color:var(--accent-cyan);font-size:16px;font-weight:700;cursor:pointer;min-height:44px;">' + selVials + '本 ▾</button>';
   var stockMl = selVials * 2;
   var salineMl = selVials * 8;
   var totalMl = selVials * 10;
@@ -3164,7 +3164,7 @@ function _buildFentanylUI(d, w) {
 
   // Rate table (2, 5, 10 only)
   var rates = [2, 5, 10];
-  html += '<table><thead><tr><th>投与速度 (' + d.rateUnit + ')</th><th style="text-align:right;">mL/hr</th><th style="text-align:right;">' + totalMl + 'mLで</th></tr></thead><tbody>';
+  html += '<table><thead><tr><th>投与速度 (' + d.rateUnit + ')</th><th style="text-align:right;">mL/hr</th><th style="text-align:right;">持続時間</th></tr></thead><tbody>';
   rates.forEach(function(rate) {
     var mlhr = rate * w / dilConc;  // rate(μg/kg/hr) × w(kg) / conc(μg/mL)
     var hours = totalMl / mlhr;
@@ -3183,10 +3183,10 @@ function _buildFentanylUI(d, w) {
 /* ---- プロポフォール etc: direct simple UI ---- */
 function openFentVialPicker() {
   var options = [
-    { label: '1本（10mLシリンジ）', value: '1' },
-    { label: '2本（20mLシリンジ）', value: '2' },
-    { label: '3本（30mLシリンジ）', value: '3' },
-    { label: '4本（40mLシリンジ）', value: '4' },
+    { label: '1本', value: '1' },
+    { label: '2本', value: '2' },
+    { label: '3本', value: '3' },
+    { label: '4本', value: '4' },
   ];
   var current = String(window._fentVials || 1);
   window._listPickerCallback = function(val) {
@@ -6743,6 +6743,17 @@ function openVitalPicker(inputId) {
       window._pickerCtx.selectedIdx = bestIdx;
     }
   });
+
+  // Tap item to select and confirm
+  scrollEl.querySelectorAll('.picker-item').forEach(function(item) {
+    item.addEventListener('click', function() {
+      var idx = parseInt(this.dataset.idx);
+      scrollEl.scrollTop = idx * itemH;
+      window._pickerCtx.selectedIdx = idx;
+      updatePickerSelection();
+      setTimeout(function() { closePicker(true); }, 200);
+    });
+  });
 }
 
 function updatePickerSelection() {
@@ -6850,6 +6861,18 @@ function openListPicker(targetId, title, options, currentVal) {
   scrollEl.addEventListener('scroll', function() {
     if (scrollTimer) clearTimeout(scrollTimer);
     scrollTimer = setTimeout(updateListPickerSelection, 50);
+  });
+
+  // Tap item to select and confirm
+  scrollEl.querySelectorAll('.picker-item').forEach(function(item) {
+    item.addEventListener('click', function() {
+      var idx = parseInt(this.dataset.idx);
+      scrollEl.scrollTop = idx * itemH;
+      window._listPickerCtx.selectedIdx = idx;
+      updateListPickerSelection();
+      // Auto-confirm after short delay
+      setTimeout(function() { closeListPicker(true); }, 200);
+    });
   });
 }
 
