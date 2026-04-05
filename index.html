@@ -6746,7 +6746,8 @@ function openVitalPicker(inputId) {
 
   // Tap item to select and confirm
   scrollEl.querySelectorAll('.picker-item').forEach(function(item) {
-    item.addEventListener('click', function() {
+    item.addEventListener('click', function(e) {
+      e.stopPropagation();
       var idx = parseInt(this.dataset.idx);
       scrollEl.scrollTop = idx * itemH;
       window._pickerCtx.selectedIdx = idx;
@@ -6865,12 +6866,12 @@ function openListPicker(targetId, title, options, currentVal) {
 
   // Tap item to select and confirm
   scrollEl.querySelectorAll('.picker-item').forEach(function(item) {
-    item.addEventListener('click', function() {
+    item.addEventListener('click', function(e) {
+      e.stopPropagation();
       var idx = parseInt(this.dataset.idx);
       scrollEl.scrollTop = idx * itemH;
       window._listPickerCtx.selectedIdx = idx;
       updateListPickerSelection();
-      // Auto-confirm after short delay
       setTimeout(function() { closeListPicker(true); }, 200);
     });
   });
