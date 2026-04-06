@@ -4329,8 +4329,9 @@ function callGeminiVision(imageDataUrl, captureId, btn) {
       ]
     }],
     generationConfig: {
-      maxOutputTokens: 1024,
-      temperature: 0.1
+      maxOutputTokens: 4096,
+      temperature: 0.1,
+      thinkingConfig: { thinkingBudget: 0 }
     }
   });
 
