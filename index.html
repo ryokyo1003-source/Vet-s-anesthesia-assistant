@@ -1608,15 +1608,15 @@
       </div>
 
       <div class="vitals-grid">
-        <div class="vital-card vital-hr" id="vitalHR"><div class="vital-label">HR</div><div class="vital-value" id="valHR">--</div><div class="vital-unit">bpm</div><div class="vital-indicator"></div></div>
-        <div class="vital-card vital-spo2" id="vitalSpO2"><div class="vital-label">SpO2</div><div class="vital-value" id="valSpO2">--</div><div class="vital-unit">%</div><div class="vital-indicator"></div></div>
-        <div class="vital-card vital-rr" id="vitalRR"><div class="vital-label">RR</div><div class="vital-value" id="valRR">--</div><div class="vital-unit">/min</div><div class="vital-indicator"></div></div>
-        <div class="vital-card vital-etco2-in" id="vitalEtCO2In"><div class="vital-label">EtCO2 In</div><div class="vital-value" id="valEtCO2In">--</div><div class="vital-unit">mmHg</div><div class="vital-indicator"></div></div>
-        <div class="vital-card vital-etco2-ex" id="vitalEtCO2Ex"><div class="vital-label">EtCO2 Ex</div><div class="vital-value" id="valEtCO2Ex">--</div><div class="vital-unit">mmHg</div><div class="vital-indicator"></div></div>
-        <div class="vital-card vital-temp" id="vitalTemp"><div class="vital-label">体温</div><div class="vital-value" id="valTemp">--</div><div class="vital-unit">℃</div><div class="vital-indicator"></div></div>
-        <div class="vital-card vital-gas-in" id="vitalGasIn"><div class="vital-label">Gas In</div><div class="vital-value" id="valGasIn">--</div><div class="vital-unit">%</div><div class="vital-indicator"></div></div>
-        <div class="vital-card vital-gas-ex" id="vitalGasEx"><div class="vital-label">Gas Ex</div><div class="vital-value" id="valGasEx">--</div><div class="vital-unit">%</div><div class="vital-indicator"></div></div>
-        <div class="vital-card vital-bp" id="vitalBP"><div class="vital-label">血圧 (Sys / Dia / Mean)</div><div class="bp-detail"><span id="valSys">--</span><span class="bp-slash">/</span><span id="valDia">--</span><span class="bp-mean">(<span id="valMean">--</span>)</span></div><div class="vital-unit">mmHg</div><div class="vital-indicator"></div></div>
+        <div class="vital-card vital-hr" id="vitalHR" onclick="editVital('valHR','mvHR')" style="cursor:pointer;"><div class="vital-label">HR</div><div class="vital-value" id="valHR">--</div><div class="vital-unit">bpm</div><div class="vital-indicator"></div></div>
+        <div class="vital-card vital-spo2" id="vitalSpO2" onclick="editVital('valSpO2','mvSpO2')" style="cursor:pointer;"><div class="vital-label">SpO2</div><div class="vital-value" id="valSpO2">--</div><div class="vital-unit">%</div><div class="vital-indicator"></div></div>
+        <div class="vital-card vital-rr" id="vitalRR" onclick="editVital('valRR','mvRR')" style="cursor:pointer;"><div class="vital-label">RR</div><div class="vital-value" id="valRR">--</div><div class="vital-unit">/min</div><div class="vital-indicator"></div></div>
+        <div class="vital-card vital-etco2-in" id="vitalEtCO2In" onclick="editVital('valEtCO2In','mvEtCO2In')" style="cursor:pointer;"><div class="vital-label">EtCO2 In</div><div class="vital-value" id="valEtCO2In">--</div><div class="vital-unit">mmHg</div><div class="vital-indicator"></div></div>
+        <div class="vital-card vital-etco2-ex" id="vitalEtCO2Ex" onclick="editVital('valEtCO2Ex','mvEtCO2Ex')" style="cursor:pointer;"><div class="vital-label">EtCO2 Ex</div><div class="vital-value" id="valEtCO2Ex">--</div><div class="vital-unit">mmHg</div><div class="vital-indicator"></div></div>
+        <div class="vital-card vital-temp" id="vitalTemp" onclick="editVital('valTemp','mvTemp')" style="cursor:pointer;"><div class="vital-label">体温</div><div class="vital-value" id="valTemp">--</div><div class="vital-unit">℃</div><div class="vital-indicator"></div></div>
+        <div class="vital-card vital-gas-in" id="vitalGasIn" onclick="editVital('valGasIn','mvGasIn')" style="cursor:pointer;"><div class="vital-label">Gas In</div><div class="vital-value" id="valGasIn">--</div><div class="vital-unit">%</div><div class="vital-indicator"></div></div>
+        <div class="vital-card vital-gas-ex" id="vitalGasEx" onclick="editVital('valGasEx','mvGasEx')" style="cursor:pointer;"><div class="vital-label">Gas Ex</div><div class="vital-value" id="valGasEx">--</div><div class="vital-unit">%</div><div class="vital-indicator"></div></div>
+        <div class="vital-card vital-bp" id="vitalBP" onclick="editVital('valMean','mvMAP')" style="cursor:pointer;"><div class="vital-label">血圧 (Sys / Dia / Mean)</div><div class="bp-detail"><span id="valSys">--</span><span class="bp-slash">/</span><span id="valDia">--</span><span class="bp-mean">(<span id="valMean">--</span>)</span></div><div class="vital-unit">mmHg</div><div class="vital-indicator"></div></div>
       </div>
 
       <!-- Manual vital input row -->
@@ -3438,6 +3438,77 @@ function showNotesPopup() {
 // ===================================================================
 //  MANUAL VITAL INPUT
 // ===================================================================
+// Tap vital card to edit value
+var _vitalKeyMap = {
+  valHR:'hr', valSpO2:'spo2', valRR:'rr', valEtCO2In:'etco2_in', valEtCO2Ex:'etco2_ex',
+  valTemp:'temp', valGasIn:'gas_in', valGasEx:'gas_ex', valSys:'sys', valDia:'dia', valMean:'mean'
+};
+
+function editVital(displayId, pickerId) {
+  var cfg = VITAL_PICKER_CONFIG[pickerId];
+  if (!cfg) {
+    // No picker config (e.g. Sys/Dia individually) - use prompt
+    var currentVal = document.getElementById(displayId).textContent;
+    var newVal = prompt(displayId.replace('val','') + ' の値を入力:', currentVal === '--' ? '' : currentVal);
+    if (newVal === null) return;
+    var v = parseFloat(newVal);
+    if (isNaN(v)) return;
+    document.getElementById(displayId).textContent = v;
+    updateLastVitalData(displayId, v);
+    addLog('✏️ ' + displayId.replace('val','') + ' → ' + v + ' に修正');
+    return;
+  }
+
+  // Use drum roller picker
+  var el = document.getElementById(displayId);
+  var currentVal = parseFloat(el.textContent);
+
+  // Temporarily set the hidden input value for the picker
+  var inputEl = document.getElementById(pickerId);
+  if (inputEl) inputEl.value = isNaN(currentVal) ? '' : currentVal;
+
+  // Store callback to update display after picker closes
+  var origClose = window.closePicker;
+  var _editDisplayId = displayId;
+
+  openVitalPicker(pickerId);
+
+  // Override closePicker to intercept the result
+  var _origClosePicker = closePicker;
+  closePicker = function(apply) {
+    _origClosePicker(apply);
+    closePicker = _origClosePicker; // restore
+    if (apply) {
+      var newVal = parseFloat(document.getElementById(pickerId).value);
+      if (!isNaN(newVal)) {
+        document.getElementById(_editDisplayId).textContent = cfg.decimal > 0 ? newVal.toFixed(cfg.decimal) : newVal;
+        updateLastVitalData(_editDisplayId, newVal);
+        addLog('✏️ ' + cfg.label + ' → ' + newVal + ' に修正');
+      }
+    }
+  };
+}
+
+function updateLastVitalData(displayId, value) {
+  var key = _vitalKeyMap[displayId];
+  if (!key) return;
+  // Update last data point in vitals array
+  var arr = state.vitals[key];
+  if (arr && arr.length > 0) {
+    arr[arr.length - 1] = value;
+    // Update chart
+    if (vitalChart) {
+      var datasetMap = { hr:0, spo2:1, rr:2, etco2_ex:3, mean:4, gas_in:5 };
+      var dsIdx = datasetMap[key];
+      if (dsIdx !== undefined && vitalChart.data.datasets[dsIdx]) {
+        var data = vitalChart.data.datasets[dsIdx].data;
+        if (data.length > 1) data[data.length - 2] = value; // -2 because last is null (prediction)
+        vitalChart.update();
+      }
+    }
+  }
+}
+
 function applyManualVitals() {
   const get = id => { var el = document.getElementById(id); return el && el.value !== '' ? parseFloat(el.value) : null; };
   const hr = get('mvHR'), spo2 = get('mvSpO2'), rr = get('mvRR');
