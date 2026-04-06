@@ -4356,7 +4356,6 @@ function callGeminiVision(imageDataUrl, captureId, btn) {
           }
         }
         window._lastAIResponse = text;
-        addLog('🔍 AI生応答: ' + (text ? text.substring(0, 200) : '空'));
         var vitals = parseVitalsFromAI(text);
         if (vitals) {
           applyVitalData(vitals, captureId, false);
@@ -4366,8 +4365,6 @@ function callGeminiVision(imageDataUrl, captureId, btn) {
           var d = generateMockVitals(state.patient.species);
           applyVitalData(d, captureId, false);
         }
-        // デバッグ: 応答全文を表示（確認後削除）
-        setTimeout(function() { alert('AI応答全文:\n' + text); }, 500);
       } catch(e) {
         addLog('⚠ AI応答エラー: ' + e.message);
         var d = generateMockVitals(state.patient.species);
