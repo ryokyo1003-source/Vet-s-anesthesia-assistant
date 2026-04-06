@@ -4357,6 +4357,7 @@ function callGeminiVision(imageDataUrl, captureId, btn) {
         }
         window._lastAIResponse = text;
         addLog('🔍 AI生応答: ' + (text ? text.substring(0, 200) : '空'));
+        alert('AI応答全文:\n' + text);
         var vitals = parseVitalsFromAI(text);
         if (vitals) {
           applyVitalData(vitals, captureId, false);
