@@ -1735,6 +1735,19 @@
         </div>
       </div>
 
+      <!-- Memo / Voice combined -->
+      <div class="panel-section" style="padding:8px 10px;">
+        <div class="panel-title" style="margin-bottom:4px;">✏️ メモ・イベント入力</div>
+        <div class="custom-event-row">
+          <input type="text" id="customEventInput" placeholder="イベントやメモを入力..." onkeydown="if(event.key==='Enter')recordCustomEvent()">
+          <button onclick="recordCustomEvent()">記録</button>
+        </div>
+        <div style="margin-top:6px;">
+          <button class="btn-voice" id="btnVoice" onclick="toggleVoice()"><span>🎤</span><span id="voiceLabel">音声入力開始</span></button>
+          <div class="voice-log" id="voiceLog"></div>
+        </div>
+      </div>
+
       <!-- Drug Administration -->
       <div class="panel-section">
         <div class="panel-title">💉 薬剤投与記録</div>
@@ -1758,24 +1771,10 @@
 
       <!-- Emergency -->
       <div class="panel-section">
-        <div class="panel-title">🚨 緊急薬剤</div>
-        <div class="emerg-grid" id="emergGrid"></div>
-      </div>
-
-      <!-- Custom Event / Memo -->
-      <div class="panel-section" style="padding:8px 10px;">
-        <div class="panel-title" style="margin-bottom:4px;">✏️ メモ・イベント入力</div>
-        <div class="custom-event-row">
-          <input type="text" id="customEventInput" placeholder="イベントやメモを入力..." onkeydown="if(event.key==='Enter')recordCustomEvent()">
-          <button onclick="recordCustomEvent()">記録</button>
+        <div class="panel-title" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;" onclick="toggleEmergSection()">🚨 緊急薬剤<span id="emergToggleArrow" style="font-size:10px;transition:transform 0.2s;">▼</span></div>
+        <div id="emergSectionBody">
+          <div class="emerg-grid" id="emergGrid"></div>
         </div>
-      </div>
-
-      <!-- Voice -->
-      <div class="panel-section" style="padding:6px 10px;">
-        <div class="panel-title" style="margin-bottom:2px;">🎙 音声入力</div>
-        <button class="btn-voice" id="btnVoice" onclick="toggleVoice()"><span>🎤</span><span id="voiceLabel">音声入力開始</span></button>
-        <div class="voice-log" id="voiceLog"></div>
       </div>
 
       <!-- End Anesthesia -->
@@ -3790,6 +3789,19 @@ function recordPrepDrug(btn, cat, idx) {
 function toggleCriSection() {
   var body = document.getElementById('criSectionBody');
   var arrow = document.getElementById('criToggleArrow');
+  if (!body) return;
+  if (body.style.display === 'none') {
+    body.style.display = '';
+    if (arrow) arrow.textContent = '▼';
+  } else {
+    body.style.display = 'none';
+    if (arrow) arrow.textContent = '▶';
+  }
+}
+
+function toggleEmergSection() {
+  var body = document.getElementById('emergSectionBody');
+  var arrow = document.getElementById('emergToggleArrow');
   if (!body) return;
   if (body.style.display === 'none') {
     body.style.display = '';
