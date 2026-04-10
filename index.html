@@ -546,6 +546,7 @@
   .btn-prep-drug { padding: 6px 4px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 11px; font-weight: 600; cursor: pointer; text-align: center; min-height: 40px; transition: all 0.2s; line-height: 1.3; }
   .btn-prep-drug:active { opacity: 0.7; }
   .btn-prep-drug .prep-drug-detail { display: block; font-size: 9px; color: var(--text-secondary); font-weight: 400; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .btn-prep-drug.prep-drug-checked { border-color: var(--accent-green); background: rgba(16,185,129,0.08); }
   .btn-prep-drug.administered { background: rgba(139,92,246,0.15); border-color: var(--accent-purple); color: var(--accent-purple); }
   .btn-prep-drug.administered .prep-drug-detail { color: var(--accent-purple); }
 
@@ -3394,52 +3395,47 @@ function recalcPrepCriSlot(slotIdx) {
 }
 
 function completeDrugPrep() {
-  // Log selected drugs
-  // Collect selected drugs by category
-  var catDrugs = {};
+  // Collect ALL drugs (checked and unchecked) by category
+  var catDrugsChecked = {};
+  var catDrugsAll = {};
   document.querySelectorAll('.prep-drug-row').forEach(function(row) {
-    var chk = row.querySelector('input[type="checkbox"]');
-    if (!chk || !chk.checked) return;
     var catKey = row.dataset.catKey || 'other';
     var nameEl = row.querySelector('.prep-drug-name');
     var calcEl = row.querySelector('.prep-drug-calc');
     var routeEl = row.querySelector('.prep-drug-route');
     var inputEl = row.querySelector('.prep-drug-input');
+    var chk = row.querySelector('input[type="checkbox"]');
+    var isChecked = chk && chk.checked;
     var name = nameEl ? nameEl.textContent.replace(/院内/g,'').trim() : '';
+    if (!name) return;
     var calc = calcEl ? calcEl.textContent.replace(/\n/g,' ').trim() : '';
     var route = routeEl ? routeEl.textContent.trim() : '';
     var dose = inputEl ? inputEl.value + ' ' + (inputEl.dataset.mode === 'mlkg' ? 'mL/kg' : (inputEl.dataset.unit || '')) : '';
-    if (!catDrugs[catKey]) catDrugs[catKey] = [];
-    catDrugs[catKey].push({ name, calc, route, dose });
+    var drug = { name: name, calc: calc, route: route, dose: dose, checked: isChecked };
+    if (!catDrugsAll[catKey]) catDrugsAll[catKey] = [];
+    catDrugsAll[catKey].push(drug);
+    if (isChecked) {
+      if (!catDrugsChecked[catKey]) catDrugsChecked[catKey] = [];
+      catDrugsChecked[catKey].push(drug);
+    }
   });
 
-  // Save to state for prepared drugs panel
-  state.preparedDrugs = catDrugs;
-
-  // DEBUG: confirm data collected
-  var totalDrugs = 0;
-  Object.keys(catDrugs).forEach(function(k){ totalDrugs += catDrugs[k].length; });
-  console.log('[DEBUG] preparedDrugs:', JSON.stringify(catDrugs));
-  console.log('[DEBUG] total drugs collected:', totalDrugs);
+  // Save to state for prepared drugs panel (all drugs, with checked flag)
+  state.preparedDrugs = catDrugsAll;
 
   showScreen('mainApp');
   startMonitoring();
 
-  // Log each category separately
+  // Log checked drugs
   var catLabels = { premed:'前投薬', induction:'麻酔導入', maintenance:'維持麻酔', analgesic:'鎮痛', antibiotic:'抗生剤・その他', fluid:'輸液' };
-  var hasAny = false;
-  Object.keys(catDrugs).forEach(function(cat) {
-    var drugs = catDrugs[cat];
+  Object.keys(catDrugsChecked).forEach(function(cat) {
+    var drugs = catDrugsChecked[cat];
     if (drugs.length === 0) return;
-    hasAny = true;
     var label = catLabels[cat] || cat;
     drugs.forEach(function(d) {
       addLog(`💉 [${label}] ${d.name} ${d.calc} ${d.route}`);
     });
   });
-  if (!hasAny) {
-    // No drugs selected
-  }
 
   // Render prepared drugs panel
   renderPrepDrugsPanel();
@@ -3738,19 +3734,19 @@ function togglePrepDrugsSection() {
 function renderPrepDrugsPanel() {
   var section = document.getElementById('prepDrugsSection');
   var body = document.getElementById('prepDrugsBody');
-  console.log('[DEBUG renderPrepDrugsPanel] section:', !!section, 'body:', !!body);
-  console.log('[DEBUG renderPrepDrugsPanel] state.preparedDrugs:', JSON.stringify(state.preparedDrugs));
-  if (!section || !body) { console.log('[DEBUG] section or body not found!'); return; }
+  if (!section || !body) return;
   var catDrugs = state.preparedDrugs;
-  if (!catDrugs || Object.keys(catDrugs).length === 0) { console.log('[DEBUG] catDrugs empty, hiding'); section.style.display = 'none'; return; }
+  if (!catDrugs || Object.keys(catDrugs).length === 0) { section.style.display = 'none'; return; }
 
   var catLabels = { premed:'前投薬', induction:'麻酔導入', maintenance:'維持麻酔', analgesic:'鎮痛', antibiotic:'抗生剤・その他', fluid:'輸液' };
   var catOrder = ['premed','induction','maintenance','analgesic','antibiotic','fluid'];
   var html = '';
+  var hasAny = false;
 
   catOrder.forEach(function(cat) {
     var drugs = catDrugs[cat];
     if (!drugs || drugs.length === 0) return;
+    hasAny = true;
     var label = catLabels[cat] || cat;
     html += '<div class="prep-drugs-cat">';
     html += '<div class="prep-drugs-cat-title">' + label + '</div>';
@@ -3759,13 +3755,16 @@ function renderPrepDrugsPanel() {
       var id = 'prepDrugBtn_' + cat + '_' + i;
       var detail = d.calc || '';
       if (d.route) detail += (detail ? ' ' : '') + d.route;
-      html += '<button class="btn-prep-drug" id="' + id + '" onclick="recordPrepDrug(this,\'' + cat + '\',' + i + ')">';
+      var checkedClass = d.checked ? ' prep-drug-checked' : '';
+      html += '<button class="btn-prep-drug' + checkedClass + '" id="' + id + '" onclick="recordPrepDrug(this,\'' + cat + '\',' + i + ')">';
       html += '<span>' + d.name + '</span>';
       if (detail) html += '<span class="prep-drug-detail">' + detail + '</span>';
       html += '</button>';
     });
     html += '</div></div>';
   });
+
+  if (!hasAny) { section.style.display = 'none'; return; }
 
   body.innerHTML = html;
   section.style.display = '';
