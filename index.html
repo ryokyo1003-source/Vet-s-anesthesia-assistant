@@ -1683,9 +1683,11 @@
 
       <!-- CRI -->
       <div class="panel-section">
-        <div class="panel-title">💊 CRI 計算機</div>
-        <select class="cri-select" id="criDrug" onchange="updateCRI()"></select>
-        <div id="criCalcPanel" style="margin-top:8px;"></div>
+        <div class="panel-title" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;" onclick="toggleCriSection()">💊 CRI 計算機<span id="criToggleArrow" style="font-size:10px;transition:transform 0.2s;">▼</span></div>
+        <div id="criSectionBody">
+          <select class="cri-select" id="criDrug" onchange="updateCRI()"></select>
+          <div id="criCalcPanel" style="margin-top:8px;"></div>
+        </div>
       </div>
 
       <!-- Events -->
@@ -3682,6 +3684,19 @@ function buildCriDrugSelect() {
   updateCRI();
 }
 
+function toggleCriSection() {
+  var body = document.getElementById('criSectionBody');
+  var arrow = document.getElementById('criToggleArrow');
+  if (!body) return;
+  if (body.style.display === 'none') {
+    body.style.display = '';
+    if (arrow) arrow.textContent = '▼';
+  } else {
+    body.style.display = 'none';
+    if (arrow) arrow.textContent = '▶';
+  }
+}
+
 function updateCRI() {
   var sel = document.getElementById('criDrug');
   var panel = document.getElementById('criCalcPanel');
@@ -3720,7 +3735,8 @@ function updateCRI() {
       var isDefault = (rate === d.rateDefault);
       var style = isDefault ? 'background:rgba(59,130,246,0.12);font-weight:700;' : '';
       html += '<tr style="' + style + '"><td style="padding:3px 6px;border-bottom:1px solid rgba(42,53,80,0.3);">' + rate + '</td>';
-      html += '<td style="padding:3px 6px;border-bottom:1px solid rgba(42,53,80,0.3);text-align:right;font-family:monospace;"><strong>' + mlhr.toFixed(3) + '</strong></td></tr>';
+      var mlhrRounded = Math.round(mlhr * 10) / 10;
+      html += '<td style="padding:3px 6px;border-bottom:1px solid rgba(42,53,80,0.3);text-align:right;font-family:monospace;"><strong>' + mlhrRounded.toFixed(1) + '</strong></td></tr>';
     });
     html += '</tbody></table>';
 
