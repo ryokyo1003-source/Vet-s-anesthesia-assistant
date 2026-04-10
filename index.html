@@ -27,16 +27,16 @@
     --accent-cyan: #06b6d4;
     --accent-orange: #f97316;
     --accent-pink: #ec4899;
-    --hr-color: #ef4444;
-    --spo2-color: #3b82f6;
-    --rr-color: #f59e0b;
-    --bp-color: #10b981;
-    --etco2-color: #8b5cf6;
-    --temp-color: #06b6d4;
-    --gas-in-color: #f97316;
-    --gas-ex-color: #ea580c;
-    --etco2-in-color: #a78bfa;
-    --etco2-ex-color: #8b5cf6;
+    --hr-color: #22c55e;
+    --spo2-color: #22d3ee;
+    --rr-color: #60a5fa;
+    --bp-color: #d1d5db;
+    --etco2-color: #facc15;
+    --temp-color: #d1d5db;
+    --gas-in-color: #60a5fa;
+    --gas-ex-color: #3b82f6;
+    --etco2-in-color: #facc15;
+    --etco2-ex-color: #facc15;
   }
   body.light-mode {
     --bg-primary: #f0f2f5;
@@ -413,14 +413,25 @@
   .vital-spo2 .vital-value { color: var(--spo2-color); }
   .vital-rr .vital-value { color: var(--rr-color); }
   .vital-etco2 .vital-value { color: var(--etco2-color); } /* legacy */
-  .vital-bp .vital-value { color: var(--bp-color); }
+  .vital-bp .vital-value, .vital-bp .bp-detail { color: var(--bp-color); }
   .vital-temp .vital-value { color: var(--temp-color); }
   .vital-gas-in .vital-value { color: var(--gas-in-color); }
   .vital-gas-ex .vital-value { color: var(--gas-ex-color); }
   .vital-etco2-in .vital-value { color: var(--etco2-in-color); }
   .vital-etco2-ex .vital-value { color: var(--etco2-ex-color); }
+  /* Combined In/Ex card */
+  .vital-combined { text-align: left; padding: 6px 10px; }
+  .vital-combined .vital-label { font-size: 11px; font-weight: 700; color: var(--text-muted); letter-spacing: 1px; margin-bottom: 2px; }
+  .vital-combined .vital-unit { font-size: 10px; color: var(--text-secondary); position: absolute; top: 6px; right: 28px; }
+  .vital-combined .combined-values { display: flex; align-items: baseline; gap: 2px; }
+  .vital-combined .val-in-label { font-size: 10px; font-weight: 600; opacity: 0.6; }
+  .vital-combined .val-in { font-size: 16px; font-weight: 700; opacity: 0.7; cursor: pointer; }
+  .vital-combined .val-slash { font-size: 14px; font-weight: 400; opacity: 0.5; margin: 0 1px; }
+  .vital-combined .val-ex { font-size: 32px; font-weight: 800; line-height: 1.1; cursor: pointer; font-variant-numeric: tabular-nums; }
+  .vital-co2 .val-in, .vital-co2 .val-ex, .vital-co2 .val-in-label, .vital-co2 .val-slash { color: var(--etco2-color); }
+  .vital-gas .val-in, .vital-gas .val-ex, .vital-gas .val-in-label, .vital-gas .val-slash { color: var(--gas-ex-color); }
   .vital-bp { grid-column: 1 / -1; }
-  .bp-detail { display: flex; gap: 12px; justify-content: center; align-items: baseline; font-size: 34px; font-weight: 800; }
+  .bp-detail { display: flex; gap: 12px; justify-content: center; align-items: baseline; font-size: 34px; font-weight: 800; color: var(--bp-color); }
   .bp-detail .bp-slash { color: var(--text-muted); font-size: 24px; font-weight: 400; }
   .bp-detail .bp-mean { font-size: 22px; font-weight: 700; color: var(--text-secondary); margin-left: 4px; }
 
@@ -905,11 +916,14 @@
 
   @media (min-width: 1024px) and (orientation: landscape) {
     .vital-card .vital-value { font-size: 36px; }
+    .vital-combined .val-ex { font-size: 36px; }
     .bp-detail { font-size: 36px; }
   }
   @media (max-height: 700px) {
     .vital-card { padding: 6px 10px; }
     .vital-card .vital-value { font-size: 28px; }
+    .vital-combined .val-ex { font-size: 28px; }
+    .vital-combined .val-in { font-size: 14px; }
     .bp-detail { font-size: 28px; }
     .panel-section { padding: 8px; }
     .chart-container { min-height: 120px; }
@@ -1611,12 +1625,10 @@
         <div class="vital-card vital-hr" id="vitalHR" onclick="editVital('valHR','mvHR')" style="cursor:pointer;"><div class="vital-label">HR</div><div class="vital-value" id="valHR">--</div><div class="vital-unit">bpm</div><div class="vital-indicator"></div></div>
         <div class="vital-card vital-spo2" id="vitalSpO2" onclick="editVital('valSpO2','mvSpO2')" style="cursor:pointer;"><div class="vital-label">SpO2</div><div class="vital-value" id="valSpO2">--</div><div class="vital-unit">%</div><div class="vital-indicator"></div></div>
         <div class="vital-card vital-rr" id="vitalRR" onclick="editVital('valRR','mvRR')" style="cursor:pointer;"><div class="vital-label">RR</div><div class="vital-value" id="valRR">--</div><div class="vital-unit">/min</div><div class="vital-indicator"></div></div>
-        <div class="vital-card vital-etco2-in" id="vitalEtCO2In" onclick="editVital('valEtCO2In','mvEtCO2In')" style="cursor:pointer;"><div class="vital-label">EtCO2 In</div><div class="vital-value" id="valEtCO2In">--</div><div class="vital-unit">mmHg</div><div class="vital-indicator"></div></div>
-        <div class="vital-card vital-etco2-ex" id="vitalEtCO2Ex" onclick="editVital('valEtCO2Ex','mvEtCO2Ex')" style="cursor:pointer;"><div class="vital-label">EtCO2 Ex</div><div class="vital-value" id="valEtCO2Ex">--</div><div class="vital-unit">mmHg</div><div class="vital-indicator"></div></div>
+        <div class="vital-card vital-combined vital-co2" id="vitalEtCO2"><div class="vital-label">CO2</div><div class="vital-unit">mmHg</div><div class="combined-values"><span class="val-in-label">In</span><span class="val-in" id="valEtCO2In" onclick="editVital('valEtCO2In','mvEtCO2In')">--</span><span class="val-slash">/</span><span class="val-ex" id="valEtCO2Ex" onclick="editVital('valEtCO2Ex','mvEtCO2Ex')">--</span></div><div class="vital-indicator"></div></div>
+        <div class="vital-card vital-combined vital-gas" id="vitalGas"><div class="vital-label">Gas</div><div class="vital-unit">%</div><div class="combined-values"><span class="val-in-label">In</span><span class="val-in" id="valGasIn" onclick="editVital('valGasIn','mvGasIn')">--</span><span class="val-slash">/</span><span class="val-ex" id="valGasEx" onclick="editVital('valGasEx','mvGasEx')">--</span></div><div class="vital-indicator"></div></div>
         <div class="vital-card vital-temp" id="vitalTemp" onclick="editVital('valTemp','mvTemp')" style="cursor:pointer;"><div class="vital-label">体温</div><div class="vital-value" id="valTemp">--</div><div class="vital-unit">℃</div><div class="vital-indicator"></div></div>
-        <div class="vital-card vital-gas-in" id="vitalGasIn" onclick="editVital('valGasIn','mvGasIn')" style="cursor:pointer;"><div class="vital-label">Gas In</div><div class="vital-value" id="valGasIn">--</div><div class="vital-unit">%</div><div class="vital-indicator"></div></div>
-        <div class="vital-card vital-gas-ex" id="vitalGasEx" onclick="editVital('valGasEx','mvGasEx')" style="cursor:pointer;"><div class="vital-label">Gas Ex</div><div class="vital-value" id="valGasEx">--</div><div class="vital-unit">%</div><div class="vital-indicator"></div></div>
-        <div class="vital-card vital-bp" id="vitalBP" onclick="editVital('valMean','mvMAP')" style="cursor:pointer;"><div class="vital-label">血圧 (Sys / Dia / Mean)</div><div class="bp-detail"><span id="valSys">--</span><span class="bp-slash">/</span><span id="valDia">--</span><span class="bp-mean">(<span id="valMean">--</span>)</span></div><div class="vital-unit">mmHg</div><div class="vital-indicator"></div></div>
+        <div class="vital-card vital-bp" id="vitalBP" style="cursor:pointer;"><div class="vital-label">血圧 (Sys / Dia / Mean)</div><div class="bp-detail"><span id="valSys" onclick="event.stopPropagation();editVital('valSys','mvSys')" style="cursor:pointer;">--</span><span class="bp-slash">/</span><span id="valDia" onclick="event.stopPropagation();editVital('valDia','mvDia')" style="cursor:pointer;">--</span><span class="bp-mean">(<span id="valMean" onclick="event.stopPropagation();editVital('valMean','mvMAP')" style="cursor:pointer;">--</span>)</span></div><div class="vital-unit">mmHg</div><div class="vital-indicator"></div></div>
       </div>
 
       <!-- Manual vital input row -->
@@ -3484,6 +3496,16 @@ function editVital(displayId, pickerId) {
         document.getElementById(_editDisplayId).textContent = cfg.decimal > 0 ? newVal.toFixed(cfg.decimal) : newVal;
         updateLastVitalData(_editDisplayId, newVal);
         addLog('✏️ ' + cfg.label + ' → ' + newVal + ' に修正');
+        // Recalculate MAP when Sys or Dia is edited
+        if (_editDisplayId === 'valSys' || _editDisplayId === 'valDia') {
+          var s = parseFloat(document.getElementById('valSys').textContent);
+          var d = parseFloat(document.getElementById('valDia').textContent);
+          if (!isNaN(s) && !isNaN(d)) {
+            var m = Math.round(d + (s - d) / 3);
+            document.getElementById('valMean').textContent = m;
+            updateLastVitalData('valMean', m);
+          }
+        }
       }
     }
   };
@@ -4432,12 +4454,12 @@ function initChart(){
     c.fillStyle='rgba(59,130,246,0.5)';c.font='10px -apple-system,sans-serif';c.textAlign='center';c.fillText('次回計測',x1,yt+12);c.restore();
   }};
   vitalChart=new Chart(ctx,{type:'line',data:{labels:[],datasets:[
-    {label:'HR',data:[],borderColor:'#ef4444',backgroundColor:'rgba(239,68,68,0.1)',tension:0.3,pointRadius:3,borderWidth:2},
-    {label:'SpO2',data:[],borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,0.1)',tension:0.3,pointRadius:3,borderWidth:2},
-    {label:'RR',data:[],borderColor:'#f59e0b',backgroundColor:'rgba(245,158,11,0.1)',tension:0.3,pointRadius:3,borderWidth:2},
-    {label:'CO2 Ex',data:[],borderColor:'#8b5cf6',backgroundColor:'rgba(139,92,246,0.1)',tension:0.3,pointRadius:3,borderWidth:2},
-    {label:'MAP',data:[],borderColor:'#10b981',backgroundColor:'rgba(16,185,129,0.1)',tension:0.3,pointRadius:3,borderWidth:2},
-    {label:'Gas In',data:[],borderColor:'#f97316',backgroundColor:'rgba(249,115,22,0.1)',tension:0.3,pointRadius:3,borderWidth:2,hidden:true},
+    {label:'HR',data:[],borderColor:'#22c55e',backgroundColor:'rgba(34,197,94,0.1)',tension:0.3,pointRadius:3,borderWidth:2},
+    {label:'SpO2',data:[],borderColor:'#22d3ee',backgroundColor:'rgba(34,211,238,0.1)',tension:0.3,pointRadius:3,borderWidth:2},
+    {label:'RR',data:[],borderColor:'#60a5fa',backgroundColor:'rgba(96,165,250,0.1)',tension:0.3,pointRadius:3,borderWidth:2},
+    {label:'CO2 Ex',data:[],borderColor:'#facc15',backgroundColor:'rgba(250,204,21,0.1)',tension:0.3,pointRadius:3,borderWidth:2},
+    {label:'MAP',data:[],borderColor:'#d1d5db',backgroundColor:'rgba(209,213,219,0.1)',tension:0.3,pointRadius:3,borderWidth:2},
+    {label:'Gas In',data:[],borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,0.1)',tension:0.3,pointRadius:3,borderWidth:2,hidden:true},
   ]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{position:'top',labels:{color:'#8892a8',usePointStyle:true,pointStyle:'circle',padding:12,font:{size:10,weight:'600'}}}},scales:{x:{grid:{color:'rgba(42,53,80,0.5)'},ticks:{color:'#5a6478',font:{size:9}}},y:{grid:{color:'rgba(42,53,80,0.5)'},ticks:{color:'#5a6478',font:{size:9}},min:0,max:200}},animation:{duration:400}},plugins:[predPlugin]});
 }
 function addVitalToChart(d){
@@ -5206,7 +5228,7 @@ function checkAlarms(d){
   if(d.spo2<90){document.getElementById('vitalSpO2').classList.add('alert');showAlert('SpO2低下',`SpO2: ${d.spo2}%`);}else{document.getElementById('vitalSpO2').classList.remove('alert');}
   const hrLow=state.patient.species==='cat'?100:state.patient.species==='rabbit'?150:60;
   document.getElementById('vitalHR').classList.toggle('alert',d.hr<hrLow);
-  document.getElementById('vitalEtCO2Ex').classList.toggle('alert',d.etco2_ex>50||d.etco2_ex<25);
+  document.getElementById('vitalEtCO2').classList.toggle('alert',d.etco2_ex>50||d.etco2_ex<25);
   document.getElementById('vitalTemp').classList.toggle('alert',d.temp<(state.patient.species==='reptile'?22:36));
 }
 function showAlert(t,m){
@@ -5287,15 +5309,15 @@ function saveLogNote(logId) {
 //  MONITOR CALIBRATION
 // ===================================================================
 const CALIB_PARAMS = [
-  { key: 'HR', label: 'HR (心拍数)', color: '#ef4444' },
-  { key: 'SPO2', label: 'SpO2', color: '#3b82f6' },
-  { key: 'RR', label: 'RR (呼吸数)', color: '#f59e0b' },
-  { key: 'ETCO2_IN', label: 'EtCO2 In', color: '#a78bfa' },
-  { key: 'ETCO2_EX', label: 'EtCO2 Ex', color: '#8b5cf6' },
-  { key: 'BP', label: '血圧 (BP)', color: '#10b981' },
-  { key: 'TEMP', label: '体温', color: '#06b6d4' },
-  { key: 'GAS_IN', label: 'Gas In', color: '#f97316' },
-  { key: 'GAS_EX', label: 'Gas Ex', color: '#ea580c' },
+  { key: 'HR', label: 'HR (心拍数)', color: '#22c55e' },
+  { key: 'SPO2', label: 'SpO2', color: '#22d3ee' },
+  { key: 'RR', label: 'RR (呼吸数)', color: '#60a5fa' },
+  { key: 'ETCO2_IN', label: 'EtCO2 In', color: '#facc15' },
+  { key: 'ETCO2_EX', label: 'EtCO2 Ex', color: '#facc15' },
+  { key: 'BP', label: '血圧 (BP)', color: '#d1d5db' },
+  { key: 'TEMP', label: '体温', color: '#d1d5db' },
+  { key: 'GAS_IN', label: 'Gas In', color: '#60a5fa' },
+  { key: 'GAS_EX', label: 'Gas Ex', color: '#3b82f6' },
 ];
 
 const calibState = {
@@ -6911,12 +6933,12 @@ var VITAL_PICKER_CONFIG = {
   mvRR:       { label: 'RR',      unit: '/min', min: 2,    max: 80,   step: 1,   decimal: 0 },
   mvEtCO2In:  { label: 'CO2 In',  unit: 'mmHg', min: 0,    max: 80,   step: 1,   decimal: 0 },
   mvEtCO2Ex:  { label: 'CO2 Ex',  unit: 'mmHg', min: 0,    max: 80,   step: 1,   decimal: 0 },
-  mvSys:      { label: 'Sys',     unit: 'mmHg', min: 20,   max: 280,  step: 5,   decimal: 0 },
-  mvDia:      { label: 'Dia',     unit: 'mmHg', min: 10,   max: 200,  step: 5,   decimal: 0 },
+  mvSys:      { label: 'Sys',     unit: 'mmHg', min: 20,   max: 280,  step: 1,   decimal: 0 },
+  mvDia:      { label: 'Dia',     unit: 'mmHg', min: 10,   max: 200,  step: 1,   decimal: 0 },
   mvTemp:     { label: '体温',    unit: '℃',   min: 34.0, max: 42.0, step: 0.1, decimal: 1 },
   mvGasIn:    { label: 'Gas In',  unit: '%',    min: 0.0,  max: 5.0,  step: 0.1, decimal: 1 },
   mvGasEx:    { label: 'Gas Ex',  unit: '%',    min: 0.0,  max: 5.0,  step: 0.1, decimal: 1 },
-  mvMAP:      { label: 'MAP',    unit: 'mmHg', min: 20,   max: 200,  step: 5,   decimal: 0 },
+  mvMAP:      { label: 'MAP',    unit: 'mmHg', min: 20,   max: 200,  step: 1,   decimal: 0 },
 };
 
 function openVitalPicker(inputId) {
