@@ -1890,7 +1890,7 @@ function goToDrugPrep() {
 function resumeFromDrugPrep() {
   // Collect updated drug prep data
   var result = _collectPrepDrugs();
-  state.preparedDrugs = result.all;
+  state.preparedDrugs = result.checked;
   // Switch back to monitoring
   document.getElementById('drugPrepScreen').style.display = 'none';
   document.getElementById('mainApp').style.display = 'block';
@@ -3458,7 +3458,7 @@ function _collectPrepDrugs() {
 
 function completeDrugPrep() {
   var result = _collectPrepDrugs();
-  state.preparedDrugs = result.all;
+  state.preparedDrugs = result.checked;
   state._monitoringActive = true;
 
   showScreen('mainApp');
@@ -3480,7 +3480,7 @@ function completeDrugPrep() {
 
 function skipDrugPrep() {
   var result = _collectPrepDrugs();
-  state.preparedDrugs = result.all;
+  state.preparedDrugs = result.checked;
   state._monitoringActive = true;
   showScreen('mainApp');
   startMonitoring();
@@ -3860,7 +3860,19 @@ function toggleEmergSection() {
   }
 }
 
-function recordCriRateChange(drugName, rate, unit, mlhr) {
+function recordCriRateChange(el, drugName, rate, unit, mlhr) {
+  // Remove previous highlight
+  var table = el.closest('table');
+  if (table) {
+    table.querySelectorAll('tr.cri-active-rate').forEach(function(r) {
+      r.classList.remove('cri-active-rate');
+      r.style.background = '';
+    });
+  }
+  // Highlight selected row
+  el.classList.add('cri-active-rate');
+  el.style.background = 'rgba(6,182,212,0.25)';
+  state._currentCriRate = { drug: drugName, rate: rate, unit: unit, mlhr: mlhr };
   addLog('💊 CRI ' + drugName + ' → ' + rate + ' ' + unit + ' (' + mlhr.toFixed(1) + ' mL/hr)');
   state.events.push({name: 'CRI ' + drugName + ' ' + rate + unit, time: new Date()});
 }
@@ -3903,7 +3915,7 @@ function updateCRI() {
       var isDefault = (rate === d.rateDefault);
       var style = isDefault ? 'background:rgba(59,130,246,0.12);font-weight:700;' : '';
       var mlhrRounded = Math.round(mlhr * 10) / 10;
-      html += '<tr style="' + style + 'cursor:pointer;" onclick="recordCriRateChange(\'' + d.name.replace(/'/g,"\\'") + '\',' + rate + ',\'' + d.rateUnit + '\',' + mlhrRounded + ')" onmousedown="this.style.opacity=0.6" onmouseup="this.style.opacity=1" ontouchstart="this.style.opacity=0.6" ontouchend="this.style.opacity=1">';
+      html += '<tr style="' + style + 'cursor:pointer;" onclick="recordCriRateChange(this,\'' + d.name.replace(/'/g,"\\'") + '\',' + rate + ',\'' + d.rateUnit + '\',' + mlhrRounded + ')" onmousedown="this.style.opacity=0.6" onmouseup="this.style.opacity=1" ontouchstart="this.style.opacity=0.6" ontouchend="this.style.opacity=1">';
       html += '<td style="padding:3px 6px;border-bottom:1px solid rgba(42,53,80,0.3);">' + rate + '</td>';
       html += '<td style="padding:3px 6px;border-bottom:1px solid rgba(42,53,80,0.3);text-align:right;font-family:monospace;"><strong>' + mlhrRounded.toFixed(1) + '</strong></td></tr>';
     });
