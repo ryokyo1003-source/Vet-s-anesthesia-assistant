@@ -547,8 +547,8 @@
     border-radius: 8px; color: var(--text-primary); font-size: 13px; outline: none;
     -webkit-appearance: none; appearance: none;
   }
-  .drug-admin-row select { flex: 2; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='%238892a8'%3E%3Cpath d='M5 6L0 0h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 8px center; padding-right: 24px; }
-  .drug-admin-row input { flex: 1; }
+  .drug-admin-row select { flex: 3; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='%238892a8'%3E%3Cpath d='M5 6L0 0h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 8px center; padding-right: 24px; }
+  .drug-admin-row input { flex: 0.7; min-width: 0; }
   .btn-drug-add { padding: 8px 14px; background: var(--accent-purple); border: none; border-radius: 8px; color: white; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; min-height: 36px; }
   .btn-drug-add:active { opacity: 0.8; }
 
@@ -1732,7 +1732,7 @@
             <option>セファゾリン</option><option>マロピタント</option>
             <option>乳酸リンゲル</option>
           </select>
-          <button class="drug-admin-picker-btn" id="drugAdminNameBtn" onclick="openDrugNamePicker()" style="flex:2;padding:8px 10px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;color:var(--text-secondary);font-size:13px;text-align:left;cursor:pointer;min-height:36px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">薬剤選択 ▾</button>
+          <button class="drug-admin-picker-btn" id="drugAdminNameBtn" onclick="openDrugNamePicker()" style="flex:3;padding:8px 10px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;color:var(--text-secondary);font-size:13px;text-align:left;cursor:pointer;min-height:36px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">薬剤選択 ▾</button>
           <input type="text" id="drugAdminDose" placeholder="用量" class="auto-zen2han" inputmode="decimal">
           <select id="drugAdminRoute" style="display:none;"><option>iv</option><option>iv slow</option><option>im</option><option>sc</option><option>po</option><option>ip</option><option>io</option><option>it</option><option>cri</option><option>topical</option><option>吸入</option></select>
           <button class="drug-admin-picker-btn" id="drugAdminRouteBtn" onclick="openRoutePicker()" style="flex:0.8;padding:8px 10px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;color:var(--accent-purple);font-size:13px;font-weight:700;text-align:center;cursor:pointer;min-height:36px;">iv ▾</button>
