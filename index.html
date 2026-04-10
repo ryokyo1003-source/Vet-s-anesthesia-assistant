@@ -3394,12 +3394,16 @@ function recalcPrepCriSlot(slotIdx) {
   });
 }
 
-function completeDrugPrep() {
-  // Collect ALL drugs (checked and unchecked) by category
+// Excluded categories and drug names from prepared drugs panel
+var PREP_DRUGS_EXCLUDE_CATS = { fluid: true };
+var PREP_DRUGS_EXCLUDE_ROUTES = { '吸入': true };
+
+function _collectPrepDrugs() {
   var catDrugsChecked = {};
   var catDrugsAll = {};
   document.querySelectorAll('.prep-drug-row').forEach(function(row) {
     var catKey = row.dataset.catKey || 'other';
+    if (PREP_DRUGS_EXCLUDE_CATS[catKey]) return;
     var nameEl = row.querySelector('.prep-drug-name');
     var calcEl = row.querySelector('.prep-drug-calc');
     var routeEl = row.querySelector('.prep-drug-route');
@@ -3408,8 +3412,9 @@ function completeDrugPrep() {
     var isChecked = chk && chk.checked;
     var name = nameEl ? nameEl.textContent.replace(/院内/g,'').trim() : '';
     if (!name) return;
-    var calc = calcEl ? calcEl.textContent.replace(/\n/g,' ').trim() : '';
     var route = routeEl ? routeEl.textContent.trim() : '';
+    if (PREP_DRUGS_EXCLUDE_ROUTES[route]) return;
+    var calc = calcEl ? calcEl.textContent.replace(/\n/g,' ').trim() : '';
     var dose = inputEl ? inputEl.value + ' ' + (inputEl.dataset.mode === 'mlkg' ? 'mL/kg' : (inputEl.dataset.unit || '')) : '';
     var drug = { name: name, calc: calc, route: route, dose: dose, checked: isChecked };
     if (!catDrugsAll[catKey]) catDrugsAll[catKey] = [];
@@ -3419,17 +3424,20 @@ function completeDrugPrep() {
       catDrugsChecked[catKey].push(drug);
     }
   });
+  return { all: catDrugsAll, checked: catDrugsChecked };
+}
 
-  // Save to state for prepared drugs panel (all drugs, with checked flag)
-  state.preparedDrugs = catDrugsAll;
+function completeDrugPrep() {
+  var result = _collectPrepDrugs();
+  state.preparedDrugs = result.all;
 
   showScreen('mainApp');
   startMonitoring();
 
   // Log checked drugs
   var catLabels = { premed:'前投薬', induction:'麻酔導入', maintenance:'維持麻酔', analgesic:'鎮痛', antibiotic:'抗生剤・その他', fluid:'輸液' };
-  Object.keys(catDrugsChecked).forEach(function(cat) {
-    var drugs = catDrugsChecked[cat];
+  Object.keys(result.checked).forEach(function(cat) {
+    var drugs = result.checked[cat];
     if (drugs.length === 0) return;
     var label = catLabels[cat] || cat;
     drugs.forEach(function(d) {
@@ -3437,11 +3445,12 @@ function completeDrugPrep() {
     });
   });
 
-  // Render prepared drugs panel
   renderPrepDrugsPanel();
 }
 
 function skipDrugPrep() {
+  var result = _collectPrepDrugs();
+  state.preparedDrugs = result.all;
   showScreen('mainApp');
   startMonitoring();
 }
