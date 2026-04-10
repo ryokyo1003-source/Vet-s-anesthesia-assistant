@@ -405,18 +405,18 @@
 
   /* ===== VITAL BIG DISPLAY ===== */
   .vitals-grid {
-    display: grid; grid-template-columns: repeat(3, 1fr);
-    gap: 8px; flex-shrink: 0;
+    display: grid; grid-template-columns: repeat(6, 1fr);
+    gap: 4px; flex-shrink: 0;
   }
   .vital-card {
     background: var(--bg-card); border: 1px solid var(--border);
-    border-radius: 12px; padding: 8px 12px; text-align: center;
+    border-radius: 8px; padding: 4px 6px; text-align: center;
     position: relative; transition: border-color 0.3s;
   }
-  .vital-card .vital-label { font-size: 11px; font-weight: 700; color: var(--text-muted); letter-spacing: 1px; margin-bottom: 1px; }
-  .vital-card .vital-value { font-size: 32px; font-weight: 800; line-height: 1.1; font-variant-numeric: tabular-nums; }
-  .vital-card .vital-unit { font-size: 11px; color: var(--text-secondary); }
-  .vital-card .vital-indicator { position: absolute; top: 8px; right: 10px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent-green); }
+  .vital-card .vital-label { font-size: 9px; font-weight: 700; color: var(--text-muted); letter-spacing: 0.5px; margin-bottom: 0; }
+  .vital-card .vital-value { font-size: 22px; font-weight: 800; line-height: 1.1; font-variant-numeric: tabular-nums; }
+  .vital-card .vital-unit { font-size: 9px; color: var(--text-secondary); }
+  .vital-card .vital-indicator { position: absolute; top: 4px; right: 6px; width: 6px; height: 6px; border-radius: 50%; background: var(--accent-green); }
   .vital-card.alert { border-color: var(--accent-red); animation: alertPulse 1s infinite; }
   .vital-card.alert .vital-value { color: var(--accent-red) !important; }
   .vital-card.alert .vital-indicator { background: var(--accent-red); }
@@ -432,25 +432,25 @@
   .vital-etco2-in .vital-value { color: var(--etco2-in-color); }
   .vital-etco2-ex .vital-value { color: var(--etco2-ex-color); }
   /* Combined In/Ex card */
-  .vital-combined { text-align: center; padding: 6px 10px; }
-  .vital-combined .vital-label { font-size: 11px; font-weight: 700; color: var(--text-muted); letter-spacing: 1px; margin-bottom: 2px; }
-  .vital-combined .vital-unit { font-size: 10px; color: var(--text-secondary); position: absolute; top: 6px; right: 28px; }
-  .vital-combined .combined-values { display: flex; align-items: baseline; gap: 2px; justify-content: center; }
-  .vital-combined .val-in-label { font-size: 10px; font-weight: 600; opacity: 0.6; }
-  .vital-combined .val-in { font-size: 16px; font-weight: 700; opacity: 0.7; cursor: pointer; }
-  .vital-combined .val-slash { font-size: 14px; font-weight: 400; opacity: 0.5; margin: 0 1px; }
-  .vital-combined .val-ex { font-size: 32px; font-weight: 800; line-height: 1.1; cursor: pointer; font-variant-numeric: tabular-nums; }
+  .vital-combined { text-align: center; padding: 4px 6px; }
+  .vital-combined .vital-label { font-size: 9px; font-weight: 700; color: var(--text-muted); letter-spacing: 0.5px; margin-bottom: 0; }
+  .vital-combined .vital-unit { font-size: 8px; color: var(--text-secondary); position: absolute; top: 4px; right: 20px; }
+  .vital-combined .combined-values { display: flex; align-items: baseline; gap: 1px; justify-content: center; }
+  .vital-combined .val-in-label { font-size: 8px; font-weight: 600; opacity: 0.6; }
+  .vital-combined .val-in { font-size: 12px; font-weight: 700; opacity: 0.7; cursor: pointer; }
+  .vital-combined .val-slash { font-size: 10px; font-weight: 400; opacity: 0.5; margin: 0 1px; }
+  .vital-combined .val-ex { font-size: 22px; font-weight: 800; line-height: 1.1; cursor: pointer; font-variant-numeric: tabular-nums; }
   .vital-co2 .val-in, .vital-co2 .val-ex, .vital-co2 .val-in-label, .vital-co2 .val-slash { color: var(--etco2-color); }
   .vital-co2 { grid-column: span 2; }
   .vital-co2 .combined-values { display: inline-flex; }
-  .rr-in-co2 { display: inline-flex; align-items: baseline; gap: 4px; margin-left: 12px; cursor: pointer; }
-  .rr-in-co2 .rr-label { font-size: 10px; font-weight: 700; color: var(--text-muted); }
-  .rr-in-co2 .rr-value { font-size: 24px; font-weight: 800; color: var(--rr-color); font-variant-numeric: tabular-nums; }
+  .rr-in-co2 { display: inline-flex; align-items: baseline; gap: 3px; margin-left: 8px; cursor: pointer; }
+  .rr-in-co2 .rr-label { font-size: 8px; font-weight: 700; color: var(--text-muted); }
+  .rr-in-co2 .rr-value { font-size: 18px; font-weight: 800; color: var(--rr-color); font-variant-numeric: tabular-nums; }
   .vital-gas .val-in, .vital-gas .val-ex, .vital-gas .val-in-label, .vital-gas .val-slash { color: var(--gas-ex-color); }
   .vital-bp { grid-column: 1 / -1; }
-  .bp-detail { display: flex; gap: 12px; justify-content: center; align-items: baseline; font-size: 34px; font-weight: 800; color: var(--bp-color); }
-  .bp-detail .bp-slash { color: var(--text-muted); font-size: 24px; font-weight: 400; }
-  .bp-detail .bp-mean { font-size: 22px; font-weight: 700; color: var(--text-secondary); margin-left: 4px; }
+  .bp-detail { display: flex; gap: 6px; justify-content: center; align-items: baseline; font-size: 22px; font-weight: 800; color: var(--bp-color); }
+  .bp-detail .bp-slash { color: var(--text-muted); font-size: 16px; font-weight: 400; }
+  .bp-detail .bp-mean { font-size: 16px; font-weight: 700; color: var(--text-secondary); margin-left: 2px; }
 
   /* ===== MANUAL VITAL INPUT ===== */
   .manual-vitals-row {
@@ -943,17 +943,17 @@
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 
   @media (min-width: 1024px) and (orientation: landscape) {
-    .vital-card .vital-value { font-size: 36px; }
-    .vital-combined .val-ex { font-size: 36px; }
-    .bp-detail { font-size: 36px; }
+    .vital-card .vital-value { font-size: 24px; }
+    .vital-combined .val-ex { font-size: 24px; }
+    .bp-detail { font-size: 24px; }
   }
   @media (max-height: 700px) {
-    .vital-card { padding: 6px 10px; }
-    .vital-card .vital-value { font-size: 28px; }
-    .vital-combined .val-ex { font-size: 28px; }
-    .vital-combined .val-in { font-size: 14px; }
-    .rr-in-co2 .rr-value { font-size: 20px; }
-    .bp-detail { font-size: 28px; }
+    .vital-card { padding: 3px 5px; }
+    .vital-card .vital-value { font-size: 20px; }
+    .vital-combined .val-ex { font-size: 20px; }
+    .vital-combined .val-in { font-size: 11px; }
+    .rr-in-co2 .rr-value { font-size: 16px; }
+    .bp-detail { font-size: 20px; }
     .panel-section { padding: 8px; }
     .chart-container { min-height: 120px; }
   }
