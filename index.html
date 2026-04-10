@@ -2016,7 +2016,7 @@ const DRUG_MASTER_DEFAULT = {
 // diluted: 希釈後の濃度情報（あれば）
 var CRI_MASTER = {
   dog: [
-    { key:'fentanyl', name:'フェンタニル', conc:50, concUnit:'μg/mL', diluted:{ conc:10, concUnit:'μg/mL', note:'5倍希釈 (生食4mL+原液1mL)' }, calcType:'simple', rateUnit:'μg/kg/hr', rateMin:1, rateMax:5, rateDefault:2 },
+    { key:'fentanyl', name:'フェンタニル', conc:50, concUnit:'μg/mL', diluted:{ conc:10, concUnit:'μg/mL', note:'5倍希釈 (生食4mL+原液1mL)' }, calcType:'simple', rateUnit:'μg/kg/hr', rateMin:1, rateMax:15, rateDefault:2, customSteps:[1,2,3,4,5,10,12,15] },
     { key:'ketamine', name:'ケタミン', conc:10, concUnit:'mg/mL', calcType:'infusion', rateUnit:'μg/kg/min', rateMin:2, rateMax:10, rateDefault:2 },
     { key:'dopamine', name:'ドパミン', conc:20, concUnit:'mg/mL', calcType:'infusion', rateUnit:'μg/kg/min', rateMin:2, rateMax:8, rateDefault:5 },
     { key:'dobutamine', name:'ドブタミン', conc:20, concUnit:'mg/mL', calcType:'infusion', rateUnit:'μg/kg/min', rateMin:5, rateMax:15, rateDefault:10 },
@@ -2025,7 +2025,7 @@ var CRI_MASTER = {
     { key:'lidocaine', name:'リドカイン', conc:20, concUnit:'mg/mL', calcType:'infusion', rateUnit:'μg/kg/min', rateMin:50, rateMax:100, rateDefault:50 },
   ],
   cat: [
-    { key:'fentanyl', name:'フェンタニル', conc:50, concUnit:'μg/mL', diluted:{ conc:10, concUnit:'μg/mL', note:'5倍希釈 (生食4mL+原液1mL)' }, calcType:'simple', rateUnit:'μg/kg/hr', rateMin:1, rateMax:4, rateDefault:2 },
+    { key:'fentanyl', name:'フェンタニル', conc:50, concUnit:'μg/mL', diluted:{ conc:10, concUnit:'μg/mL', note:'5倍希釈 (生食4mL+原液1mL)' }, calcType:'simple', rateUnit:'μg/kg/hr', rateMin:1, rateMax:15, rateDefault:2, customSteps:[1,2,3,4,5,10,12,15] },
     { key:'ketamine', name:'ケタミン', conc:10, concUnit:'mg/mL', calcType:'infusion', rateUnit:'μg/kg/min', rateMin:2, rateMax:10, rateDefault:2 },
     { key:'dopamine', name:'ドパミン', conc:20, concUnit:'mg/mL', calcType:'infusion', rateUnit:'μg/kg/min', rateMin:2, rateMax:8, rateDefault:5 },
     { key:'dobutamine', name:'ドブタミン', conc:20, concUnit:'mg/mL', calcType:'infusion', rateUnit:'μg/kg/min', rateMin:5, rateMax:15, rateDefault:10 },
@@ -3829,6 +3829,11 @@ function toggleEmergSection() {
   }
 }
 
+function recordCriRateChange(drugName, rate, unit, mlhr) {
+  addLog('💊 CRI ' + drugName + ' → ' + rate + ' ' + unit + ' (' + mlhr.toFixed(1) + ' mL/hr)');
+  state.events.push({name: 'CRI ' + drugName + ' ' + rate + unit, time: new Date()});
+}
+
 function updateCRI() {
   var sel = document.getElementById('criDrug');
   var panel = document.getElementById('criCalcPanel');
@@ -3866,8 +3871,9 @@ function updateCRI() {
       var mlhr = calcSimpleMlHr(rate, d.rateUnit, useConc, useConcUnit, w);
       var isDefault = (rate === d.rateDefault);
       var style = isDefault ? 'background:rgba(59,130,246,0.12);font-weight:700;' : '';
-      html += '<tr style="' + style + '"><td style="padding:3px 6px;border-bottom:1px solid rgba(42,53,80,0.3);">' + rate + '</td>';
       var mlhrRounded = Math.round(mlhr * 10) / 10;
+      html += '<tr style="' + style + 'cursor:pointer;" onclick="recordCriRateChange(\'' + d.name.replace(/'/g,"\\'") + '\',' + rate + ',\'' + d.rateUnit + '\',' + mlhrRounded + ')" onmousedown="this.style.opacity=0.6" onmouseup="this.style.opacity=1" ontouchstart="this.style.opacity=0.6" ontouchend="this.style.opacity=1">';
+      html += '<td style="padding:3px 6px;border-bottom:1px solid rgba(42,53,80,0.3);">' + rate + '</td>';
       html += '<td style="padding:3px 6px;border-bottom:1px solid rgba(42,53,80,0.3);text-align:right;font-family:monospace;"><strong>' + mlhrRounded.toFixed(1) + '</strong></td></tr>';
     });
     html += '</tbody></table>';
@@ -3913,6 +3919,7 @@ function updateCRI() {
 }
 
 function generateRateSteps(d) {
+  if (d.customSteps) return d.customSteps.slice();
   var steps = [];
   var range = d.rateMax - d.rateMin;
   var step = 1;
