@@ -429,6 +429,11 @@
   .vital-combined .val-slash { font-size: 14px; font-weight: 400; opacity: 0.5; margin: 0 1px; }
   .vital-combined .val-ex { font-size: 32px; font-weight: 800; line-height: 1.1; cursor: pointer; font-variant-numeric: tabular-nums; }
   .vital-co2 .val-in, .vital-co2 .val-ex, .vital-co2 .val-in-label, .vital-co2 .val-slash { color: var(--etco2-color); }
+  .vital-co2 { grid-column: span 2; }
+  .vital-co2 .combined-values { display: inline-flex; }
+  .rr-in-co2 { display: inline-flex; align-items: baseline; gap: 4px; margin-left: 12px; cursor: pointer; }
+  .rr-in-co2 .rr-label { font-size: 10px; font-weight: 700; color: var(--text-muted); }
+  .rr-in-co2 .rr-value { font-size: 24px; font-weight: 800; color: var(--rr-color); font-variant-numeric: tabular-nums; }
   .vital-gas .val-in, .vital-gas .val-ex, .vital-gas .val-in-label, .vital-gas .val-slash { color: var(--gas-ex-color); }
   .vital-bp { grid-column: 1 / -1; }
   .bp-detail { display: flex; gap: 12px; justify-content: center; align-items: baseline; font-size: 34px; font-weight: 800; color: var(--bp-color); }
@@ -924,6 +929,7 @@
     .vital-card .vital-value { font-size: 28px; }
     .vital-combined .val-ex { font-size: 28px; }
     .vital-combined .val-in { font-size: 14px; }
+    .rr-in-co2 .rr-value { font-size: 20px; }
     .bp-detail { font-size: 28px; }
     .panel-section { padding: 8px; }
     .chart-container { min-height: 120px; }
@@ -1624,10 +1630,9 @@
       <div class="vitals-grid">
         <div class="vital-card vital-hr" id="vitalHR" onclick="editVital('valHR','mvHR')" style="cursor:pointer;"><div class="vital-label">HR</div><div class="vital-value" id="valHR">--</div><div class="vital-unit">bpm</div><div class="vital-indicator"></div></div>
         <div class="vital-card vital-spo2" id="vitalSpO2" onclick="editVital('valSpO2','mvSpO2')" style="cursor:pointer;"><div class="vital-label">SpO2</div><div class="vital-value" id="valSpO2">--</div><div class="vital-unit">%</div><div class="vital-indicator"></div></div>
-        <div class="vital-card vital-rr" id="vitalRR" onclick="editVital('valRR','mvRR')" style="cursor:pointer;"><div class="vital-label">RR</div><div class="vital-value" id="valRR">--</div><div class="vital-unit">/min</div><div class="vital-indicator"></div></div>
-        <div class="vital-card vital-combined vital-co2" id="vitalEtCO2"><div class="vital-label">CO2</div><div class="vital-unit">mmHg</div><div class="combined-values"><span class="val-in-label">In</span><span class="val-in" id="valEtCO2In" onclick="editVital('valEtCO2In','mvEtCO2In')">--</span><span class="val-slash">/</span><span class="val-ex" id="valEtCO2Ex" onclick="editVital('valEtCO2Ex','mvEtCO2Ex')">--</span></div><div class="vital-indicator"></div></div>
-        <div class="vital-card vital-combined vital-gas" id="vitalGas"><div class="vital-label">Gas</div><div class="vital-unit">%</div><div class="combined-values"><span class="val-in-label">In</span><span class="val-in" id="valGasIn" onclick="editVital('valGasIn','mvGasIn')">--</span><span class="val-slash">/</span><span class="val-ex" id="valGasEx" onclick="editVital('valGasEx','mvGasEx')">--</span></div><div class="vital-indicator"></div></div>
         <div class="vital-card vital-temp" id="vitalTemp" onclick="editVital('valTemp','mvTemp')" style="cursor:pointer;"><div class="vital-label">体温</div><div class="vital-value" id="valTemp">--</div><div class="vital-unit">℃</div><div class="vital-indicator"></div></div>
+        <div class="vital-card vital-combined vital-co2" id="vitalEtCO2"><div class="vital-label">CO2</div><div class="vital-unit">mmHg</div><div class="combined-values"><span class="val-in-label">In</span><span class="val-in" id="valEtCO2In" onclick="editVital('valEtCO2In','mvEtCO2In')">--</span><span class="val-slash">/</span><span class="val-ex" id="valEtCO2Ex" onclick="editVital('valEtCO2Ex','mvEtCO2Ex')">--</span></div><div class="rr-in-co2" id="vitalRR" onclick="editVital('valRR','mvRR')" style="cursor:pointer;"><span class="rr-label">RR</span><span class="rr-value" id="valRR">--</span></div><div class="vital-indicator"></div></div>
+        <div class="vital-card vital-combined vital-gas" id="vitalGas"><div class="vital-label">Gas</div><div class="vital-unit">%</div><div class="combined-values"><span class="val-in-label">In</span><span class="val-in" id="valGasIn" onclick="editVital('valGasIn','mvGasIn')">--</span><span class="val-slash">/</span><span class="val-ex" id="valGasEx" onclick="editVital('valGasEx','mvGasEx')">--</span></div><div class="vital-indicator"></div></div>
         <div class="vital-card vital-bp" id="vitalBP" style="cursor:pointer;"><div class="vital-label">血圧 (Sys / Dia / Mean)</div><div class="bp-detail"><span id="valSys" onclick="event.stopPropagation();editVital('valSys','mvSys')" style="cursor:pointer;">--</span><span class="bp-slash">/</span><span id="valDia" onclick="event.stopPropagation();editVital('valDia','mvDia')" style="cursor:pointer;">--</span><span class="bp-mean">(<span id="valMean" onclick="event.stopPropagation();editVital('valMean','mvMAP')" style="cursor:pointer;">--</span>)</span></div><div class="vital-unit">mmHg</div><div class="vital-indicator"></div></div>
       </div>
 
