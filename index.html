@@ -539,6 +539,16 @@
   .btn-event[data-cat="airway"] { background: rgba(16,185,129,0.08); border-color: rgba(16,185,129,0.3); }
   .btn-event[data-cat="airway"].recorded { background: rgba(16,185,129,0.2); border-color: var(--accent-green); color: var(--accent-green); }
 
+  /* Prepared drugs panel */
+  .prep-drugs-cat { margin-bottom: 6px; }
+  .prep-drugs-cat-title { font-size: 10px; font-weight: 700; color: var(--text-muted); margin-bottom: 3px; letter-spacing: 0.5px; }
+  .prep-drugs-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; }
+  .btn-prep-drug { padding: 6px 4px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 11px; font-weight: 600; cursor: pointer; text-align: center; min-height: 40px; transition: all 0.2s; line-height: 1.3; }
+  .btn-prep-drug:active { opacity: 0.7; }
+  .btn-prep-drug .prep-drug-detail { display: block; font-size: 9px; color: var(--text-secondary); font-weight: 400; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .btn-prep-drug.administered { background: rgba(139,92,246,0.15); border-color: var(--accent-purple); color: var(--accent-purple); }
+  .btn-prep-drug.administered .prep-drug-detail { color: var(--accent-purple); }
+
   /* Drug admin */
   .drug-admin-section { margin-top: 6px; }
   .drug-admin-row { display: flex; gap: 6px; align-items: center; }
@@ -1689,6 +1699,12 @@
           <div class="announce-status" id="announceStatusInduction" style="display:none;"></div>
           <div class="announce-status" id="announceStatusIncision" style="display:none;"></div>
         </div>
+      </div>
+
+      <!-- Prepared Drugs -->
+      <div class="panel-section" id="prepDrugsSection" style="display:none;">
+        <div class="panel-title" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;" onclick="togglePrepDrugsSection()">💉 準備薬剤<span id="prepDrugsToggleArrow" style="font-size:10px;transition:transform 0.2s;">▼</span></div>
+        <div id="prepDrugsBody"></div>
       </div>
 
       <!-- CRI -->
@@ -3398,6 +3414,9 @@ function completeDrugPrep() {
     catDrugs[catKey].push({ name, calc, route, dose });
   });
 
+  // Save to state for prepared drugs panel
+  state.preparedDrugs = catDrugs;
+
   showScreen('mainApp');
   startMonitoring();
 
@@ -3416,6 +3435,9 @@ function completeDrugPrep() {
   if (!hasAny) {
     // No drugs selected
   }
+
+  // Render prepared drugs panel
+  renderPrepDrugsPanel();
 }
 
 function skipDrugPrep() {
@@ -3692,6 +3714,77 @@ function buildCriDrugSelect() {
     sel.appendChild(opt);
   });
   updateCRI();
+}
+
+function togglePrepDrugsSection() {
+  var body = document.getElementById('prepDrugsBody');
+  var arrow = document.getElementById('prepDrugsToggleArrow');
+  if (!body) return;
+  if (body.style.display === 'none') {
+    body.style.display = '';
+    if (arrow) arrow.textContent = '▼';
+  } else {
+    body.style.display = 'none';
+    if (arrow) arrow.textContent = '▶';
+  }
+}
+
+function renderPrepDrugsPanel() {
+  var section = document.getElementById('prepDrugsSection');
+  var body = document.getElementById('prepDrugsBody');
+  if (!section || !body) return;
+  var catDrugs = state.preparedDrugs;
+  if (!catDrugs || Object.keys(catDrugs).length === 0) { section.style.display = 'none'; return; }
+
+  var catLabels = { premed:'前投薬', induction:'麻酔導入', maintenance:'維持麻酔', analgesic:'鎮痛', antibiotic:'抗生剤・その他', fluid:'輸液' };
+  var catOrder = ['premed','induction','maintenance','analgesic','antibiotic','fluid'];
+  var html = '';
+
+  catOrder.forEach(function(cat) {
+    var drugs = catDrugs[cat];
+    if (!drugs || drugs.length === 0) return;
+    var label = catLabels[cat] || cat;
+    html += '<div class="prep-drugs-cat">';
+    html += '<div class="prep-drugs-cat-title">' + label + '</div>';
+    html += '<div class="prep-drugs-grid">';
+    drugs.forEach(function(d, i) {
+      var id = 'prepDrugBtn_' + cat + '_' + i;
+      var detail = d.calc || '';
+      if (d.route) detail += (detail ? ' ' : '') + d.route;
+      html += '<button class="btn-prep-drug" id="' + id + '" onclick="recordPrepDrug(this,\'' + cat + '\',' + i + ')">';
+      html += '<span>' + d.name + '</span>';
+      if (detail) html += '<span class="prep-drug-detail">' + detail + '</span>';
+      html += '</button>';
+    });
+    html += '</div></div>';
+  });
+
+  body.innerHTML = html;
+  section.style.display = '';
+}
+
+function recordPrepDrug(btn, cat, idx) {
+  var catDrugs = state.preparedDrugs;
+  if (!catDrugs || !catDrugs[cat] || !catDrugs[cat][idx]) return;
+  var d = catDrugs[cat][idx];
+  var catLabels = { premed:'前投薬', induction:'麻酔導入', maintenance:'維持麻酔', analgesic:'鎮痛', antibiotic:'抗生剤・その他', fluid:'輸液' };
+  var label = catLabels[cat] || cat;
+  var now = new Date();
+  var ts = now.toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'});
+
+  if (btn.classList.contains('administered')) {
+    // Already recorded - confirm cancel
+    if (!confirm('「' + d.name + '」の投与記録を取り消しますか？')) return;
+    btn.classList.remove('administered');
+    btn.querySelector('.prep-drug-detail').textContent = (d.calc || '') + (d.route ? ' ' + d.route : '');
+    addLog('🔄 ' + d.name + ' 投与取消');
+    return;
+  }
+
+  btn.classList.add('administered');
+  btn.querySelector('.prep-drug-detail').textContent = '✓ ' + ts;
+  addLog('💉 [' + label + '] ' + d.name + ' ' + (d.calc || '') + ' ' + (d.route || '') + ' 投与');
+  state.events.push({name: d.name + ' 投与', time: now});
 }
 
 function toggleCriSection() {
