@@ -3527,7 +3527,7 @@ function updateLastVitalData(displayId, value) {
     arr[arr.length - 1] = value;
     // Update chart
     if (vitalChart) {
-      var datasetMap = { hr:0, spo2:1, rr:2, etco2_ex:3, mean:4, gas_in:5 };
+      var datasetMap = { hr:0, spo2:1, rr:2, etco2_ex:3, mean:4, gas_in:5, temp:6 };
       var dsIdx = datasetMap[key];
       if (dsIdx !== undefined && vitalChart.data.datasets[dsIdx]) {
         var data = vitalChart.data.datasets[dsIdx].data;
@@ -4466,7 +4466,8 @@ function initChart(){
     {label:'RR',data:[],borderColor:'#60a5fa',backgroundColor:'rgba(96,165,250,0.1)',tension:0.3,pointRadius:3,borderWidth:2},
     {label:'CO2 Ex',data:[],borderColor:'#facc15',backgroundColor:'rgba(250,204,21,0.1)',tension:0.3,pointRadius:3,borderWidth:2},
     {label:'MAP',data:[],borderColor:'#d1d5db',backgroundColor:'rgba(209,213,219,0.1)',tension:0.3,pointRadius:3,borderWidth:2},
-    {label:'Gas In',data:[],borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,0.1)',tension:0.3,pointRadius:3,borderWidth:2,hidden:true},
+    {label:'Gas In',data:[],borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,0.1)',tension:0.3,pointRadius:3,borderWidth:2,hidden:true,spanGaps:false},
+    {label:'体温',data:[],borderColor:'#d1d5db',backgroundColor:'rgba(209,213,219,0.1)',tension:0.3,pointRadius:3,borderWidth:2,borderDash:[4,3],hidden:true},
   ]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{position:'top',labels:{color:'#8892a8',usePointStyle:true,pointStyle:'circle',padding:12,font:{size:10,weight:'600'}}}},scales:{x:{grid:{color:'rgba(42,53,80,0.5)'},ticks:{color:'#5a6478',font:{size:9}}},y:{grid:{color:'rgba(42,53,80,0.5)'},ticks:{color:'#5a6478',font:{size:9}},min:0,max:200}},animation:{duration:400}},plugins:[predPlugin]});
 }
 function addVitalToChart(d){
@@ -4480,7 +4481,8 @@ function addVitalToChart(d){
   vitalChart.data.datasets[2].data=[...state.vitals.rr,null];
   vitalChart.data.datasets[3].data=[...state.vitals.etco2_ex,null];
   vitalChart.data.datasets[4].data=[...state.vitals.mean,null];
-  vitalChart.data.datasets[5].data=[...state.vitals.gas_in,null];
+  vitalChart.data.datasets[5].data=[...state.vitals.gas_in.map(v=>v>0?v:null),null];
+  vitalChart.data.datasets[6].data=[...state.vitals.temp.map(v=>v>0?v:null),null];
   vitalChart.update();
 }
 
@@ -6393,7 +6395,15 @@ function resumeSession() {
 
   // Restore chart data
   if (vitalChart && state.timeLabels.length > 0) {
-    vitalChart.data.labels = state.timeLabels;
+    var pl = [...state.timeLabels, '+5min'];
+    vitalChart.data.labels = pl;
+    vitalChart.data.datasets[0].data = [...state.vitals.hr, null];
+    vitalChart.data.datasets[1].data = [...state.vitals.spo2, null];
+    vitalChart.data.datasets[2].data = [...state.vitals.rr, null];
+    vitalChart.data.datasets[3].data = [...state.vitals.etco2_ex, null];
+    vitalChart.data.datasets[4].data = [...state.vitals.mean, null];
+    vitalChart.data.datasets[5].data = [...state.vitals.gas_in.map(function(v){return v>0?v:null;}), null];
+    vitalChart.data.datasets[6].data = [...state.vitals.temp.map(function(v){return v>0?v:null;}), null];
     vitalChart.update();
   }
 
