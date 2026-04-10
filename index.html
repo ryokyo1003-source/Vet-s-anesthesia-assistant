@@ -1623,15 +1623,16 @@
     <!-- CRI Calculator in Prep Screen -->
     <div id="prepCriSection" style="margin-top:16px;"></div>
 
-    <button class="btn-prep-done" onclick="completeDrugPrep()">✅ 準備完了 → モニタリング開始</button>
-    <button class="btn-prep-skip" onclick="skipDrugPrep()">スキップ（準備済み）</button>
+    <button class="btn-prep-done" onclick="completeDrugPrep()" id="btnPrepDone">✅ 準備完了 → モニタリング開始</button>
+    <button class="btn-prep-done" onclick="resumeFromDrugPrep()" id="btnPrepResume" style="display:none;background:var(--accent-cyan);">▶ モニタリングに戻る</button>
+    <button class="btn-prep-skip" onclick="skipDrugPrep()" id="btnPrepSkip">スキップ（準備済み）</button>
     <button class="btn-prep-skip" onclick="savePrepAndGoHome()" style="color:var(--accent-orange);">💾 一時保存して別の準備へ</button>
   </div>
 </div>
 
 <!-- ========== MAIN APPLICATION ========== -->
 <div id="mainApp">
-  <button class="btn-back-to-start" onclick="backToStartScreen()" title="スタート画面に戻る">◀</button>
+  <button class="btn-back-to-start" onclick="goToDrugPrep()" title="薬剤準備画面に戻る">◀</button>
   <div class="app-layout">
     <!-- LEFT PANEL -->
     <div class="left-panel">
@@ -1865,8 +1866,36 @@ function showScreen(screenId) {
 }
 
 function backFromDrugPrep() {
+  if (state._monitoringActive) {
+    // If monitoring is active, go back to monitoring instead of start
+    resumeFromDrugPrep();
+    return;
+  }
   showScreen('startupScreen');
   updateSavedPrepsDisplay();
+}
+
+function goToDrugPrep() {
+  // Save prep input state before navigating
+  state._monitoringActive = true;
+  // Show drug prep screen without stopping timers
+  document.getElementById('mainApp').style.display = 'none';
+  document.getElementById('drugPrepScreen').style.display = 'flex';
+  // Show resume button, hide start button
+  document.getElementById('btnPrepDone').style.display = 'none';
+  document.getElementById('btnPrepSkip').style.display = 'none';
+  document.getElementById('btnPrepResume').style.display = '';
+}
+
+function resumeFromDrugPrep() {
+  // Collect updated drug prep data
+  var result = _collectPrepDrugs();
+  state.preparedDrugs = result.all;
+  // Switch back to monitoring
+  document.getElementById('drugPrepScreen').style.display = 'none';
+  document.getElementById('mainApp').style.display = 'block';
+  // Re-render prepared drugs panel with updated data
+  renderPrepDrugsPanel();
 }
 
 // ===================================================================
@@ -3430,6 +3459,7 @@ function _collectPrepDrugs() {
 function completeDrugPrep() {
   var result = _collectPrepDrugs();
   state.preparedDrugs = result.all;
+  state._monitoringActive = true;
 
   showScreen('mainApp');
   startMonitoring();
@@ -3451,6 +3481,7 @@ function completeDrugPrep() {
 function skipDrugPrep() {
   var result = _collectPrepDrugs();
   state.preparedDrugs = result.all;
+  state._monitoringActive = true;
   showScreen('mainApp');
   startMonitoring();
 }
@@ -6463,6 +6494,12 @@ function backToStartScreen() {
   showScreen('startupScreen');
   // Settings is an overlay, close it separately
   document.getElementById('settingsScreen').style.display = 'none';
+
+  state._monitoringActive = false;
+  // Reset drug prep buttons for next session
+  document.getElementById('btnPrepDone').style.display = '';
+  document.getElementById('btnPrepSkip').style.display = '';
+  document.getElementById('btnPrepResume').style.display = 'none';
 
   // Show resume button if there's a saved session
   updateResumeButton();
