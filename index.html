@@ -522,6 +522,8 @@
   .cri-btn { width: 48px; height: 40px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 10px; color: var(--text-primary); font-size: 18px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; min-height: 40px; }
   .cri-btn:active { background: var(--accent-blue); border-color: var(--accent-blue); }
   .cri-btn.fine { font-size: 13px; color: var(--text-secondary); height: 30px; min-height: 30px; }
+  tr.cri-default-rate { background: rgba(59,130,246,0.12); font-weight: 700; }
+  tr.cri-active-rate { background: rgba(6,182,212,0.25) !important; font-weight: 700; }
   .cri-display { flex: 1; text-align: center; }
   .cri-display .rate { font-size: 26px; font-weight: 800; }
   .cri-display .rate-unit { font-size: 11px; color: var(--text-secondary); }
@@ -3458,19 +3460,6 @@ function _collectPrepDrugs() {
 
 function completeDrugPrep() {
   var result = _collectPrepDrugs();
-  // DEBUG
-  var checkedCount = 0, allCount = 0;
-  Object.keys(result.checked).forEach(function(k){ checkedCount += result.checked[k].length; });
-  Object.keys(result.all).forEach(function(k){ allCount += result.all[k].length; });
-  var rows = document.querySelectorAll('.prep-drug-row');
-  var chkStates = [];
-  rows.forEach(function(r) {
-    var chk = r.querySelector('input[type="checkbox"]');
-    var nm = r.querySelector('.prep-drug-name');
-    chkStates.push((nm?nm.textContent.trim():'?') + ':' + (chk?chk.checked:'no-chk'));
-  });
-  alert('rows:' + rows.length + ' all:' + allCount + ' checked:' + checkedCount + '\n' + chkStates.join('\n'));
-  // END DEBUG
   state.preparedDrugs = result.checked;
   state._monitoringActive = true;
 
@@ -3874,17 +3863,16 @@ function toggleEmergSection() {
 }
 
 function recordCriRateChange(el, drugName, rate, unit, mlhr) {
-  // Remove previous highlight
+  // Remove all highlights (default + active)
   var table = el.closest('table');
   if (table) {
-    table.querySelectorAll('tr.cri-active-rate').forEach(function(r) {
+    table.querySelectorAll('tr.cri-active-rate, tr.cri-default-rate').forEach(function(r) {
       r.classList.remove('cri-active-rate');
-      r.style.background = '';
+      r.classList.remove('cri-default-rate');
     });
   }
   // Highlight selected row
   el.classList.add('cri-active-rate');
-  el.style.background = 'rgba(6,182,212,0.25)';
   state._currentCriRate = { drug: drugName, rate: rate, unit: unit, mlhr: mlhr };
   addLog('💊 CRI ' + drugName + ' → ' + rate + ' ' + unit + ' (' + mlhr.toFixed(1) + ' mL/hr)');
   state.events.push({name: 'CRI ' + drugName + ' ' + rate + unit, time: new Date()});
@@ -3926,9 +3914,9 @@ function updateCRI() {
     steps.forEach(function(rate) {
       var mlhr = calcSimpleMlHr(rate, d.rateUnit, useConc, useConcUnit, w);
       var isDefault = (rate === d.rateDefault);
-      var style = isDefault ? 'background:rgba(59,130,246,0.12);font-weight:700;' : '';
+      var cls = isDefault ? ' class="cri-default-rate"' : '';
       var mlhrRounded = Math.round(mlhr * 10) / 10;
-      html += '<tr style="' + style + 'cursor:pointer;" onclick="recordCriRateChange(this,\'' + d.name.replace(/'/g,"\\'") + '\',' + rate + ',\'' + d.rateUnit + '\',' + mlhrRounded + ')" onmousedown="this.style.opacity=0.6" onmouseup="this.style.opacity=1" ontouchstart="this.style.opacity=0.6" ontouchend="this.style.opacity=1">';
+      html += '<tr' + cls + ' style="cursor:pointer;" onclick="recordCriRateChange(this,\'' + d.name.replace(/'/g,"\\'") + '\',' + rate + ',\'' + d.rateUnit + '\',' + mlhrRounded + ')">';
       html += '<td style="padding:3px 6px;border-bottom:1px solid rgba(42,53,80,0.3);">' + rate + '</td>';
       html += '<td style="padding:3px 6px;border-bottom:1px solid rgba(42,53,80,0.3);text-align:right;font-family:monospace;"><strong>' + mlhrRounded.toFixed(1) + '</strong></td></tr>';
     });
