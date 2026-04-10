@@ -3471,6 +3471,7 @@ function startMonitoring() {
   state.elapsedInterval = setInterval(updateElapsed, 1000);
   initChart();
   document.getElementById('mainApp').style.display = 'block';
+  renderPrepDrugsPanel();
 
   let logMsg = 'セッション開始';
   if (state.patient.surgeon) logMsg += ` | 執刀医: ${state.patient.surgeon}`;
