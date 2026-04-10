@@ -4121,6 +4121,8 @@ function recordEvent(btn){
   const name=btn.dataset.event,now=new Date(),ts=now.toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'});
   btn.classList.add('recorded');btn.innerHTML=`${name}<span class="event-time">${ts}</span>`;
   state.events.push({name,time:now});addLog(`📋 ${name} (${ts})`);
+  if(name==='麻酔導入'){var t=state._announceTimers&&state._announceTimers.induction;if(!t||!t.active)startAnnounce('induction');}
+  if(name==='切皮'){var t2=state._announceTimers&&state._announceTimers.incision;if(!t2||!t2.active)startAnnounce('incision');}
 }
 
 function cancelEvent(btn) {
