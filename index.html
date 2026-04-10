@@ -3458,6 +3458,19 @@ function _collectPrepDrugs() {
 
 function completeDrugPrep() {
   var result = _collectPrepDrugs();
+  // DEBUG
+  var checkedCount = 0, allCount = 0;
+  Object.keys(result.checked).forEach(function(k){ checkedCount += result.checked[k].length; });
+  Object.keys(result.all).forEach(function(k){ allCount += result.all[k].length; });
+  var rows = document.querySelectorAll('.prep-drug-row');
+  var chkStates = [];
+  rows.forEach(function(r) {
+    var chk = r.querySelector('input[type="checkbox"]');
+    var nm = r.querySelector('.prep-drug-name');
+    chkStates.push((nm?nm.textContent.trim():'?') + ':' + (chk?chk.checked:'no-chk'));
+  });
+  alert('rows:' + rows.length + ' all:' + allCount + ' checked:' + checkedCount + '\n' + chkStates.join('\n'));
+  // END DEBUG
   state.preparedDrugs = result.checked;
   state._monitoringActive = true;
 
