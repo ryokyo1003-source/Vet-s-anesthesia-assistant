@@ -3416,6 +3416,12 @@ function completeDrugPrep() {
   // Save to state for prepared drugs panel
   state.preparedDrugs = catDrugs;
 
+  // DEBUG: confirm data collected
+  var totalDrugs = 0;
+  Object.keys(catDrugs).forEach(function(k){ totalDrugs += catDrugs[k].length; });
+  console.log('[DEBUG] preparedDrugs:', JSON.stringify(catDrugs));
+  console.log('[DEBUG] total drugs collected:', totalDrugs);
+
   showScreen('mainApp');
   startMonitoring();
 
@@ -3732,9 +3738,11 @@ function togglePrepDrugsSection() {
 function renderPrepDrugsPanel() {
   var section = document.getElementById('prepDrugsSection');
   var body = document.getElementById('prepDrugsBody');
-  if (!section || !body) return;
+  console.log('[DEBUG renderPrepDrugsPanel] section:', !!section, 'body:', !!body);
+  console.log('[DEBUG renderPrepDrugsPanel] state.preparedDrugs:', JSON.stringify(state.preparedDrugs));
+  if (!section || !body) { console.log('[DEBUG] section or body not found!'); return; }
   var catDrugs = state.preparedDrugs;
-  if (!catDrugs || Object.keys(catDrugs).length === 0) { section.style.display = 'none'; return; }
+  if (!catDrugs || Object.keys(catDrugs).length === 0) { console.log('[DEBUG] catDrugs empty, hiding'); section.style.display = 'none'; return; }
 
   var catLabels = { premed:'前投薬', induction:'麻酔導入', maintenance:'維持麻酔', analgesic:'鎮痛', antibiotic:'抗生剤・その他', fluid:'輸液' };
   var catOrder = ['premed','induction','maintenance','analgesic','antibiotic','fluid'];
