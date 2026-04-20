@@ -211,13 +211,13 @@
   .prep-drug-input {
     width: 70px; padding: 6px 8px; font-size: 14px; font-weight: 700;
     background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;
-    color: var(--accent-yellow); text-align: center; outline: none;
+    color: var(--accent-green); text-align: center; outline: none;
     -webkit-appearance: none; appearance: none;
   }
   .prep-drug-input:focus { border-color: var(--accent-blue); }
   .prep-drug-unit { font-size: 12px; color: var(--text-secondary); min-width: 40px; }
   .prep-drug-calc {
-    font-size: 16px; font-weight: 800; color: var(--accent-green);
+    font-size: 16px; font-weight: 800; color: var(--accent-yellow);
     min-width: 80px; text-align: right;
   }
   .prep-drug-calc .calc-detail { font-size: 10px; color: var(--text-secondary); font-weight: 400; }
@@ -1736,6 +1736,14 @@
           <button class="btn-event" data-event="OPE終了" data-cat="procedure" onclick="recordEvent(this)">OPE終了</button>
           <button class="btn-event" data-event="抜管" data-cat="airway" onclick="recordEvent(this)">抜管</button>
           <button class="btn-event" data-event="覚醒" onclick="recordEvent(this)">覚醒</button>
+          <!-- 性別依存 外科処置 -->
+          <button class="btn-event sex-surg-toggle" id="btnCastToggle" data-cat="procedure" style="display:none;" onclick="toggleSexSurg('cast')">Cast ▾</button>
+          <button class="btn-event sex-surg-toggle" id="btnSpayToggle" data-cat="procedure" style="display:none;" onclick="toggleSexSurg('spay')">Spay ▾</button>
+          <button class="btn-event sex-surg-child" data-parent="cast" data-event="左精巣摘出" data-cat="procedure" style="display:none;" onclick="recordEvent(this)">左精巣摘出</button>
+          <button class="btn-event sex-surg-child" data-parent="cast" data-event="右精巣摘出" data-cat="procedure" style="display:none;" onclick="recordEvent(this)">右精巣摘出</button>
+          <button class="btn-event sex-surg-child" data-parent="spay" data-event="左卵巣切離" data-cat="procedure" style="display:none;" onclick="recordEvent(this)">左卵巣切離</button>
+          <button class="btn-event sex-surg-child" data-parent="spay" data-event="右卵巣切離" data-cat="procedure" style="display:none;" onclick="recordEvent(this)">右卵巣切離</button>
+          <button class="btn-event sex-surg-child" data-parent="spay" data-event="子宮頸管部離断" data-cat="procedure" style="display:none;" onclick="recordEvent(this)">子宮頸管部離断</button>
         </div>
       </div>
 
@@ -2064,8 +2072,8 @@ var CRI_MASTER = {
     { key:'propofol', name:'プロポフォール（発作重積）', conc:10, concUnit:'mg/mL', calcType:'simple', rateUnit:'mg/kg/min', rateMin:0.05, rateMax:0.2, rateDefault:0.1 },
   ],
   rabbit: [
+    { key:'lidocaine', name:'リドカイン', conc:20, concUnit:'mg/mL', calcType:'infusion', rateUnit:'μg/kg/min', rateMin:50, rateMax:100, rateDefault:100 },
     { key:'ketamine', name:'ケタミン', conc:10, concUnit:'mg/mL', calcType:'infusion', rateUnit:'μg/kg/min', rateMin:2, rateMax:10, rateDefault:2 },
-    { key:'lidocaine', name:'リドカイン', conc:20, concUnit:'mg/mL', calcType:'infusion', rateUnit:'μg/kg/min', rateMin:50, rateMax:100, rateDefault:50 },
     { key:'metoclopramide', name:'メトクロプラミド', conc:5, concUnit:'mg/mL', calcType:'infusion', rateUnit:'mg/kg/day', rateMin:1, rateMax:2, rateDefault:1 },
     { key:'dopamine', name:'ドパミン', conc:20, concUnit:'mg/mL', calcType:'infusion', rateUnit:'μg/kg/min', rateMin:2, rateMax:8, rateDefault:5 },
   ],
@@ -2075,13 +2083,13 @@ var CRI_MASTER = {
     { key:'dopamine', name:'ドパミン', conc:20, concUnit:'mg/mL', calcType:'infusion', rateUnit:'μg/kg/min', rateMin:2, rateMax:8, rateDefault:5 },
   ],
   guinea_pig: [
+    { key:'lidocaine', name:'リドカイン', conc:20, concUnit:'mg/mL', calcType:'infusion', rateUnit:'μg/kg/min', rateMin:50, rateMax:100, rateDefault:100 },
     { key:'ketamine', name:'ケタミン', conc:10, concUnit:'mg/mL', calcType:'infusion', rateUnit:'μg/kg/min', rateMin:2, rateMax:10, rateDefault:2 },
-    { key:'lidocaine', name:'リドカイン', conc:20, concUnit:'mg/mL', calcType:'infusion', rateUnit:'μg/kg/min', rateMin:50, rateMax:100, rateDefault:50 },
     { key:'metoclopramide', name:'メトクロプラミド', conc:5, concUnit:'mg/mL', calcType:'infusion', rateUnit:'mg/kg/day', rateMin:1, rateMax:2, rateDefault:1 },
     { key:'dopamine', name:'ドパミン', conc:20, concUnit:'mg/mL', calcType:'infusion', rateUnit:'μg/kg/min', rateMin:2, rateMax:8, rateDefault:5 },
   ],
   hamster: [
-    { key:'lidocaine', name:'リドカイン', conc:20, concUnit:'mg/mL', calcType:'infusion', rateUnit:'μg/kg/min', rateMin:50, rateMax:100, rateDefault:50 },
+    { key:'lidocaine', name:'リドカイン', conc:20, concUnit:'mg/mL', calcType:'infusion', rateUnit:'μg/kg/min', rateMin:50, rateMax:100, rateDefault:100 },
     { key:'metoclopramide', name:'メトクロプラミド', conc:5, concUnit:'mg/mL', calcType:'infusion', rateUnit:'mg/kg/day', rateMin:1, rateMax:2, rateDefault:1 },
     { key:'dopamine', name:'ドパミン', conc:20, concUnit:'mg/mL', calcType:'infusion', rateUnit:'μg/kg/min', rateMin:2, rateMax:8, rateDefault:5 },
   ],
@@ -2289,8 +2297,8 @@ let PREMED_MASTER = {
   hamster: {
     premed: [
       { name:'アトロピン', conc:0.5, concUnit:'mg/mL', doseMin:0.05, doseMax:0.1, doseUnit:'mg/kg', route:'sc' },
-      { name:'ミダゾラム', conc:5, concUnit:'mg/mL', doseMin:1.0, doseMax:2.0, doseUnit:'mg/kg', route:'im' },
-      { name:'ブトルファノール', conc:5, concUnit:'mg/mL', doseMin:1.0, doseMax:2.0, doseUnit:'mg/kg', route:'sc' },
+      { name:'ミダゾラム', conc:5, concUnit:'mg/mL', doseMin:1.0, doseMax:2.0, doseUnit:'mg/kg', route:'im', recMlPerKg:0.04 },
+      { name:'ブトルファノール', conc:5, concUnit:'mg/mL', doseMin:1.0, doseMax:2.0, doseUnit:'mg/kg', route:'sc', recMlPerKg:0.06 },
       { name:'メデトミジン (×100希釈)', conc:1, concUnit:'mg/mL', doseMin:0.1, doseMax:0.3, doseUnit:'mg/kg', route:'im', recMlPerKg:0.1 },
     ],
     induction: [
@@ -2401,6 +2409,33 @@ function setSex(sex) {
     b.classList.remove('active-male','active-female','active-castrated','active-spayed','active-unknown');
     if (b.dataset.sex === sex) b.classList.add(classMap[sex] || 'active-unknown');
   });
+}
+
+// Show Cast / Spay toggle buttons on monitoring screen based on selected sex.
+function updateSexSurgButtons() {
+  var sex = state.patient && state.patient.sex;
+  var isMale = (sex === 'male');
+  var isFemale = (sex === 'female');
+  var castBtn = document.getElementById('btnCastToggle');
+  var spayBtn = document.getElementById('btnSpayToggle');
+  if (castBtn) castBtn.style.display = isMale ? '' : 'none';
+  if (spayBtn) spayBtn.style.display = isFemale ? '' : 'none';
+  if (castBtn) castBtn.innerHTML = 'Cast ▾';
+  if (spayBtn) spayBtn.innerHTML = 'Spay ▾';
+  document.querySelectorAll('.sex-surg-child').forEach(function(b){ b.style.display = 'none'; });
+}
+
+function toggleSexSurg(kind) {
+  if (typeof _longPressTriggered !== 'undefined' && _longPressTriggered) { _longPressTriggered = false; return; }
+  var btns = document.querySelectorAll('.sex-surg-child[data-parent="'+kind+'"]');
+  if (!btns.length) return;
+  var isHidden = btns[0].style.display === 'none';
+  btns.forEach(function(b){ b.style.display = isHidden ? '' : 'none'; });
+  var toggleBtn = document.getElementById(kind === 'cast' ? 'btnCastToggle' : 'btnSpayToggle');
+  if (toggleBtn) {
+    var label = kind === 'cast' ? 'Cast' : 'Spay';
+    toggleBtn.innerHTML = label + (isHidden ? ' ▴' : ' ▾');
+  }
 }
 
 // ===================================================================
@@ -3166,6 +3201,12 @@ function updatePrepCriSlot(slotIdx) {
 function setPrepCriMode() {}
 
 function _prepCriDefaults(w) {
+  var sp = (state && state.patient && state.patient.species) || 'dog';
+  if (sp === 'rabbit' || sp === 'guinea_pig' || sp === 'hamster') {
+    var rFlow = Math.round(5 * w * 10) / 10;
+    return { bagVol: 20, flowRate: rFlow > 0 ? rFlow : 5 };
+  }
+
   var bagVol, flowRate;
   if (w < 1) { bagVol = 50; }
   else if (w < 3) { bagVol = 100; }
@@ -3499,6 +3540,7 @@ function startMonitoring() {
   document.getElementById('dispWeight').textContent = weight < 1 ? (weight*1000).toFixed(0)+'g' : weight.toFixed(1)+'kg';
   const sexMap = { male:'♂', castrated:'♂去勢', female:'♀', spayed:'♀避妊', unknown:'?' };
   document.getElementById('dispSex').textContent = sexMap[state.patient.sex] || '-';
+  updateSexSurgButtons();
   const procBadge = document.getElementById('dispProcedure');
   procBadge.textContent = state.patient.procedure;
   procBadge.title = state.patient.procedure;
@@ -6582,6 +6624,7 @@ function resumeSession() {
   document.getElementById('dispWeight').textContent = weight < 1 ? (weight*1000).toFixed(0)+'g' : weight.toFixed(1)+'kg';
   var sexMap = { male:'♂', castrated:'♂去勢', female:'♀', spayed:'♀避妊', unknown:'?' };
   document.getElementById('dispSex').textContent = sexMap[state.patient.sex] || '-';
+  updateSexSurgButtons();
   var procBadge = document.getElementById('dispProcedure');
   procBadge.textContent = state.patient.procedure;
   procBadge.title = state.patient.procedure;
@@ -7044,8 +7087,37 @@ function generateReport() {
     html += '<p style="color:#999; font-size:10px;">イベント記録なし</p>';
   }
 
-  // --- Section C: Drug Administration Summary (by category) ---
-  html += '<div class="report-section-title">C. 薬剤投与記録</div>';
+  // --- Section C: Prepared Drugs (checked only) ---
+  html += '<div class="report-section-title">C. 準備薬剤</div>';
+  var prepCats = state.preparedDrugs || {};
+  var prepCatLabels = { premed:'前投薬', induction:'麻酔導入', maintenance:'維持麻酔', analgesic:'鎮痛', antibiotic:'抗生剤・その他', fluid:'輸液' };
+  var prepCatOrder = ['premed','induction','maintenance','analgesic','antibiotic','fluid'];
+  var hasPrep = false;
+  prepCatOrder.concat(Object.keys(prepCats).filter(function(k){ return prepCatOrder.indexOf(k) < 0; })).forEach(function(k) {
+    if (prepCats[k] && prepCats[k].length > 0) hasPrep = true;
+  });
+  if (hasPrep) {
+    html += '<table class="report-drug-table"><thead><tr><th style="width:25%;">分類</th><th style="width:30%;">薬剤</th><th>投与量</th><th style="width:15%;">経路</th></tr></thead><tbody>';
+    var renderPrepCat = function(catKey) {
+      var list = prepCats[catKey];
+      if (!list || list.length === 0) return;
+      var label = prepCatLabels[catKey] || catKey;
+      list.forEach(function(d) {
+        html += '<tr><td>' + label + '</td><td>' + d.name + '</td><td>' + (d.calc || '-') + '</td><td>' + (d.route || '-') + '</td></tr>';
+      });
+    };
+    prepCatOrder.forEach(renderPrepCat);
+    Object.keys(prepCats).forEach(function(k) {
+      if (prepCatOrder.indexOf(k) >= 0) return;
+      renderPrepCat(k);
+    });
+    html += '</tbody></table>';
+  } else {
+    html += '<p style="color:#999; font-size:10px;">準備薬剤の記録なし</p>';
+  }
+
+  // --- Section D: Drug Administration Summary (by category) ---
+  html += '<div class="report-section-title">D. 薬剤投与記録</div>';
   var drugByCategory = {};
   var drugOther = [];
   var logIds = Object.keys(state.logEntries);
@@ -7101,8 +7173,8 @@ function generateReport() {
     html += '<p style="color:#999; font-size:10px;">薬剤投与記録なし</p>';
   }
 
-  // --- Section D: Full Log ---
-  html += '<div class="report-section-title">D. 全記録ログ</div>';
+  // --- Section E: Full Log ---
+  html += '<div class="report-section-title">E. 全記録ログ</div>';
   var allLogIds = Object.keys(state.logEntries);
   if (allLogIds.length > 0) {
     html += '<table class="report-timeline"><thead><tr><th style="width:80px;">No.</th><th>内容</th></tr></thead><tbody>';
@@ -7115,8 +7187,8 @@ function generateReport() {
     html += '</tbody></table>';
   }
 
-  // --- Section E: Notes ---
-  html += '<div class="report-section-title">E. 所見・コメント</div>';
+  // --- Section F: Notes ---
+  html += '<div class="report-section-title">F. 所見・コメント</div>';
   html += '<div class="report-notes-area" contenteditable="true" id="reportNotesArea">ここに所見を記入...</div>';
 
   // --- Footer: Signatures ---
