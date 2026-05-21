@@ -498,6 +498,39 @@
   .btn-capture .icon { font-size: 24px; }
   .btn-capture.capturing { background: linear-gradient(135deg, #7c3aed, #6d28d9); pointer-events: none; }
 
+  /* ===== AUTO CAPTURE MODE ===== */
+  .auto-capture-bar { display:flex; gap:8px; align-items:center; margin-bottom:6px; }
+  .btn-auto-toggle {
+    flex:1; padding:10px; border:none; border-radius:12px;
+    background: linear-gradient(135deg, #475569, #334155);
+    color:white; font-weight:700; font-size:14px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; gap:6px;
+    transition: transform 0.1s;
+  }
+  .btn-auto-toggle:active { transform: scale(0.97); }
+  .btn-auto-toggle.active { background: linear-gradient(135deg, #dc2626, #b91c1c); }
+  .btn-auto-toggle.active::before { content:'●'; color:#fff; animation: pulse-rec 1.2s infinite; }
+  @keyframes pulse-rec { 0%,100%{opacity:1} 50%{opacity:0.3} }
+  .auto-preview-wrap {
+    display:none; position:relative; margin-bottom:6px;
+    background:#000; border-radius:10px; overflow:hidden;
+    border:1px solid var(--border);
+  }
+  .auto-preview-wrap.active { display:block; }
+  .auto-preview-wrap video {
+    width:100%; max-height:160px; object-fit:contain; display:block;
+  }
+  .auto-preview-badge {
+    position:absolute; top:6px; left:6px; padding:2px 8px;
+    background:rgba(220,38,38,0.85); color:#fff; font-size:11px; font-weight:700;
+    border-radius:6px;
+  }
+  .auto-preview-next {
+    position:absolute; top:6px; right:6px; padding:2px 8px;
+    background:rgba(0,0,0,0.6); color:#fff; font-size:11px; font-weight:600;
+    border-radius:6px;
+  }
+
   /* ===== RIGHT PANEL ===== */
   .panel-section { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 10px; }
   .panel-title { font-size: 11px; font-weight: 700; color: var(--text-muted); letter-spacing: 1px; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
@@ -1679,6 +1712,16 @@
       <div class="chart-container"><canvas id="vitalChart"></canvas></div>
 
       <div class="capture-row">
+        <div class="auto-preview-wrap" id="autoPreviewWrap">
+          <video id="autoPreviewVideo" playsinline muted autoplay></video>
+          <div class="auto-preview-badge">REC</div>
+          <div class="auto-preview-next" id="autoPreviewNext">次:5:00</div>
+        </div>
+        <div class="auto-capture-bar">
+          <button class="btn-auto-toggle" id="btnAutoToggle" onclick="toggleAutoCapture()">
+            <span>🎥 自動撮影モード</span>
+          </button>
+        </div>
         <button class="btn-capture" id="btnCapture" onclick="handleCameraCapture()"><span class="icon">📸</span><span>モニター撮影</span></button>
       </div>
     </div>
@@ -3236,36 +3279,6 @@ function _concToMgPerMl(conc, concUnit) {
   return conc;
 }
 
-function updatePrepCri() {
-  var sel = document.getElementById('prepCriDrugSelect');
-  var resultEl = document.getElementById('prepCriResult');
-  if (!sel || !resultEl) return;
-
-  var sp = state.patient.species || 'dog';
-  var drugs = CRI_MASTER[sp] || CRI_MASTER.dog;
-  var idx = parseInt(sel.value) || 0;
-  if (idx < 0 || idx >= drugs.length) idx = 0;
-  var d = drugs[idx];
-  var w = state.patient.weight || 1;
-  var defs = _prepCriDefaults(w);
-
-  var html = '';
-
-  if (d.calcType === 'simple' && d.diluted) {
-    // --- フェンタニル type: syringe dilution method ---
-    html += _buildFentanylUI(d, w);
-  } else if (d.calcType === 'simple') {
-    // --- プロポフォール type: direct mL/hr table ---
-    html += _buildSimpleDirectUI(d, w);
-  } else {
-    // --- Infusion type: bag mixing method ---
-    html += _buildInfusionBagUI(d, w, defs);
-  }
-
-  resultEl.innerHTML = html;
-  recalcPrepCriInfusion();
-}
-
 /* ---- フェンタニル: syringe dilution UI ---- */
 function _fmtMlHr(v) {
   // 0.500 → 0.5, 1.000 → 1, 1.250 → 1.25
@@ -4759,6 +4772,46 @@ function storeThumbnail(dataUrl) {
   return id;
 }
 
+function processCapturedFrame(img, btn){
+  // サムネイル生成
+  var thumbCanvas = document.createElement('canvas');
+  thumbCanvas.width = 160; thumbCanvas.height = 100;
+  var tCtx = thumbCanvas.getContext('2d');
+  tCtx.drawImage(img, 0, 0, 160, 100);
+  var thumbUrl = thumbCanvas.toDataURL('image/jpeg', 0.5);
+  var captureId = storeThumbnail(thumbUrl);
+
+  // API送信用にリサイズ（最大1280px）
+  var apiCanvas = document.createElement('canvas');
+  var scale = Math.min(1280 / img.width, 1280 / img.height, 1);
+  apiCanvas.width = Math.round(img.width * scale);
+  apiCanvas.height = Math.round(img.height * scale);
+  var aCtx = apiCanvas.getContext('2d');
+  aCtx.drawImage(img, 0, 0, apiCanvas.width, apiCanvas.height);
+  var apiDataUrl = apiCanvas.toDataURL('image/jpeg', 0.8);
+
+  if (state.apiMode === 'ai') {
+    if (state.apiProvider === 'claude' && state.claudeApiKey) {
+      callClaudeVision(apiDataUrl, captureId, btn);
+    } else if (state.apiProvider === 'gemini' && state.apiKey) {
+      callGeminiVision(apiDataUrl, captureId, btn);
+    } else {
+      var d = generateMockVitals(state.patient.species);
+      applyVitalData(d, captureId, false);
+      btn.classList.remove('capturing');
+      btn.innerHTML = '<span class="icon">📸</span><span>モニター撮影</span>';
+      resetTimer();
+      addLog('⚠ ' + (state.apiProvider === 'claude' ? 'Claude' : 'Gemini') + ' APIキー未設定 → デモ値を使用');
+    }
+  } else {
+    var d = generateMockVitals(state.patient.species);
+    applyVitalData(d, captureId, false);
+    btn.classList.remove('capturing');
+    btn.innerHTML = '<span class="icon">📸</span><span>モニター撮影</span>';
+    resetTimer();
+  }
+}
+
 function handleCameraCapture(){
   var btn = document.getElementById('btnCapture');
   var input = document.createElement('input');
@@ -4772,55 +4825,118 @@ function handleCameraCapture(){
     btn.innerHTML = '<span class="icon">⏳</span><span>解析中...</span>';
     var reader = new FileReader();
     reader.onload = function(ev) {
-      var fullDataUrl = ev.target.result;
-      // サムネイル生成
       var img = new Image();
-      img.onload = function() {
-        var thumbCanvas = document.createElement('canvas');
-        thumbCanvas.width = 160; thumbCanvas.height = 100;
-        var tCtx = thumbCanvas.getContext('2d');
-        tCtx.drawImage(img, 0, 0, 160, 100);
-        var thumbUrl = thumbCanvas.toDataURL('image/jpeg', 0.5);
-        var captureId = storeThumbnail(thumbUrl);
-
-        // API送信用にリサイズ（精度確保: 最大1280px）
-        var apiCanvas = document.createElement('canvas');
-        var scale = Math.min(1280 / img.width, 1280 / img.height, 1);
-        apiCanvas.width = Math.round(img.width * scale);
-        apiCanvas.height = Math.round(img.height * scale);
-        var aCtx = apiCanvas.getContext('2d');
-        aCtx.drawImage(img, 0, 0, apiCanvas.width, apiCanvas.height);
-        var apiDataUrl = apiCanvas.toDataURL('image/jpeg', 0.8);
-
-        // APIモード判定
-        if (state.apiMode === 'ai') {
-          if (state.apiProvider === 'claude' && state.claudeApiKey) {
-            callClaudeVision(apiDataUrl, captureId, btn);
-          } else if (state.apiProvider === 'gemini' && state.apiKey) {
-            callGeminiVision(apiDataUrl, captureId, btn);
-          } else {
-            // APIキー未設定 → デモ値
-            var d = generateMockVitals(state.patient.species);
-            applyVitalData(d, captureId, false);
-            btn.classList.remove('capturing');
-            btn.innerHTML = '<span class="icon">📸</span><span>モニター撮影</span>';
-            resetTimer();
-            addLog('⚠ ' + (state.apiProvider === 'claude' ? 'Claude' : 'Gemini') + ' APIキー未設定 → デモ値を使用');
-          }
-        } else {
-          // デモモード
-          var d = generateMockVitals(state.patient.species);
-          applyVitalData(d, captureId, false);
-          btn.classList.remove('capturing');
-          btn.innerHTML = '<span class="icon">📸</span><span>モニター撮影</span>';
-          resetTimer();
-        }
-      };
-      img.src = fullDataUrl;
+      img.onload = function() { processCapturedFrame(img, btn); };
+      img.src = ev.target.result;
     };
     reader.readAsDataURL(file);
   };
   input.click();
+}
+
+// ===================================================================
+//  AUTO CAPTURE MODE (ライブカメラ + 5分毎自動キャプチャ)
+// ===================================================================
+state.autoCapture = { active:false, stream:null, interval:null, countdown:null, nextAt:0, wakeLock:null };
+
+async function toggleAutoCapture(){
+  if (state.autoCapture.active) {
+    stopAutoCapture();
+  } else {
+    await startAutoCapture();
+  }
+}
+
+async function startAutoCapture(){
+  var btnToggle = document.getElementById('btnAutoToggle');
+  var wrap = document.getElementById('autoPreviewWrap');
+  var video = document.getElementById('autoPreviewVideo');
+  try {
+    var stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } },
+      audio: false
+    });
+    video.srcObject = stream;
+    await video.play().catch(function(){});
+    state.autoCapture.stream = stream;
+    state.autoCapture.active = true;
+    wrap.classList.add('active');
+    btnToggle.classList.add('active');
+    btnToggle.innerHTML = '<span>🎥 自動撮影 停止</span>';
+
+    // Wake Lock (画面スリープ防止)
+    try {
+      if ('wakeLock' in navigator) {
+        state.autoCapture.wakeLock = await navigator.wakeLock.request('screen');
+        document.addEventListener('visibilitychange', reacquireWakeLock);
+      }
+    } catch (e) { /* unsupported - 無視 */ }
+
+    // 5分毎キャプチャ
+    state.autoCapture.nextAt = Date.now() + 300000;
+    state.autoCapture.interval = setInterval(performAutoCapture, 300000);
+    state.autoCapture.countdown = setInterval(updateAutoCountdown, 1000);
+    updateAutoCountdown();
+    addLog('🎥 自動撮影モード ON（5分毎）');
+  } catch (err) {
+    alert('カメラへのアクセスが拒否されました。\nブラウザ設定でカメラ許可を有効にしてください。\n\n詳細: ' + (err && err.message ? err.message : err));
+  }
+}
+
+function stopAutoCapture(){
+  var btnToggle = document.getElementById('btnAutoToggle');
+  var wrap = document.getElementById('autoPreviewWrap');
+  var video = document.getElementById('autoPreviewVideo');
+  if (state.autoCapture.stream) {
+    state.autoCapture.stream.getTracks().forEach(function(t){ t.stop(); });
+  }
+  if (state.autoCapture.interval) clearInterval(state.autoCapture.interval);
+  if (state.autoCapture.countdown) clearInterval(state.autoCapture.countdown);
+  if (state.autoCapture.wakeLock) { try { state.autoCapture.wakeLock.release(); } catch(e){} }
+  document.removeEventListener('visibilitychange', reacquireWakeLock);
+  state.autoCapture = { active:false, stream:null, interval:null, countdown:null, nextAt:0, wakeLock:null };
+  video.srcObject = null;
+  wrap.classList.remove('active');
+  btnToggle.classList.remove('active');
+  btnToggle.innerHTML = '<span>🎥 自動撮影モード</span>';
+  addLog('⏹ 自動撮影モード OFF');
+}
+
+async function reacquireWakeLock(){
+  if (state.autoCapture.active && document.visibilityState === 'visible' && 'wakeLock' in navigator) {
+    try { state.autoCapture.wakeLock = await navigator.wakeLock.request('screen'); } catch(e){}
+  }
+}
+
+function updateAutoCountdown(){
+  var el = document.getElementById('autoPreviewNext');
+  if (!el) return;
+  var ms = Math.max(0, state.autoCapture.nextAt - Date.now());
+  var s = Math.ceil(ms / 1000);
+  el.textContent = '次:' + Math.floor(s/60) + ':' + String(s%60).padStart(2,'0');
+}
+
+function performAutoCapture(){
+  var video = document.getElementById('autoPreviewVideo');
+  var btn = document.getElementById('btnCapture');
+  if (!video || !video.videoWidth) {
+    addLog('⚠ 自動撮影スキップ: 映像取得失敗');
+    state.autoCapture.nextAt = Date.now() + 300000;
+    return;
+  }
+  var snap = document.createElement('canvas');
+  snap.width = video.videoWidth;
+  snap.height = video.videoHeight;
+  snap.getContext('2d').drawImage(video, 0, 0);
+  var img = new Image();
+  img.onload = function(){
+    btn.classList.add('capturing');
+    btn.innerHTML = '<span class="icon">⏳</span><span>自動解析中...</span>';
+    processCapturedFrame(img, btn);
+  };
+  img.src = snap.toDataURL('image/jpeg', 0.9);
+  state.autoCapture.nextAt = Date.now() + 300000;
+  updateAutoCountdown();
 }
 
 // ===================================================================
