@@ -3568,6 +3568,13 @@ function startMonitoring() {
 
   buildEmergencyDrugs(); buildCriDrugSelect(); resetTimer();
   state.elapsedInterval = setInterval(updateElapsed, 1000);
+  if (state.autoSaveInterval) { clearInterval(state.autoSaveInterval); }
+  // heartbeat 5秒：万一イベント発火型保存が漏れてもこまめに同期される
+  state.autoSaveInterval = setInterval(function() { try { saveCurrentSession(); } catch(e) {} }, 5000);
+  // セッション開始直後にもう一度フラッシュ（30秒待たずに最初の保存を確実にする）
+  try { saveCurrentSession(); } catch(e) {}
+  // モニタリング中の iPad スリープを抑止（バッテリー残量があれば）
+  try { requestMonitoringWakeLock(); } catch(e) {}
   initChart();
   document.getElementById('mainApp').style.display = 'block';
   renderPrepDrugsPanel();
@@ -4740,6 +4747,8 @@ function addVitalToChart(d){
   vitalChart.data.datasets[5].data=[...state.vitals.gas_in.map(v=>v>0?v:null),null];
   vitalChart.data.datasets[6].data=[...state.vitals.temp.map(v=>v>0?v:null),null];
   vitalChart.update();
+  // バイタルが入力された瞬間に保存（heartbeat 待ちにしない）
+  try { saveSessionSoon(); } catch(e) {}
 }
 
 // ===================================================================
@@ -5628,6 +5637,8 @@ function addLog(m, captureId) {
   entry.onclick = () => editLogEntry(logId);
   entry.innerHTML = `${thumbHtml}<span class="log-time">${t}</span><span class="log-text">${m}<span class="log-note" id="note_${logId}"></span></span>`;
   l.insertBefore(entry, l.firstChild);
+  // ログ追加 = 必ず記録イベントなので即時保存
+  try { saveSessionSoon(); } catch(e) {}
 }
 
 function editLogEntry(logId) {
@@ -5671,6 +5682,7 @@ function saveLogNote(logId) {
   }
   var overlay = document.querySelector('.log-edit-overlay');
   if (overlay) overlay.remove();
+  try { saveSessionSoon(); } catch(e) {}
 }
 
 // ===================================================================
@@ -6659,6 +6671,7 @@ function backToStartScreen() {
   if (state.elapsedInterval) { clearInterval(state.elapsedInterval); state.elapsedInterval = null; }
   if (state.timerInterval) { clearInterval(state.timerInterval); state.timerInterval = null; }
   if (state.announceInterval) { clearInterval(state.announceInterval); state.announceInterval = null; }
+  if (state.autoSaveInterval) { clearInterval(state.autoSaveInterval); state.autoSaveInterval = null; }
   if (state.voiceActive && state.recognition) { state.voiceActive = false; state.recognition.stop(); }
 
   // Hide ALL screens, then show startup
@@ -6677,38 +6690,176 @@ function backToStartScreen() {
   updateHistoryButton();
 }
 
-function saveCurrentSession() {
+// セッション保存：途中までの記録を絶対に失わないための多重防壁
+//  - メインスロット vetanes_active_session
+//  - ローテーションバックアップ vetanes_active_session_bak_0..2（直近3世代）
+//  - 緊急スロット vetanes_active_session_emergency（最後に保存できた1件）
+// state.sessionStart が無い時は保存しない（空のセッションで上書きしないため）
+var _SESSION_KEY_MAIN = 'vetanes_active_session';
+var _SESSION_KEY_BAK_PREFIX = 'vetanes_active_session_bak_';
+var _SESSION_KEY_EMERGENCY = 'vetanes_active_session_emergency';
+var _SESSION_BAK_COUNT = 3;
+var _saveDebounceTimer = null;
+var _lastSaveTs = 0;
+
+function _buildSessionSnapshot() {
+  return {
+    patient: state.patient,
+    sessionStart: state.sessionStart ? state.sessionStart.toISOString() : null,
+    vitals: state.vitals,
+    timeLabels: state.timeLabels,
+    timerRemaining: state.timerRemaining,
+    criRate: state.criRate,
+    events: state.events.map(function(e) {
+      return { name: e.name, time: e.time instanceof Date ? e.time.toISOString() : e.time };
+    }),
+    logEntries: state.logEntries,
+    capturedImages: state.capturedImages,
+    preparedDrugs: state.preparedDrugs || {},
+    savedAt: new Date().toISOString()
+  };
+}
+
+function _tryWriteSession(key, json) {
   try {
-    var sessionData = {
-      patient: state.patient,
-      sessionStart: state.sessionStart ? state.sessionStart.toISOString() : null,
-      vitals: state.vitals,
-      timeLabels: state.timeLabels,
-      timerRemaining: state.timerRemaining,
-      criRate: state.criRate,
-      events: state.events.map(function(e) {
-        return { name: e.name, time: e.time instanceof Date ? e.time.toISOString() : e.time };
-      }),
-      logEntries: state.logEntries,
-      capturedImages: state.capturedImages,
-      savedAt: new Date().toISOString()
-    };
-    localStorage.setItem('vetanes_active_session', JSON.stringify(sessionData));
+    localStorage.setItem(key, json);
+    return true;
+  } catch(e) {
+    // 容量超過時：画像を削った縮小版を最後の砦として書く
+    try {
+      var lite = JSON.parse(json);
+      lite.capturedImages = [];
+      lite._reducedByQuota = true;
+      localStorage.setItem(key, JSON.stringify(lite));
+      return true;
+    } catch(e2) {
+      console.warn('Session write failed even after reduction:', e2);
+      return false;
+    }
+  }
+}
+
+function saveCurrentSession() {
+  // セッションが始まっていない場合は保存しない（空データで既存を上書きしない）
+  if (!state.sessionStart) return;
+  try {
+    var snapshot = _buildSessionSnapshot();
+    var json = JSON.stringify(snapshot);
+
+    // メインを書く前に、現在のメインをバックアップへローテーション
+    try {
+      var prev = localStorage.getItem(_SESSION_KEY_MAIN);
+      if (prev) {
+        for (var i = _SESSION_BAK_COUNT - 1; i > 0; i--) {
+          var older = localStorage.getItem(_SESSION_KEY_BAK_PREFIX + (i - 1));
+          if (older) {
+            try { localStorage.setItem(_SESSION_KEY_BAK_PREFIX + i, older); } catch(e) {}
+          }
+        }
+        try { localStorage.setItem(_SESSION_KEY_BAK_PREFIX + '0', prev); } catch(e) {}
+      }
+    } catch(e) { /* バックアップ失敗してもメイン保存は続行 */ }
+
+    var ok = _tryWriteSession(_SESSION_KEY_MAIN, json);
+    if (ok) {
+      // 緊急スロットにも複製（メインが消えても残るよう独立に書く）
+      _tryWriteSession(_SESSION_KEY_EMERGENCY, json);
+      _lastSaveTs = Date.now();
+    }
   } catch(e) { console.warn('Session save error:', e); }
 }
 
+// 短時間に連続呼ばれる保存をまとめる（最大250ms遅延）。重要なライフサイクル時は flush=true で即時。
+function saveSessionSoon(flush) {
+  if (flush) {
+    if (_saveDebounceTimer) { clearTimeout(_saveDebounceTimer); _saveDebounceTimer = null; }
+    saveCurrentSession();
+    return;
+  }
+  if (_saveDebounceTimer) return;
+  _saveDebounceTimer = setTimeout(function() {
+    _saveDebounceTimer = null;
+    saveCurrentSession();
+  }, 250);
+}
+
 function loadSavedSession() {
-  try {
-    var data = localStorage.getItem('vetanes_active_session');
-    if (!data) return null;
-    return JSON.parse(data);
-  } catch(e) { return null; }
+  // メイン → バックアップ世代 → 緊急 の順でフォールバック
+  var candidates = [_SESSION_KEY_MAIN];
+  for (var i = 0; i < _SESSION_BAK_COUNT; i++) candidates.push(_SESSION_KEY_BAK_PREFIX + i);
+  candidates.push(_SESSION_KEY_EMERGENCY);
+  for (var k = 0; k < candidates.length; k++) {
+    try {
+      var data = localStorage.getItem(candidates[k]);
+      if (!data) continue;
+      var parsed = JSON.parse(data);
+      if (parsed && parsed.savedAt) return parsed;
+    } catch(e) { /* 次の候補へ */ }
+  }
+  return null;
 }
 
 function clearSavedSession() {
-  localStorage.removeItem('vetanes_active_session');
+  // 麻酔記録履歴への保存が成功した時だけ呼ばれる。全スロットを掃除する。
+  try { localStorage.removeItem(_SESSION_KEY_MAIN); } catch(e) {}
+  for (var i = 0; i < _SESSION_BAK_COUNT; i++) {
+    try { localStorage.removeItem(_SESSION_KEY_BAK_PREFIX + i); } catch(e) {}
+  }
+  try { localStorage.removeItem(_SESSION_KEY_EMERGENCY); } catch(e) {}
   updateResumeButton();
 }
+
+// ===================================================================
+//  WAKE LOCK & LIFECYCLE SAVE (iPad スリープで記録が消えない様にする)
+// ===================================================================
+var _monitoringWakeLock = null;
+
+async function requestMonitoringWakeLock() {
+  if (!('wakeLock' in navigator)) return;
+  try {
+    if (_monitoringWakeLock) return;  // 既に取得済み
+    _monitoringWakeLock = await navigator.wakeLock.request('screen');
+    _monitoringWakeLock.addEventListener('release', function() {
+      _monitoringWakeLock = null;
+    });
+  } catch(e) {
+    // 取れなくてもアプリは動く（バッテリー低下時など）
+    _monitoringWakeLock = null;
+  }
+}
+
+async function releaseMonitoringWakeLock() {
+  if (!_monitoringWakeLock) return;
+  try { await _monitoringWakeLock.release(); } catch(e) {}
+  _monitoringWakeLock = null;
+}
+
+// visibilitychange 等のライフサイクルで即時保存 & Wake Lock 再取得
+function _onVisibilityChange() {
+  // 画面が非表示になる瞬間：iPad スリープに入る直前に発火するので必ず保存
+  if (document.visibilityState === 'hidden') {
+    try { saveSessionSoon(true); } catch(e) {}
+  } else if (document.visibilityState === 'visible') {
+    // 再表示時：セッション中なら Wake Lock を取り直す
+    if (state && state.sessionStart && state.autoSaveInterval) {
+      try { requestMonitoringWakeLock(); } catch(e) {}
+    }
+  }
+}
+
+function _onPageHideOrFreeze() {
+  // iOS Safari は pagehide / freeze で確実に発火する。最後の砦として同期保存。
+  try { saveSessionSoon(true); } catch(e) {}
+}
+
+(function attachLifecycleSavers() {
+  if (typeof document === 'undefined') return;
+  document.addEventListener('visibilitychange', _onVisibilityChange);
+  window.addEventListener('pagehide', _onPageHideOrFreeze);
+  window.addEventListener('freeze', _onPageHideOrFreeze);
+  window.addEventListener('beforeunload', _onPageHideOrFreeze);
+  window.addEventListener('blur', function() { try { saveSessionSoon(true); } catch(e) {} });
+})();
 
 function resumeSession() {
   var saved = loadSavedSession();
@@ -6757,6 +6908,9 @@ function resumeSession() {
   buildCriDrugSelect();
   resetTimer();
   state.elapsedInterval = setInterval(updateElapsed, 1000);
+  if (state.autoSaveInterval) { clearInterval(state.autoSaveInterval); }
+  state.autoSaveInterval = setInterval(function() { try { saveCurrentSession(); } catch(e) {} }, 5000);
+  try { requestMonitoringWakeLock(); } catch(e) {}
   initChart();
 
   // Restore chart data
@@ -6818,11 +6972,21 @@ function getAnesthesiaHistory() {
 }
 
 function saveAnesthesiaHistory(arr) {
-  try {
-    // Keep max 50 records, remove oldest
-    if (arr.length > 50) arr = arr.slice(0, 50);
-    localStorage.setItem('vetanes_anesthesia_history', JSON.stringify(arr));
-  } catch(e) { console.warn('History save error:', e); }
+  // Keep max 50 records, remove oldest
+  if (arr.length > 50) arr = arr.slice(0, 50);
+  // Try to save; on quota exceeded, drop oldest records and retry up to all-but-newest
+  for (var attempt = 0; attempt < arr.length; attempt++) {
+    try {
+      localStorage.setItem('vetanes_anesthesia_history', JSON.stringify(arr));
+      return true;
+    } catch(e) {
+      console.warn('History save error (attempt ' + attempt + '):', e);
+      if (arr.length <= 1) break;
+      // Drop the oldest record (last in array since newest is unshifted to front)
+      arr.pop();
+    }
+  }
+  return false;
 }
 
 function saveSessionToHistory() {
@@ -6863,7 +7027,7 @@ function saveSessionToHistory() {
 
   // Add to beginning (newest first)
   history.unshift(record);
-  saveAnesthesiaHistory(history);
+  return saveAnesthesiaHistory(history);
 }
 
 function resetStateForNewSession() {
@@ -6883,6 +7047,7 @@ function resetStateForNewSession() {
   if (state.elapsedInterval) { clearInterval(state.elapsedInterval); state.elapsedInterval = null; }
   if (state.timerInterval) { clearInterval(state.timerInterval); state.timerInterval = null; }
   if (state.announceInterval) { clearInterval(state.announceInterval); state.announceInterval = null; }
+  if (state.autoSaveInterval) { clearInterval(state.autoSaveInterval); state.autoSaveInterval = null; }
 
   // Reset date field
   try { document.getElementById('inputDate').value = new Date().toISOString().split('T')[0]; } catch(e) {}
@@ -7091,18 +7256,55 @@ function endAnesthesia() {
   if (state.elapsedInterval) { clearInterval(state.elapsedInterval); state.elapsedInterval = null; }
   if (state.timerInterval) { clearInterval(state.timerInterval); state.timerInterval = null; }
   if (state.announceInterval) { clearInterval(state.announceInterval); state.announceInterval = null; }
+  if (state.autoSaveInterval) { clearInterval(state.autoSaveInterval); state.autoSaveInterval = null; }
   if (state.voiceActive && state.recognition) { state.voiceActive = false; state.recognition.stop(); }
+  try { releaseMonitoringWakeLock(); } catch(e) {}
 
   state._reportSource = 'session';
+
+  // Safety net: snapshot the active session one more time before generating the report
+  try { saveCurrentSession(); } catch(e) {}
 
   // generateReport() needs to read the chart canvas while mainApp is still visible
   generateReport();
   // Now switch screens
   showScreen('reportScreen');
 
-  // Save to history and clear active session
-  saveSessionToHistory();
-  clearSavedSession();
+  // Save to history; only clear active session if save succeeded
+  var saved = false;
+  try { saved = saveSessionToHistory(); } catch(e) { console.warn('saveSessionToHistory threw:', e); saved = false; }
+  if (saved) {
+    clearSavedSession();
+  } else {
+    // Keep active session so the record is not lost; alert user and offer JSON download
+    alert('⚠ 麻酔記録の保存に失敗しました（容量超過の可能性）。\n途中保存セッションは残してあるので、後で「セッション再開」から復元できます。\nバックアップJSONをダウンロードします。');
+    try { downloadSessionBackup(); } catch(e) { console.warn('backup download failed:', e); }
+  }
+}
+
+function downloadSessionBackup() {
+  var sessionData = {
+    patient: state.patient,
+    sessionStart: state.sessionStart ? state.sessionStart.toISOString() : null,
+    vitals: state.vitals,
+    timeLabels: state.timeLabels,
+    events: state.events.map(function(e) {
+      return { name: e.name, time: e.time instanceof Date ? e.time.toISOString() : e.time };
+    }),
+    logEntries: state.logEntries,
+    preparedDrugs: state.preparedDrugs || {},
+    savedAt: new Date().toISOString()
+  };
+  var blob = new Blob([JSON.stringify(sessionData, null, 2)], { type: 'application/json' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  var pname = (state.patient && state.patient.name) ? state.patient.name : 'session';
+  var ts = new Date().toISOString().replace(/[:.]/g, '-');
+  a.download = 'vetanes_backup_' + pname + '_' + ts + '.json';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(function() { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
 }
 
 function generateReport() {
