@@ -1,0 +1,11 @@
+{
+  "name": "VetAnes 獣医麻酔管理",
+  "short_name": "VetAnes",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#0a0e1a",
+  "theme_color": "#0a0e1a",
+  "icons": [
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
