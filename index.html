@@ -1375,7 +1375,7 @@
         <button type="button" class="btn-settings-gear" onclick="openSettings()">⚙️</button>
       </div>
     </div>
-    <p class="sub">獣医麻酔管理アシスタント <span style="font-size:12px;font-weight:700;color:var(--accent-cyan);border:1px solid var(--accent-cyan);border-radius:6px;padding:1px 8px;">v2.2 (2026-08-20)</span></p>
+    <p class="sub">獣医麻酔管理アシスタント <span style="font-size:12px;font-weight:700;color:var(--accent-cyan);border:1px solid var(--accent-cyan);border-radius:6px;padding:1px 8px;">v2.3 (2026-08-22)</span></p>
 
     <!-- 施術情報 -->
     <div class="form-section-title">施術情報</div>
@@ -5380,8 +5380,10 @@ function handleAIReadFailure(captureId, imageDataUrl, msg, autoMode) {
     'AI読取に失敗しました（' + msg + '）。写真を見ながら値を入力してください。');
 }
 
-function getGeminiModelId() {
-  if (state.apiModel === 'gemini-pro') return 'gemini-2.5-pro';
+// modelVal省略時は保存済み設定（state.apiModel）、指定時はその値でIDを解決する
+// （接続テストは保存前の画面上の選択値をそのままテストできるようにするため）
+function getGeminiModelId(modelVal) {
+  if ((modelVal || state.apiModel) === 'gemini-pro') return 'gemini-2.5-pro';
   return 'gemini-2.5-flash';
 }
 
@@ -5480,8 +5482,8 @@ function sendGeminiVision(req, imageDataUrl, captureId, btn, autoMode) {
 // ===================================================================
 //  CLAUDE VISION API
 // ===================================================================
-function getClaudeModelId() {
-  if (state.claudeModel === 'claude-sonnet') return 'claude-sonnet-5';
+function getClaudeModelId(modelVal) {
+  if ((modelVal || state.claudeModel) === 'claude-sonnet') return 'claude-sonnet-5';
   return 'claude-haiku-4-5';  // default: Haiku 4.5
 }
 
@@ -5775,7 +5777,10 @@ function _decKey(encoded) {
   try { return decodeURIComponent(escape(atob(encoded))); } catch(e) { return ''; }
 }
 function validateGeminiKey(key) {
-  return typeof key === 'string' && /^AIzaSy[A-Za-z0-9_-]{33}$/.test(key);
+  // Googleが発行するキーの長さは39文字が多いが、プロジェクトによって桁数が異なることがある。
+  // 桁数を厳密に固定すると正しいキーを弾いてしまうため、接頭辞と最低限の長さだけをチェックする
+  // （実際の有効性は「接続テスト」でAPIに問い合わせて確認する）
+  return typeof key === 'string' && /^AIzaSy[A-Za-z0-9_-]{20,}$/.test(key);
 }
 function validateClaudeKey(key) {
   return typeof key === 'string' && /^sk-ant-/.test(key) && key.length > 20;
@@ -5934,8 +5939,7 @@ function testGeminiConnection(resultEl) {
   showTestResult(resultEl, null, '⏳ Gemini 接続テスト中...');
 
   var modelSelect = document.getElementById('selectApiModel');
-  var modelVal = modelSelect ? modelSelect.value : 'gemini-flash';
-  var modelId = modelVal === 'gemini-pro' ? 'gemini-2.5-pro-preview-06-05' : 'gemini-2.5-flash';
+  var modelId = getGeminiModelId(modelSelect ? modelSelect.value : null);
 
   var apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/' + modelId + ':generateContent';
 
@@ -5974,8 +5978,7 @@ function testClaudeConnection(resultEl) {
   showTestResult(resultEl, null, '⏳ Claude 接続テスト中...');
 
   var modelSelect = document.getElementById('selectClaudeModel');
-  var modelVal = modelSelect ? modelSelect.value : 'claude-haiku';
-  var modelId = modelVal === 'claude-sonnet' ? 'claude-sonnet-4-20250514' : 'claude-haiku-4-5-20251001';
+  var modelId = getClaudeModelId(modelSelect ? modelSelect.value : null);
 
   var body = JSON.stringify({
     model: modelId,
