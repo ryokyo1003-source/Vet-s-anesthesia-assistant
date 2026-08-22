@@ -1375,7 +1375,7 @@
         <button type="button" class="btn-settings-gear" onclick="openSettings()">⚙️</button>
       </div>
     </div>
-    <p class="sub">獣医麻酔管理アシスタント <span style="font-size:12px;font-weight:700;color:var(--accent-cyan);border:1px solid var(--accent-cyan);border-radius:6px;padding:1px 8px;">v2.4 (2026-08-22)</span></p>
+    <p class="sub">獣医麻酔管理アシスタント <span style="font-size:12px;font-weight:700;color:var(--accent-cyan);border:1px solid var(--accent-cyan);border-radius:6px;padding:1px 8px;">v2.5 (2026-08-22)</span></p>
 
     <!-- 施術情報 -->
     <div class="form-section-title">施術情報</div>
@@ -1875,6 +1875,29 @@
     white-space: nowrap; background: rgba(34,211,238,0.92); color: #06283d;
     font-size: 14px; font-weight: 700; padding: 6px 14px; border-radius: 20px;
   }
+  /* ステージはタッチのデフォルト動作（スクロール/ブラウザズーム）を止めて、自前のピンチ処理に使う */
+  .capture-stage { touch-action: none; }
+  #captureVideo { will-change: transform; }
+  .capture-zoom-badge {
+    display: none; position: absolute; top: 12px; left: 12px;
+    background: rgba(0,0,0,0.6); color: #fff; font-size: 13px; font-weight: 700;
+    padding: 4px 10px; border-radius: 12px; pointer-events: none;
+  }
+  .capture-zoom-controls {
+    position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .capture-zoom-btn {
+    width: 44px; height: 44px; border-radius: 50%; border: none;
+    background: rgba(255,255,255,0.18); color: #fff; font-size: 22px; font-weight: 700;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    backdrop-filter: blur(4px);
+  }
+  .capture-zoom-btn:active { background: rgba(34,211,238,0.5); }
+  .capture-zoom-tip {
+    position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%);
+    color: rgba(255,255,255,0.75); font-size: 12px; white-space: nowrap; pointer-events: none;
+  }
   .capture-controls {
     display: flex; align-items: center; justify-content: space-around;
     padding: 18px 20px calc(18px + env(safe-area-inset-bottom, 0px));
@@ -1950,6 +1973,13 @@
     <div class="capture-guide" id="captureGuide">
       <div class="capture-guide-hint">📺 モニター画面全体を枠内に収めてください</div>
     </div>
+    <div class="capture-zoom-badge" id="captureZoomBadge">1.0×</div>
+    <div class="capture-zoom-controls">
+      <button type="button" class="capture-zoom-btn" onclick="captureZoomStep(-1)" aria-label="縮小">−</button>
+      <button type="button" class="capture-zoom-btn" onclick="captureZoomStep(0)" aria-label="ズームリセット" style="font-size:11px;">1×</button>
+      <button type="button" class="capture-zoom-btn" onclick="captureZoomStep(1)" aria-label="拡大">＋</button>
+    </div>
+    <div class="capture-zoom-tip">ピンチで拡大 ／ ダブルタップで 2.5×</div>
   </div>
   <div class="capture-controls">
     <button type="button" class="capture-cancel" onclick="closeGuidedCapture()">キャンセル</button>
@@ -5072,9 +5102,10 @@ function closeGuidedCapture(){
   if (modal) modal.style.display = 'none';
   var guide = document.getElementById('captureGuide');
   if (guide) guide.style.display = 'none';
+  resetCaptureZoom();
 }
 
-// object-fit:contain で表示されている映像の実表示領域を計算
+// object-fit:contain で表示されている映像の実表示領域を計算（ズーム前の基準値）
 function getVideoContentBox(video){
   var vw = video.videoWidth, vh = video.videoHeight;
   var ew = video.clientWidth, eh = video.clientHeight;
@@ -5103,6 +5134,146 @@ window.addEventListener('resize', function(){
   if (guidedCapture.stream) positionCaptureGuide();
 });
 
+// ===================================================================
+//  ピンチズーム / ドラッグ移動（ガイド枠は固定、映像側を拡大・移動する）
+//  映像は CSS transform で表示上だけズームし、撮影時はガイド枠が指している
+//  元映像の領域を逆算して切り出す。これで「見たまま」が高解像度で読み取れる。
+// ===================================================================
+var captureZoom = { scale: 1, tx: 0, ty: 0, minScale: 1, maxScale: 5 };
+var _pinch = { active: false, startDist: 0, startScale: 1, startTx: 0, startTy: 0, midX: 0, midY: 0 };
+var _pan = { active: false, startX: 0, startY: 0, startTx: 0, startTy: 0 };
+
+function resetCaptureZoom(){
+  captureZoom.scale = 1; captureZoom.tx = 0; captureZoom.ty = 0;
+  applyCaptureZoom();
+  updateZoomBadge();
+}
+
+function applyCaptureZoom(){
+  var video = document.getElementById('captureVideo');
+  if (!video) return;
+  video.style.transformOrigin = '0 0';
+  video.style.transform = 'translate(' + captureZoom.tx + 'px,' + captureZoom.ty + 'px) scale(' + captureZoom.scale + ')';
+}
+
+function updateZoomBadge(){
+  var badge = document.getElementById('captureZoomBadge');
+  if (!badge) return;
+  if (captureZoom.scale > 1.02) {
+    badge.textContent = captureZoom.scale.toFixed(1) + '×';
+    badge.style.display = 'block';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+// 映像がステージ外まで動きすぎないようにクランプ
+function clampCaptureZoom(){
+  var video = document.getElementById('captureVideo');
+  if (!video) return;
+  var ew = video.clientWidth, eh = video.clientHeight;
+  var s = captureZoom.scale;
+  // 拡大後サイズ
+  var sw = ew * s, sh = eh * s;
+  // 中央寄せを基準に、端が見えない範囲で移動可能（中央寄せ時の tx = (ew - sw)/2）
+  var minTx = ew - sw, maxTx = 0;
+  var minTy = eh - sh, maxTy = 0;
+  if (sw <= ew) { captureZoom.tx = (ew - sw) / 2; } else { captureZoom.tx = Math.min(maxTx, Math.max(minTx, captureZoom.tx)); }
+  if (sh <= eh) { captureZoom.ty = (eh - sh) / 2; } else { captureZoom.ty = Math.min(maxTy, Math.max(minTy, captureZoom.ty)); }
+}
+
+function setCaptureZoomAround(newScale, cx, cy){
+  // 画面上の点 (cx,cy) を中心に拡大縮小する（指の位置が動かない直感的な挙動）
+  newScale = Math.min(captureZoom.maxScale, Math.max(captureZoom.minScale, newScale));
+  var ratio = newScale / captureZoom.scale;
+  captureZoom.tx = cx - (cx - captureZoom.tx) * ratio;
+  captureZoom.ty = cy - (cy - captureZoom.ty) * ratio;
+  captureZoom.scale = newScale;
+  clampCaptureZoom();
+  applyCaptureZoom();
+  updateZoomBadge();
+}
+
+function _touchDist(t){ var dx = t[0].clientX - t[1].clientX, dy = t[0].clientY - t[1].clientY; return Math.hypot(dx, dy); }
+function _stageLocal(e, clientX, clientY){
+  var stage = document.getElementById('captureStage');
+  var r = stage.getBoundingClientRect();
+  return { x: clientX - r.left, y: clientY - r.top };
+}
+
+(function attachCaptureZoomHandlers(){
+  function bind(){
+    var stage = document.getElementById('captureStage');
+    if (!stage) return;
+
+    stage.addEventListener('touchstart', function(e){
+      if (e.touches.length === 2) {
+        _pinch.active = true; _pan.active = false;
+        _pinch.startDist = _touchDist(e.touches);
+        _pinch.startScale = captureZoom.scale;
+        var m = _stageLocal(e, (e.touches[0].clientX + e.touches[1].clientX) / 2, (e.touches[0].clientY + e.touches[1].clientY) / 2);
+        _pinch.midX = m.x; _pinch.midY = m.y;
+        e.preventDefault();
+      } else if (e.touches.length === 1 && captureZoom.scale > 1.02) {
+        _pan.active = true;
+        _pan.startX = e.touches[0].clientX; _pan.startY = e.touches[0].clientY;
+        _pan.startTx = captureZoom.tx; _pan.startTy = captureZoom.ty;
+      }
+    }, { passive: false });
+
+    stage.addEventListener('touchmove', function(e){
+      if (_pinch.active && e.touches.length === 2) {
+        var d = _touchDist(e.touches);
+        var newScale = _pinch.startScale * (d / _pinch.startDist);
+        var m = _stageLocal(e, (e.touches[0].clientX + e.touches[1].clientX) / 2, (e.touches[0].clientY + e.touches[1].clientY) / 2);
+        setCaptureZoomAround(newScale, m.x, m.y);
+        e.preventDefault();
+      } else if (_pan.active && e.touches.length === 1) {
+        captureZoom.tx = _pan.startTx + (e.touches[0].clientX - _pan.startX);
+        captureZoom.ty = _pan.startTy + (e.touches[0].clientY - _pan.startY);
+        clampCaptureZoom();
+        applyCaptureZoom();
+        e.preventDefault();
+      }
+    }, { passive: false });
+
+    stage.addEventListener('touchend', function(e){
+      if (e.touches.length < 2) _pinch.active = false;
+      if (e.touches.length === 0) _pan.active = false;
+    });
+
+    // ダブルタップで 1× ⇄ 2.5× トグル（片手でも使えるように）
+    var lastTap = 0;
+    stage.addEventListener('touchend', function(e){
+      if (e.touches.length > 0 || e.changedTouches.length !== 1) return;
+      var now = Date.now();
+      if (now - lastTap < 300) {
+        var p = _stageLocal(e, e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+        setCaptureZoomAround(captureZoom.scale > 1.5 ? 1 : 2.5, p.x, p.y);
+        lastTap = 0;
+      } else {
+        lastTap = now;
+      }
+    });
+
+    // PC/トラックパッド用（ホイールでズーム）
+    stage.addEventListener('wheel', function(e){
+      var p = _stageLocal(e, e.clientX, e.clientY);
+      setCaptureZoomAround(captureZoom.scale * (e.deltaY < 0 ? 1.08 : 0.92), p.x, p.y);
+      e.preventDefault();
+    }, { passive: false });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind); else bind();
+})();
+
+// ズームボタン（+/−/リセット）
+function captureZoomStep(dir){
+  var stage = document.getElementById('captureStage');
+  var cx = stage ? stage.clientWidth / 2 : 0, cy = stage ? stage.clientHeight / 2 : 0;
+  if (dir === 0) { resetCaptureZoom(); clampCaptureZoom(); applyCaptureZoom(); return; }
+  setCaptureZoomAround(captureZoom.scale * (dir > 0 ? 1.25 : 0.8), cx, cy);
+}
+
 var _takeGuidedPhotoRetries = 0;
 function takeGuidedPhoto(){
   var video = document.getElementById('captureVideo');
@@ -5120,11 +5291,22 @@ function takeGuidedPhoto(){
     return;
   }
   _takeGuidedPhotoRetries = 0;
-  // ガイド枠内だけを元映像のフル解像度で切り出す
+
+  // ガイド枠（画面座標）が、ズーム・移動後の映像のどの部分を指しているかを逆算する。
+  //  画面座標 P  ⇔  ズーム前の要素座標 Q = (P - t) / scale
+  //  要素座標 Q  ⇔  元映像ピクセル    V = (Q - box.xy) / box.scale
   var gw = box.w * GUIDE_W_RATIO, gh = box.h * GUIDE_H_RATIO;
   var gx = box.x + (box.w - gw) / 2, gy = box.y + (box.h - gh) / 2;
-  var sx = (gx - box.x) / box.scale, sy = (gy - box.y) / box.scale;
-  var sw = gw / box.scale, sh = gh / box.scale;
+  var z = captureZoom.scale, tx = captureZoom.tx, ty = captureZoom.ty;
+  var qx0 = (gx - tx) / z, qy0 = (gy - ty) / z;
+  var qx1 = (gx + gw - tx) / z, qy1 = (gy + gh - ty) / z;
+  var sx = (qx0 - box.x) / box.scale, sy = (qy0 - box.y) / box.scale;
+  var sw = (qx1 - qx0) / box.scale, sh = (qy1 - qy0) / box.scale;
+  // 元映像の範囲内にクランプ
+  sx = Math.max(0, sx); sy = Math.max(0, sy);
+  sw = Math.min(video.videoWidth - sx, sw); sh = Math.min(video.videoHeight - sy, sh);
+  if (sw < 8 || sh < 8) { alert('⚠ 切り出し範囲が小さすぎます。ズームを少し戻してください。'); return; }
+
   var c = document.createElement('canvas');
   c.width = Math.round(sw); c.height = Math.round(sh);
   c.getContext('2d').drawImage(video, sx, sy, sw, sh, 0, 0, c.width, c.height);
@@ -5307,8 +5489,10 @@ function getVisionPrompt(calibProf, hasRefImage) {
     '2. 写っていなければ、それ以降の手順は行わず monitor_detected:false と全項目nullのJSONだけを出力してください\n' +
     '3. 写っている場合は、写真に見えている全てのラベル（HR, SpO2, NIBP, EtCO2 等）とその隣に表示されている数値を1つずつ書き出してください\n' +
     '4. 7セグメント/ドットマトリクス表示では 0と8、6と8、1と7、5と6 を混同しやすいため、桁ごとに注意深く確認してください\n' +
-    '5. 波形（グラフの線）や設定値・アラーム上下限値ではなく、測定値の数値テキストを読んでください\n' +
-    '6. 最後に、必ず以下のJSON形式を回答の最終行に1つだけ出力してください\n\n' +
+    '5. 特に桁数に注意してください。画面の端や別の要素の近くにある数字の先頭桁（百の位）を見落としやすいです。例えば血圧の「130」を「30」、心拍数の「108」を「08」と読んでしまう誤りが起きます。2桁の血圧(例:30mmHg)や1桁のHRは生理的にほぼありえないので、そう読めた場合は先頭桁の見落としを疑って再確認してください\n' +
+    '6. 波形（グラフの線）や設定値・アラーム上下限値ではなく、測定値の数値テキストを読んでください\n' +
+    '7. 数値の隣に小さな単位や補助表示（"%" "mmHg" "Ex" "In" など）がある場合は、どの項目に属するかラベルを手がかりに慎重に判断してください。体温（TEMP）は小数点付きの1つの数値で、CO2やガス濃度の数値と混同しないでください\n' +
+    '8. 最後に、必ず以下のJSON形式を回答の最終行に1つだけ出力してください\n\n' +
     '{"monitor_detected":true,"hr":数値,"spo2":数値,"rr":数値,"etco2_in":数値,"etco2_ex":数値,"sys":数値,"dia":数値,"temp":数値,"gas_in":数値,"gas_ex":数値}\n\n' +
     '- monitor_detected: バイタルサインモニターの画面が実際に写真に写っていればtrue、写っていなければfalse\n\n' +
     '【参考情報】\n' +
