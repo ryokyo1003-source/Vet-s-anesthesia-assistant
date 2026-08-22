@@ -1375,7 +1375,7 @@
         <button type="button" class="btn-settings-gear" onclick="openSettings()">⚙️</button>
       </div>
     </div>
-    <p class="sub">獣医麻酔管理アシスタント <span style="font-size:12px;font-weight:700;color:var(--accent-cyan);border:1px solid var(--accent-cyan);border-radius:6px;padding:1px 8px;">v2.1 (2026-08-20)</span></p>
+    <p class="sub">獣医麻酔管理アシスタント <span style="font-size:12px;font-weight:700;color:var(--accent-cyan);border:1px solid var(--accent-cyan);border-radius:6px;padding:1px 8px;">v2.2 (2026-08-20)</span></p>
 
     <!-- 施術情報 -->
     <div class="form-section-title">施術情報</div>
@@ -5006,7 +5006,23 @@ function processCapturedFrame(img, btn, autoMode){
 var guidedCapture = { stream: null };
 
 function handleCameraCapture(){
-  openGuidedCapture();
+  // ボタンを押した瞬間に何か反応があることを示す（カメラ起動待ちで「無反応」に見えないように）
+  var btn = document.getElementById('btnCapture');
+  if (btn) { btn.classList.add('capturing'); btn.innerHTML = '<span class="icon">📷</span><span>カメラ起動中...</span>'; }
+  openGuidedCapture().finally(function(){
+    // ガイド枠モーダル（またはファイル選択ダイアログ）に主導権が移るので、起動中表示は元に戻す
+    if (btn) {
+      btn.classList.remove('capturing');
+      btn.innerHTML = '<span class="icon">📸</span><span>モニター撮影</span>';
+    }
+  });
+}
+
+function _withTimeout(promise, ms) {
+  return new Promise(function(resolve, reject) {
+    var timer = setTimeout(function() { reject(new Error('カメラの起動がタイムアウトしました')); }, ms);
+    promise.then(function(v) { clearTimeout(timer); resolve(v); }, function(e) { clearTimeout(timer); reject(e); });
+  });
 }
 
 async function openGuidedCapture(){
@@ -5024,17 +5040,18 @@ async function openGuidedCapture(){
   }
 
   try {
-    var stream = await navigator.mediaDevices.getUserMedia({
+    // 権限ダイアログ待ちなどで無限に固まらないよう、15秒でタイムアウトさせフォールバックする
+    var stream = await _withTimeout(navigator.mediaDevices.getUserMedia({
       video: { facingMode: { ideal: 'environment' }, width: { ideal: 3840 }, height: { ideal: 2160 } },
       audio: false
-    });
+    }), 15000);
     guidedCapture.stream = stream;
     video.srcObject = stream;
     modal.style.display = 'flex';
     await video.play().catch(function(){});
     positionCaptureGuide();
   } catch (err) {
-    // カメラ不可（権限拒否等）→ 従来のファイル選択にフォールバック
+    // カメラ不可（権限拒否・タイムアウト等）→ 従来のファイル選択にフォールバック
     closeGuidedCapture();
     if (!state._cameraFallbackNotified) {
       state._cameraFallbackNotified = true;
@@ -5086,10 +5103,23 @@ window.addEventListener('resize', function(){
   if (guidedCapture.stream) positionCaptureGuide();
 });
 
+var _takeGuidedPhotoRetries = 0;
 function takeGuidedPhoto(){
   var video = document.getElementById('captureVideo');
   var box = getVideoContentBox(video);
-  if (!box) return;
+  if (!box) {
+    // videoのレイアウト計算がまだの場合がある。無言で失敗させず、短時間リトライしてからフォールバックする
+    if (_takeGuidedPhotoRetries < 10) {
+      _takeGuidedPhotoRetries++;
+      setTimeout(takeGuidedPhoto, 150);
+      return;
+    }
+    _takeGuidedPhotoRetries = 0;
+    closeGuidedCapture();
+    alert('⚠ カメラの映像を取得できませんでした。もう一度「モニター撮影」を押してお試しください。\n改善しない場合は「📁ファイル」から撮影してください。');
+    return;
+  }
+  _takeGuidedPhotoRetries = 0;
   // ガイド枠内だけを元映像のフル解像度で切り出す
   var gw = box.w * GUIDE_W_RATIO, gh = box.h * GUIDE_H_RATIO;
   var gx = box.x + (box.w - gw) / 2, gy = box.y + (box.h - gh) / 2;
@@ -5707,6 +5737,14 @@ function openVitalConfirm(vitals, captureId, imageDataUrl, errorMsg) {
 }
 
 function closeVitalConfirm() {
+  // 何か値が入力済みなら、誤タップでの破棄を防ぐため確認する
+  var hasValue = VC_FIELDS.some(function(k) {
+    var el = document.getElementById('vc_' + k);
+    return el && el.value !== '';
+  });
+  if (hasValue && !confirm('入力した値を破棄して、このバイタルを記録しませんか？\n（この撮影の記録は残りません）')) {
+    return;
+  }
   document.getElementById('vitalConfirmModal').style.display = 'none';
   addLog('✕ 読取結果を破棄しました（記録されていません）', vcState.captureId);
   vcState.captureId = null;
@@ -5999,10 +6037,12 @@ function applyVitalData(d, captureId, isManual){
   document.getElementById('valSys').textContent=d.sys;document.getElementById('valDia').textContent=d.dia;
   document.getElementById('valMean').textContent=d.mean;document.getElementById('valTemp').textContent=d.temp;
   document.getElementById('valGasIn').textContent=d.gas_in;document.getElementById('valGasEx').textContent=d.gas_ex;
-  addVitalToChart(d);
+  // グラフ描画で例外が起きても、記録（ログ・保存）は必ず実行する
+  try { addVitalToChart(d); } catch(e) { console.warn('addVitalToChart error:', e); }
   const prefix = isManual ? '✏️' : '📊';
   addLog(`${prefix} HR:${d.hr} SpO2:${d.spo2} RR:${d.rr} CO2in:${d.etco2_in} CO2ex:${d.etco2_ex} BP:${d.sys}/${d.dia}(${d.mean}) T:${d.temp} GasIn:${d.gas_in} GasEx:${d.gas_ex}`, captureId || null);
-  checkAlarms(d);
+  try { saveSessionSoon(true); } catch(e) { console.warn('saveSessionSoon error:', e); }
+  try { checkAlarms(d); } catch(e) { console.warn('checkAlarms error:', e); }
 }
 
 // ===================================================================
