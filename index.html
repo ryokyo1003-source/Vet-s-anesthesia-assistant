@@ -1375,7 +1375,7 @@
         <button type="button" class="btn-settings-gear" onclick="openSettings()">⚙️</button>
       </div>
     </div>
-    <p class="sub">獣医麻酔管理アシスタント <span style="font-size:12px;font-weight:700;color:var(--accent-cyan);border:1px solid var(--accent-cyan);border-radius:6px;padding:1px 8px;">v2.5 (2026-08-22)</span></p>
+    <p class="sub">獣医麻酔管理アシスタント <span style="font-size:12px;font-weight:700;color:var(--accent-cyan);border:1px solid var(--accent-cyan);border-radius:6px;padding:1px 8px;">v2.6 (2026-08-22)</span></p>
 
     <!-- 施術情報 -->
     <div class="form-section-title">施術情報</div>
@@ -1552,7 +1552,7 @@
         <div style="background:var(--bg-secondary); border:1px solid var(--border); border-radius:10px; padding:16px; margin-bottom:16px;">
           <label style="font-size:13px; font-weight:600; color:var(--text-primary); display:block; margin-bottom:8px;">🔑 Google AI (Gemini) API キー</label>
           <div style="display:flex; gap:8px; align-items:center;">
-            <input type="password" id="inputApiKey" placeholder="AIzaSy..." style="flex:1; padding:10px 12px; background:var(--bg-card); border:1px solid var(--border); border-radius:8px; color:var(--text-primary); font-size:14px; font-family:monospace;">
+            <input type="password" id="inputApiKey" placeholder="AIzaSy..." autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" style="flex:1; padding:10px 12px; background:var(--bg-card); border:1px solid var(--border); border-radius:8px; color:var(--text-primary); font-size:14px; font-family:monospace;">
             <button type="button" onclick="toggleKeyVisibility('inputApiKey','btnToggleKey')" style="width:44px; height:44px; background:var(--bg-card); border:1px solid var(--border); border-radius:8px; color:var(--text-secondary); font-size:18px; cursor:pointer;" id="btnToggleKey">👁</button>
           </div>
           <p style="font-size:11px; color:var(--text-muted); margin-top:6px;">※ キーはこの端末のブラウザにのみ保存されます</p>
@@ -1579,7 +1579,7 @@
         <div style="background:var(--bg-secondary); border:1px solid var(--border); border-radius:10px; padding:16px; margin-bottom:16px;">
           <label style="font-size:13px; font-weight:600; color:var(--text-primary); display:block; margin-bottom:8px;">🔑 Anthropic (Claude) API キー</label>
           <div style="display:flex; gap:8px; align-items:center;">
-            <input type="password" id="inputClaudeApiKey" placeholder="sk-ant-api03-..." style="flex:1; padding:10px 12px; background:var(--bg-card); border:1px solid var(--border); border-radius:8px; color:var(--text-primary); font-size:14px; font-family:monospace;">
+            <input type="password" id="inputClaudeApiKey" placeholder="sk-ant-api03-..." autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" style="flex:1; padding:10px 12px; background:var(--bg-card); border:1px solid var(--border); border-radius:8px; color:var(--text-primary); font-size:14px; font-family:monospace;">
             <button type="button" onclick="toggleKeyVisibility('inputClaudeApiKey','btnToggleClaudeKey')" style="width:44px; height:44px; background:var(--bg-card); border:1px solid var(--border); border-radius:8px; color:var(--text-secondary); font-size:18px; cursor:pointer;" id="btnToggleClaudeKey">👁</button>
           </div>
           <p style="font-size:11px; color:var(--text-muted); margin-top:6px;">※ キーはこの端末のブラウザにのみ保存されます</p>
@@ -5980,13 +5980,48 @@ function _decKey(encoded) {
   try { return decodeURIComponent(escape(atob(encoded))); } catch(e) { return ''; }
 }
 function validateGeminiKey(key) {
-  // Googleが発行するキーの長さは39文字が多いが、プロジェクトによって桁数が異なることがある。
+  // Googleが発行するキーの長さはプロジェクトによって異なる。
   // 桁数を厳密に固定すると正しいキーを弾いてしまうため、接頭辞と最低限の長さだけをチェックする
   // （実際の有効性は「接続テスト」でAPIに問い合わせて確認する）
-  return typeof key === 'string' && /^AIzaSy[A-Za-z0-9_-]{20,}$/.test(key);
+  return typeof key === 'string' && /^AIza[A-Za-z0-9_-]{20,}$/.test(key);
 }
 function validateClaudeKey(key) {
   return typeof key === 'string' && /^sk-ant-/.test(key) && key.length > 20;
+}
+
+// iPadのコピペで混入しがちな「見えないゴミ」を除去してキーを正規化する。
+//  - 前後/途中の空白・改行・タブ・NBSP・全角スペース
+//  - ゼロ幅スペース等の不可視文字（U+200B〜U+200F, U+FEFF, U+2060）
+//  - 全角英数字・全角記号 → 半角、各種ダッシュ → '-'
+//  - 周囲の引用符（"key" や 'key' と貼られた場合）
+// ※ 不可視文字をソースに直接書くと編集事故の元なので、文字コードから組み立てる
+function _charsFromCodes(codes) { return codes.map(function(c){ return String.fromCharCode(c); }).join(''); }
+var _INVISIBLE_RE = new RegExp('[' + _charsFromCodes([0x200B,0x200C,0x200D,0x200E,0x200F,0xFEFF,0x2060,0x00A0,0x3000]) + ']', 'g');
+var _FULLWIDTH_RE = new RegExp('[' + String.fromCharCode(0xFF01) + '-' + String.fromCharCode(0xFF5E) + ']', 'g');
+var _DASHES_RE    = new RegExp('[' + _charsFromCodes([0x2010,0x2011,0x2012,0x2013,0x2014,0x2015,0x2212,0xFF0D]) + ']', 'g');
+
+function sanitizeApiKey(raw) {
+  if (typeof raw !== 'string') return '';
+  var k = raw;
+  k = k.replace(_INVISIBLE_RE, '');
+  k = k.replace(_FULLWIDTH_RE, function(ch) { return String.fromCharCode(ch.charCodeAt(0) - 0xFEE0); });
+  k = k.replace(_DASHES_RE, '-');
+  k = k.replace(/\s/g, '');
+  k = k.replace(/^["'`「」『』]+|["'`「」『』]+$/g, '');
+  return k;
+}
+
+// 診断用：アラートに表示しても安全な要約（先頭4文字・末尾2文字・長さ・不審文字の有無）
+function describeKeyForDiag(raw) {
+  if (!raw) return '（空）';
+  var bad = [];
+  if (new RegExp(_INVISIBLE_RE.source).test(raw)) bad.push('不可視文字');
+  if (new RegExp(_FULLWIDTH_RE.source).test(raw)) bad.push('全角文字');
+  if (/\s/.test(raw)) bad.push('空白/改行');
+  var rest = raw.replace(_INVISIBLE_RE, '').replace(_FULLWIDTH_RE, '').replace(/\s/g, '');
+  if (/[^\x20-\x7E]/.test(rest)) bad.push('その他の非ASCII文字');
+  var head = raw.slice(0, 4), tail = raw.slice(-2);
+  return '先頭「' + head + '」…末尾「' + tail + '」 / 長さ' + raw.length + '文字' + (bad.length ? ' / 混入: ' + bad.join('・') : '');
 }
 
 // ===================================================================
@@ -6029,18 +6064,41 @@ function saveApiSettings() {
   var modelSelect = document.getElementById('selectApiModel');
   var claudeKeyInput = document.getElementById('inputClaudeApiKey');
   var claudeModelSelect = document.getElementById('selectClaudeModel');
-  if (keyInput) state.apiKey = keyInput.value.trim();
+  // 貼り付け時に混入しがちな不可視文字・全角・改行などを自動で除去してから扱う
+  var rawGemini = keyInput ? keyInput.value : '';
+  var rawClaude = claudeKeyInput ? claudeKeyInput.value : '';
+  var cleanGemini = sanitizeApiKey(rawGemini);
+  var cleanClaude = sanitizeApiKey(rawClaude);
+  if (keyInput && cleanGemini !== rawGemini) keyInput.value = cleanGemini;        // 画面の値も掃除後に揃える
+  if (claudeKeyInput && cleanClaude !== rawClaude) claudeKeyInput.value = cleanClaude;
+  state.apiKey = cleanGemini;
+  state.claudeApiKey = cleanClaude;
   if (modelSelect) state.apiModel = modelSelect.value;
-  if (claudeKeyInput) state.claudeApiKey = claudeKeyInput.value.trim();
   if (claudeModelSelect) state.claudeModel = claudeModelSelect.value;
-  // Validate keys before saving
+
+  // 形式チェック：弾いて止めるのではなく「診断を見せて、本人判断で保存もできる」ようにする。
+  // 本当の有効性はAPIに問い合わせる「接続テスト」で確認できるため、形式で完全ブロックすると
+  // 正しいキーまで保存できなくなる事故（実際に発生）を防ぐ。
   if (state.apiKey && !validateGeminiKey(state.apiKey)) {
-    alert('⚠ Gemini APIキーの形式が正しくありません。AIzaSy... で始まる39文字のキーを入力してください。');
-    return;
+    var goG = confirm(
+      '⚠ Gemini APIキーの形式が想定（AIza… で始まる英数字）と異なります。\n\n' +
+      '読み取った内容: ' + describeKeyForDiag(rawGemini) + '\n' +
+      '掃除後: ' + describeKeyForDiag(cleanGemini) + '\n\n' +
+      '貼り付け元に余計な文字が混ざっていないか確認してください。\n' +
+      'このまま保存する場合は「OK」→ 続けて「接続テスト」で動作を確認してください。\n' +
+      '入力し直す場合は「キャンセル」。'
+    );
+    if (!goG) return;
   }
   if (state.claudeApiKey && !validateClaudeKey(state.claudeApiKey)) {
-    alert('⚠ Claude APIキーの形式が正しくありません。sk-ant- で始まるキーを入力してください。');
-    return;
+    var goC = confirm(
+      '⚠ Claude APIキーの形式が想定（sk-ant- で始まる）と異なります。\n\n' +
+      '読み取った内容: ' + describeKeyForDiag(rawClaude) + '\n' +
+      '掃除後: ' + describeKeyForDiag(cleanClaude) + '\n\n' +
+      'このまま保存する場合は「OK」→ 続けて「接続テスト」で動作を確認してください。\n' +
+      '入力し直す場合は「キャンセル」。'
+    );
+    if (!goC) return;
   }
   try {
     localStorage.setItem('vetanes_api_provider', state.apiProvider);
@@ -6134,7 +6192,7 @@ function testApiConnection() {
 
 function testGeminiConnection(resultEl) {
   var keyInput = document.getElementById('inputApiKey');
-  var key = keyInput ? keyInput.value.trim() : '';
+  var key = keyInput ? sanitizeApiKey(keyInput.value) : '';
   if (!key) {
     showTestResult(resultEl, false, '❌ Gemini APIキーを入力してください');
     return;
@@ -6173,7 +6231,7 @@ function testGeminiConnection(resultEl) {
 
 function testClaudeConnection(resultEl) {
   var keyInput = document.getElementById('inputClaudeApiKey');
-  var key = keyInput ? keyInput.value.trim() : '';
+  var key = keyInput ? sanitizeApiKey(keyInput.value) : '';
   if (!key) {
     showTestResult(resultEl, false, '❌ Claude APIキーを入力してください');
     return;
