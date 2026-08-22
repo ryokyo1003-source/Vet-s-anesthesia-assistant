@@ -1375,7 +1375,7 @@
         <button type="button" class="btn-settings-gear" onclick="openSettings()">⚙️</button>
       </div>
     </div>
-    <p class="sub">獣医麻酔管理アシスタント <span style="font-size:12px;font-weight:700;color:var(--accent-cyan);border:1px solid var(--accent-cyan);border-radius:6px;padding:1px 8px;">v2.3 (2026-08-22)</span></p>
+    <p class="sub">獣医麻酔管理アシスタント <span style="font-size:12px;font-weight:700;color:var(--accent-cyan);border:1px solid var(--accent-cyan);border-radius:6px;padding:1px 8px;">v2.4 (2026-08-22)</span></p>
 
     <!-- 施術情報 -->
     <div class="form-section-title">施術情報</div>
@@ -5279,10 +5279,15 @@ function getVisionPrompt(calibProf, hasRefImage) {
   if (hasRefImage) {
     p += '2枚の画像を渡します。\n' +
       '【画像1】この施設で使用しているモニターのレイアウト参照画像です。色付きの枠とラベルで各バイタルの表示位置を示しています。レイアウト（どの位置にどの項目があるか）の参考にのみ使い、数値はこの画像から絶対に読み取らないでください。\n' +
-      '【画像2】今回読み取る麻酔モニターの写真です。数値は必ず画像2から読み取ってください。\n\n';
+      '【画像2】これから確認する写真です。動物病院の麻酔モニター画面が写っているとは限りません。壁・床・天井・人物・関係ない物など、モニターが写っていない写真が送られてくることもあります。\n\n';
   } else {
-    p += 'この画像は動物病院の麻酔モニター画面の写真です。\n\n';
+    p += 'これから確認する写真です。動物病院の麻酔モニター画面が写っているとは限りません。壁・床・天井・人物・関係ない物など、モニターが写っていない写真が送られてくることもあります。\n\n';
   }
+  p += '【最重要ルール】\n' +
+    '実在するバイタルサインモニター（数値が表示された医療機器の画面）が写真にはっきり写っていない場合は、\n' +
+    '"monitor_detected"をfalseにし、他の全項目を必ずnullにしてください。\n' +
+    'それらしい数値を推測・創作することは、麻酔中の動物に対する重大な医療事故につながるため絶対に禁止です。\n' +
+    'モニターらしきものが写っていても、数値が霞んで読めない・反射で見えない場合も、無理に数値を作らずnullにしてください。\n\n';
   if (sp) p += '患者は' + sp + 'です。生理的にありえない値を読んだ場合は読み間違いを疑って再確認してください。\n\n';
 
   // キャリブレーションプロファイルからレイアウト説明を生成
@@ -5298,11 +5303,14 @@ function getVisionPrompt(calibProf, hasRefImage) {
   }
 
   p += '【手順】\n' +
-    '1. まず、写真に見えている全てのラベル（HR, SpO2, NIBP, EtCO2 等）とその隣に表示されている数値を1つずつ書き出してください\n' +
-    '2. 7セグメント/ドットマトリクス表示では 0と8、6と8、1と7、5と6 を混同しやすいため、桁ごとに注意深く確認してください\n' +
-    '3. 波形（グラフの線）や設定値・アラーム上下限値ではなく、測定値の数値テキストを読んでください\n' +
-    '4. 最後に、必ず以下のJSON形式を回答の最終行に1つだけ出力してください\n\n' +
-    '{"hr":数値,"spo2":数値,"rr":数値,"etco2_in":数値,"etco2_ex":数値,"sys":数値,"dia":数値,"temp":数値,"gas_in":数値,"gas_ex":数値}\n\n' +
+    '1. まず、この写真に実在するバイタルサインモニターの画面が写っているかどうかを確認してください\n' +
+    '2. 写っていなければ、それ以降の手順は行わず monitor_detected:false と全項目nullのJSONだけを出力してください\n' +
+    '3. 写っている場合は、写真に見えている全てのラベル（HR, SpO2, NIBP, EtCO2 等）とその隣に表示されている数値を1つずつ書き出してください\n' +
+    '4. 7セグメント/ドットマトリクス表示では 0と8、6と8、1と7、5と6 を混同しやすいため、桁ごとに注意深く確認してください\n' +
+    '5. 波形（グラフの線）や設定値・アラーム上下限値ではなく、測定値の数値テキストを読んでください\n' +
+    '6. 最後に、必ず以下のJSON形式を回答の最終行に1つだけ出力してください\n\n' +
+    '{"monitor_detected":true,"hr":数値,"spo2":数値,"rr":数値,"etco2_in":数値,"etco2_ex":数値,"sys":数値,"dia":数値,"temp":数値,"gas_in":数値,"gas_ex":数値}\n\n' +
+    '- monitor_detected: バイタルサインモニターの画面が実際に写真に写っていればtrue、写っていなければfalse\n\n' +
     '【参考情報】\n' +
     '- 血圧は "120/80" や "SYS 120 DIA 80 MAP 93" のように表示されることがあります。カッコ内の単独数値はMAP（平均血圧）です\n' +
     '- EtCO2/呼気CO2は通常30-50 mmHg、体温は通常25-42℃、麻酔ガス濃度(ISO/SEV)はFi(吸気)とEt(呼気)の2つで0-5%程度です\n\n' +
@@ -5442,7 +5450,9 @@ function sendGeminiVision(req, imageDataUrl, captureId, btn, autoMode) {
         }
         window._lastAIResponse = text;
         var vitals = parseVitalsFromAI(text);
-        if (vitals) {
+        if (vitals && vitals._noMonitor) {
+          handleAIReadFailure(captureId, imageDataUrl, '写真にモニター画面が写っていないようです。モニターを撮影し直してください', autoMode);
+        } else if (vitals) {
           if (autoMode) {
             applyVitalData(vitals, captureId, false);
             addLog('🤖 AI読取成功 (' + modelId + ') HR:' + vitals.hr + ' SpO2:' + vitals.spo2 + ' RR:' + vitals.rr + ' CO2:' + vitals.etco2_ex + ' BP:' + vitals.sys + '/' + vitals.dia + ' T:' + vitals.temp + ' Gas:' + vitals.gas_in + '/' + vitals.gas_ex);
@@ -5535,7 +5545,9 @@ function sendClaudeVision(req, imageDataUrl, captureId, btn, autoMode) {
         }
         window._lastAIResponse = text;
         var vitals = parseVitalsFromAI(text);
-        if (vitals) {
+        if (vitals && vitals._noMonitor) {
+          handleAIReadFailure(captureId, imageDataUrl, '写真にモニター画面が写っていないようです。モニターを撮影し直してください', autoMode);
+        } else if (vitals) {
           if (autoMode) {
             applyVitalData(vitals, captureId, false);
             addLog('🧠 Claude読取成功 (' + modelId + ') HR:' + vitals.hr + ' SpO2:' + vitals.spo2 + ' RR:' + vitals.rr + ' CO2:' + vitals.etco2_ex + ' BP:' + vitals.sys + '/' + vitals.dia + ' T:' + vitals.temp);
@@ -5616,6 +5628,13 @@ function parseVitalsFromAI(text) {
       });
     }
     console.log('[VetAnes] Parsed JSON:', obj);
+
+    // AIが「モニターが写っていない」と明示的に判定した場合は、
+    // どんな数値が付いてきていても絶対に使わない（捏造した数値を記録しないため）
+    if (obj && (obj.monitor_detected === false || obj.monitor_detected === 'false')) {
+      console.warn('[VetAnes] AI reported no monitor detected in image');
+      return { _noMonitor: true };
+    }
 
     // キー名を正規化（大文字/小文字/バリエーション対応）
     var norm = {};
