@@ -1375,7 +1375,7 @@
         <button type="button" class="btn-settings-gear" onclick="openSettings()">⚙️</button>
       </div>
     </div>
-    <p class="sub">獣医麻酔管理アシスタント <span style="font-size:12px;font-weight:700;color:var(--accent-cyan);border:1px solid var(--accent-cyan);border-radius:6px;padding:1px 8px;">v2.6 (2026-08-22)</span></p>
+    <p class="sub">獣医麻酔管理アシスタント <span style="font-size:12px;font-weight:700;color:var(--accent-cyan);border:1px solid var(--accent-cyan);border-radius:6px;padding:1px 8px;">v2.7 (2026-08-23)</span></p>
 
     <!-- 施術情報 -->
     <div class="form-section-title">施術情報</div>
@@ -1560,8 +1560,8 @@
         <div style="background:var(--bg-secondary); border:1px solid var(--border); border-radius:10px; padding:16px; margin-bottom:16px;">
           <label style="font-size:13px; font-weight:600; color:var(--text-primary); display:block; margin-bottom:8px;">🧠 Gemini モデル</label>
           <select id="selectApiModel" style="width:100%; padding:10px 12px; background:var(--bg-card); border:1px solid var(--border); border-radius:8px; color:var(--text-primary); font-size:14px;">
-            <option value="gemini-flash">Gemini 2.5 Flash（高速・最安）推奨</option>
-            <option value="gemini-pro">Gemini 2.5 Pro（最高精度）</option>
+            <option value="gemini-pro">Gemini 2.5 Pro（読み取り精度重視・推奨）</option>
+            <option value="gemini-flash">Gemini 2.5 Flash（高速・低コスト）</option>
           </select>
         </div>
         <div style="margin-bottom:16px; padding:12px; background:rgba(59,130,246,0.08); border:1px solid rgba(59,130,246,0.2); border-radius:10px;">
@@ -1616,6 +1616,20 @@
 
       <button type="button" onclick="testApiConnection()" id="btnTestApi" style="width:100%; padding:12px; margin-top:8px; background:var(--bg-secondary); border:1px solid var(--accent-blue); border-radius:10px; color:var(--accent-blue); font-size:14px; font-weight:600; cursor:pointer; min-height:44px;">🔍 接続テスト</button>
       <div id="apiTestResult" style="margin-top:8px; padding:10px; border-radius:8px; font-size:12px; display:none;"></div>
+
+      <!-- AI読取 診断ログ（不具合報告用） -->
+      <div style="margin-top:14px; border-top:1px solid var(--border); padding-top:12px;">
+        <button type="button" onclick="showAiDiag()" style="width:100%; padding:11px; background:var(--bg-secondary); border:1px solid var(--border); border-radius:10px; color:var(--text-secondary); font-size:13px; font-weight:600; cursor:pointer; min-height:44px;">🧪 直近のAI読取ログを表示（読み取り不良の報告用）</button>
+        <div id="aiDiagBox" style="display:none; margin-top:8px;">
+          <textarea id="aiDiagText" readonly style="width:100%; height:240px; font-family:monospace; font-size:11px; background:var(--bg-card); color:var(--text-primary); border:1px solid var(--border); border-radius:8px; padding:8px; white-space:pre; overflow:auto; -webkit-user-select:text; user-select:text;"></textarea>
+          <div style="display:flex; gap:8px; margin-top:6px;">
+            <button type="button" onclick="copyAiDiag()" style="flex:1; padding:10px; background:var(--bg-card); border:1px solid var(--accent-blue); border-radius:8px; color:var(--accent-blue); font-size:13px; font-weight:600; cursor:pointer; min-height:44px;">📋 コピー</button>
+            <button type="button" onclick="shareAiDiag()" style="flex:1; padding:10px; background:var(--bg-card); border:1px solid var(--accent-blue); border-radius:8px; color:var(--accent-blue); font-size:13px; font-weight:600; cursor:pointer; min-height:44px;">📤 共有</button>
+            <button type="button" onclick="clearAiDiag()" style="padding:10px 12px; background:var(--bg-card); border:1px solid var(--border); border-radius:8px; color:var(--text-muted); font-size:13px; cursor:pointer; min-height:44px;">🗑</button>
+          </div>
+          <p style="font-size:11px; color:var(--text-muted); margin-top:6px; line-height:1.5;">読み取りがおかしい時は、ここの内容を「コピー」または「共有」で開発者に送ってください。AIが実際に何と答えたか・送った画像の大きさ・使ったモデルが分かり、原因を特定できます。APIキーは含まれません。</p>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1949,10 +1963,14 @@
     background: var(--bg-card, #0f172a); border: 1px solid var(--border, #334155);
     border-radius: 8px; color: var(--text-primary, #f1f5f9);
   }
-  .vc-field input.vc-carried { border-color: #f59e0b; color: #f59e0b; }
+  .vc-field input.vc-unread { border-style: dashed; border-color: var(--text-muted, #64748b); color: var(--text-muted, #64748b); }
+  .vc-field input.vc-unread::placeholder { color: var(--text-muted, #64748b); font-size: 10px; font-weight: 600; }
+  .vc-field input.vc-unsure { border-color: #facc15; color: #facc15; box-shadow: 0 0 0 2px rgba(250,204,21,0.18); }
   .vc-field input:focus { outline: none; border-color: var(--accent-cyan, #22d3ee); }
   .vc-hint { font-size: 11px; color: var(--text-muted, #64748b); margin: 8px 0 4px; }
-  .vc-hint .vc-carried-mark { color: #f59e0b; font-weight: 700; }
+  .vc-hint .vc-unread-mark { color: var(--text-secondary, #94a3b8); font-weight: 700; }
+  .vc-hint .vc-unsure-mark { color: #facc15; font-weight: 700; }
+  .vc-hint .vc-mono { font-family: "IBM Plex Mono", monospace; }
   .vc-actions { display: flex; gap: 10px; padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px)); }
   .vc-cancel {
     flex: 1; padding: 13px; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer;
@@ -2006,7 +2024,7 @@
         <div class="vc-field"><label>Gas吸気</label><input type="number" id="vc_gas_in" step="0.1" inputmode="decimal"></div>
         <div class="vc-field"><label>Gas呼気</label><input type="number" id="vc_gas_ex" step="0.1" inputmode="decimal"></div>
       </div>
-      <div class="vc-hint">値をタップして修正できます。<span class="vc-carried-mark">オレンジ枠</span>はAIが読み取れず前回値を引き継いだ項目です。</div>
+      <div class="vc-hint" id="vcHint">値をタップして修正できます。</div>
     </div>
     <div class="vc-actions">
       <button type="button" class="vc-cancel" onclick="closeVitalConfirm()">キャンセル</button>
@@ -2064,7 +2082,7 @@ const state = {
   // V5: API settings
   apiProvider: 'gemini',  // 'gemini' or 'claude'
   apiKey: '',
-  apiModel: 'gemini-flash',
+  apiModel: 'gemini-pro',
   claudeApiKey: '',
   claudeModel: 'claude-haiku',  // 'claude-haiku' or 'claude-sonnet'
   apiMode: 'ai',  // 'ai' or 'demo'
@@ -4996,14 +5014,25 @@ function processCapturedFrame(img, btn, autoMode){
   var thumbUrl = thumbCanvas.toDataURL('image/jpeg', 0.5);
   var captureId = storeThumbnail(thumbUrl);
 
-  // API送信用にリサイズ（最大1568px = Claude/Geminiの視覚処理上限に合わせる）
+  // API送信用にリサイズ。Claudeは長辺1568pxで内部縮小されるのでそれに合わせ、
+  // Geminiはより大きな画像をタイル処理できるので2048pxまで送って細部を残す
+  var maxDim = (state.apiProvider === 'claude') ? 1568 : 2048;
   var apiCanvas = document.createElement('canvas');
-  var scale = Math.min(1568 / img.width, 1568 / img.height, 1);
+  var scale = Math.min(maxDim / img.width, maxDim / img.height, 1);
   apiCanvas.width = Math.round(img.width * scale);
   apiCanvas.height = Math.round(img.height * scale);
   var aCtx = apiCanvas.getContext('2d');
   aCtx.drawImage(img, 0, 0, apiCanvas.width, apiCanvas.height);
-  var apiDataUrl = apiCanvas.toDataURL('image/jpeg', 0.85);
+  var apiDataUrl = apiCanvas.toDataURL('image/jpeg', 0.88);
+  // 診断ログ用：この撮影の画像メタ情報（APIキー等は含まない）
+  window._lastCaptureMeta = {
+    srcW: img.width, srcH: img.height, sentW: apiCanvas.width, sentH: apiCanvas.height,
+    bytes: Math.round(apiDataUrl.length * 0.75),
+    zoom: (typeof captureZoom !== 'undefined') ? captureZoom.scale : 1,
+    hwZoom: !!(guidedCapture && guidedCapture.hwZoom),
+    camSettings: (guidedCapture && guidedCapture.settings) ? { width: guidedCapture.settings.width, height: guidedCapture.settings.height, zoom: guidedCapture.settings.zoom } : null,
+    autoMode: !!autoMode
+  };
 
   if (state.apiMode === 'ai') {
     if (state.apiProvider === 'claude' && state.claudeApiKey) {
@@ -5072,10 +5101,25 @@ async function openGuidedCapture(){
   try {
     // 権限ダイアログ待ちなどで無限に固まらないよう、15秒でタイムアウトさせフォールバックする
     var stream = await _withTimeout(navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { ideal: 'environment' }, width: { ideal: 3840 }, height: { ideal: 2160 } },
+      video: { facingMode: { ideal: 'environment' }, width: { ideal: 4096 }, height: { ideal: 2160 } },
       audio: false
     }), 15000);
     guidedCapture.stream = stream;
+    // カメラ能力の取得：ハードウェアズーム・連続AF・実解像度
+    guidedCapture.track = (stream.getVideoTracks && stream.getVideoTracks()[0]) || null;
+    guidedCapture.hwZoom = null;
+    guidedCapture.settings = null;
+    try {
+      var caps = (guidedCapture.track && guidedCapture.track.getCapabilities) ? guidedCapture.track.getCapabilities() : null;
+      if (caps && caps.zoom && typeof caps.zoom.min === 'number' && typeof caps.zoom.max === 'number' && caps.zoom.max > caps.zoom.min) {
+        guidedCapture.hwZoom = { min: caps.zoom.min, max: caps.zoom.max };
+      }
+      if (caps && caps.focusMode && caps.focusMode.indexOf && caps.focusMode.indexOf('continuous') >= 0) {
+        guidedCapture.track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }).catch(function(){});
+      }
+    } catch(e) { guidedCapture.hwZoom = null; }
+    try { guidedCapture.settings = (guidedCapture.track && guidedCapture.track.getSettings) ? guidedCapture.track.getSettings() : null; } catch(e) {}
+    try { resetCaptureZoom(); } catch(e) {}
     video.srcObject = stream;
     modal.style.display = 'flex';
     await video.play().catch(function(){});
@@ -5098,6 +5142,8 @@ function closeGuidedCapture(){
     guidedCapture.stream.getTracks().forEach(function(t){ t.stop(); });
     guidedCapture.stream = null;
   }
+  guidedCapture.track = null;
+  guidedCapture.hwZoom = null;
   if (video) video.srcObject = null;
   if (modal) modal.style.display = 'none';
   var guide = document.getElementById('captureGuide');
@@ -5145,6 +5191,9 @@ var _pan = { active: false, startX: 0, startY: 0, startTx: 0, startTy: 0 };
 
 function resetCaptureZoom(){
   captureZoom.scale = 1; captureZoom.tx = 0; captureZoom.ty = 0;
+  if (guidedCapture.hwZoom && guidedCapture.track) {
+    try { guidedCapture.track.applyConstraints({ advanced: [{ zoom: guidedCapture.hwZoom.min }] }).catch(function(){}); } catch(e) {}
+  }
   applyCaptureZoom();
   updateZoomBadge();
 }
@@ -5152,6 +5201,7 @@ function resetCaptureZoom(){
 function applyCaptureZoom(){
   var video = document.getElementById('captureVideo');
   if (!video) return;
+  if (guidedCapture.hwZoom) { video.style.transform = ''; return; }   // 光学ズーム中はCSS拡大しない
   video.style.transformOrigin = '0 0';
   video.style.transform = 'translate(' + captureZoom.tx + 'px,' + captureZoom.ty + 'px) scale(' + captureZoom.scale + ')';
 }
@@ -5159,11 +5209,15 @@ function applyCaptureZoom(){
 function updateZoomBadge(){
   var badge = document.getElementById('captureZoomBadge');
   if (!badge) return;
+  var hw = !!guidedCapture.hwZoom;
   if (captureZoom.scale > 1.02) {
-    badge.textContent = captureZoom.scale.toFixed(1) + '×';
+    badge.textContent = captureZoom.scale.toFixed(1) + '×' + (hw ? ' 光学' : ' デジタル（画質低下）');
     badge.style.display = 'block';
+    badge.style.background = hw ? 'rgba(34,211,238,0.85)' : 'rgba(245,158,11,0.9)';
   } else {
-    badge.style.display = 'none';
+    badge.textContent = '1.0×' + (hw ? '（光学ズーム可）' : '');
+    badge.style.display = 'block';
+    badge.style.background = 'rgba(0,0,0,0.55)';
   }
 }
 
@@ -5183,8 +5237,19 @@ function clampCaptureZoom(){
 }
 
 function setCaptureZoomAround(newScale, cx, cy){
-  // 画面上の点 (cx,cy) を中心に拡大縮小する（指の位置が動かない直感的な挙動）
   newScale = Math.min(captureZoom.maxScale, Math.max(captureZoom.minScale, newScale));
+  if (guidedCapture.hwZoom && guidedCapture.track) {
+    // ハードウェア（光学/センサー）ズーム：映像そのものを拡大するので実解像度が落ちない
+    var hz = guidedCapture.hwZoom;
+    var z = Math.min(hz.max, Math.max(hz.min, hz.min * newScale));
+    captureZoom.scale = z / hz.min;
+    captureZoom.tx = 0; captureZoom.ty = 0;
+    try { guidedCapture.track.applyConstraints({ advanced: [{ zoom: z }] }).catch(function(){}); } catch(e) {}
+    applyCaptureZoom();
+    updateZoomBadge();
+    return;
+  }
+  // デジタルズーム（フォールバック）：画面上の点 (cx,cy) を中心に拡大縮小する
   var ratio = newScale / captureZoom.scale;
   captureZoom.tx = cx - (cx - captureZoom.tx) * ratio;
   captureZoom.ty = cy - (cy - captureZoom.ty) * ratio;
@@ -5214,7 +5279,7 @@ function _stageLocal(e, clientX, clientY){
         var m = _stageLocal(e, (e.touches[0].clientX + e.touches[1].clientX) / 2, (e.touches[0].clientY + e.touches[1].clientY) / 2);
         _pinch.midX = m.x; _pinch.midY = m.y;
         e.preventDefault();
-      } else if (e.touches.length === 1 && captureZoom.scale > 1.02) {
+      } else if (e.touches.length === 1 && captureZoom.scale > 1.02 && !guidedCapture.hwZoom) {
         _pan.active = true;
         _pan.startX = e.touches[0].clientX; _pan.startY = e.touches[0].clientY;
         _pan.startTx = captureZoom.tx; _pan.startTy = captureZoom.ty;
@@ -5297,7 +5362,8 @@ function takeGuidedPhoto(){
   //  要素座標 Q  ⇔  元映像ピクセル    V = (Q - box.xy) / box.scale
   var gw = box.w * GUIDE_W_RATIO, gh = box.h * GUIDE_H_RATIO;
   var gx = box.x + (box.w - gw) / 2, gy = box.y + (box.h - gh) / 2;
-  var z = captureZoom.scale, tx = captureZoom.tx, ty = captureZoom.ty;
+  var _hw = !!guidedCapture.hwZoom;   // 光学ズーム中は映像自体が拡大済みなので座標変換は恒等
+  var z = _hw ? 1 : captureZoom.scale, tx = _hw ? 0 : captureZoom.tx, ty = _hw ? 0 : captureZoom.ty;
   var qx0 = (gx - tx) / z, qy0 = (gy - ty) / z;
   var qx1 = (gx + gw - tx) / z, qy1 = (gy + gh - ty) / z;
   var sx = (qx0 - box.x) / box.scale, sy = (qy0 - box.y) / box.scale;
@@ -5492,9 +5558,12 @@ function getVisionPrompt(calibProf, hasRefImage) {
     '5. 特に桁数に注意してください。画面の端や別の要素の近くにある数字の先頭桁（百の位）を見落としやすいです。例えば血圧の「130」を「30」、心拍数の「108」を「08」と読んでしまう誤りが起きます。2桁の血圧(例:30mmHg)や1桁のHRは生理的にほぼありえないので、そう読めた場合は先頭桁の見落としを疑って再確認してください\n' +
     '6. 波形（グラフの線）や設定値・アラーム上下限値ではなく、測定値の数値テキストを読んでください\n' +
     '7. 数値の隣に小さな単位や補助表示（"%" "mmHg" "Ex" "In" など）がある場合は、どの項目に属するかラベルを手がかりに慎重に判断してください。体温（TEMP）は小数点付きの1つの数値で、CO2やガス濃度の数値と混同しないでください\n' +
-    '8. 最後に、必ず以下のJSON形式を回答の最終行に1つだけ出力してください\n\n' +
-    '{"monitor_detected":true,"hr":数値,"spo2":数値,"rr":数値,"etco2_in":数値,"etco2_ex":数値,"sys":数値,"dia":数値,"temp":数値,"gas_in":数値,"gas_ex":数値}\n\n' +
-    '- monitor_detected: バイタルサインモニターの画面が実際に写真に写っていればtrue、写っていなければfalse\n\n' +
+    '8. 「---」「- - -」「???」「E07」のようなエラー／未測定の表示は、その項目が測定されていないという意味です。必ずnullにしてください（近くに別の数字が見えても、それを代わりに読まないでください）\n' +
+    '9. 各数値について、桁の一部が隠れている・ぼやけている・反射している・隣の数字と紛らわしい・ラベルとの対応に迷う など、少しでも自信がない項目は "unsure" 配列にその項目名（hr, spo2, rr, etco2_in, etco2_ex, sys, dia, temp, gas_in, gas_ex）を列挙してください。誤った数値を返すより、unsureに入れる方がはるかに望ましいです\n' +
+    '10. 最後に、必ず以下のJSON形式を回答の最終行に1つだけ出力してください\n\n' +
+    '{"monitor_detected":true,"hr":数値,"spo2":数値,"rr":数値,"etco2_in":数値,"etco2_ex":数値,"sys":数値,"dia":数値,"temp":数値,"gas_in":数値,"gas_ex":数値,"unsure":[]}\n\n' +
+    '- monitor_detected: バイタルサインモニターの画面が実際に写真に写っていればtrue、写っていなければfalse\n' +
+    '- unsure: 自信のない項目名の配列（なければ空配列 []）\n\n' +
     '【参考情報】\n' +
     '- 血圧は "120/80" や "SYS 120 DIA 80 MAP 93" のように表示されることがあります。カッコ内の単独数値はMAP（平均血圧）です\n' +
     '- EtCO2/呼気CO2は通常30-50 mmHg、体温は通常25-42℃、麻酔ガス濃度(ISO/SEV)はFi(吸気)とEt(呼気)の2つで0-5%程度です\n\n' +
@@ -5615,7 +5684,9 @@ function sendGeminiVision(req, imageDataUrl, captureId, btn, autoMode) {
   xhr.open('POST', apiUrl, true);
   xhr.setRequestHeader('Content-Type', 'application/json');
   xhr.setRequestHeader('x-goog-api-key', state.apiKey);
-  xhr.timeout = 30000;
+  xhr.timeout = 45000;
+  var _t0 = Date.now();
+  var _diag = function(status, raw, parsed) { recordAiDiag({ at: new Date().toISOString(), provider: 'gemini', model: modelId, status: status, elapsedMs: Date.now() - _t0, meta: window._lastCaptureMeta || null, raw: String(raw || '').slice(0, 6000), parsed: parsed }); };
 
   xhr.onload = function() {
     finishCaptureBtn(btn);
@@ -5634,12 +5705,15 @@ function sendGeminiVision(req, imageDataUrl, captureId, btn, autoMode) {
         }
         window._lastAIResponse = text;
         var vitals = parseVitalsFromAI(text);
+        _diag(xhr.status, text, _diagSummary(vitals));
         if (vitals && vitals._noMonitor) {
           handleAIReadFailure(captureId, imageDataUrl, '写真にモニター画面が写っていないようです。モニターを撮影し直してください', autoMode);
+        } else if (vitals && vitals._nothingRead) {
+          handleAIReadFailure(captureId, imageDataUrl, 'モニターは写っていますが、読み取れる数値がありませんでした（表示が「---」なら患者が未接続の可能性があります。ピント・反射・距離も確認してください）', autoMode);
         } else if (vitals) {
           if (autoMode) {
             applyVitalData(vitals, captureId, false);
-            addLog('🤖 AI読取成功 (' + modelId + ') HR:' + vitals.hr + ' SpO2:' + vitals.spo2 + ' RR:' + vitals.rr + ' CO2:' + vitals.etco2_ex + ' BP:' + vitals.sys + '/' + vitals.dia + ' T:' + vitals.temp + ' Gas:' + vitals.gas_in + '/' + vitals.gas_ex);
+            addLog('🤖 AI読取成功 (' + modelId + ') HR:' + _fmtV(vitals.hr) + ' SpO2:' + _fmtV(vitals.spo2) + ' RR:' + _fmtV(vitals.rr) + ' CO2:' + _fmtV(vitals.etco2_ex) + ' BP:' + _fmtV(vitals.sys) + '/' + _fmtV(vitals.dia) + ' T:' + _fmtV(vitals.temp) + ' Gas:' + _fmtV(vitals.gas_in) + '/' + _fmtV(vitals.gas_ex) + (vitals._unsure && vitals._unsure.length ? ' ⚠要確認:' + vitals._unsure.join(',') : ''));
             resetTimer();
           } else {
             openVitalConfirm(vitals, captureId, imageDataUrl, null);
@@ -5656,17 +5730,20 @@ function sendGeminiVision(req, imageDataUrl, captureId, btn, autoMode) {
         var errBody = JSON.parse(xhr.responseText);
         if (errBody.error && errBody.error.message) errMsg = errBody.error.message;
       } catch(e2) {}
+      _diag(xhr.status, xhr.responseText, null);
       handleAIReadFailure(captureId, imageDataUrl, 'APIエラー: ' + errMsg, autoMode);
     }
   };
 
   xhr.onerror = function() {
     finishCaptureBtn(btn);
+    _diag('network-error', '', null);
     handleAIReadFailure(captureId, imageDataUrl, 'ネットワークエラー', autoMode);
   };
 
   xhr.ontimeout = function() {
     finishCaptureBtn(btn);
+    _diag('timeout', '', null);
     handleAIReadFailure(captureId, imageDataUrl, 'タイムアウト', autoMode);
   };
 
@@ -5711,7 +5788,9 @@ function sendClaudeVision(req, imageDataUrl, captureId, btn, autoMode) {
   xhr.setRequestHeader('x-api-key', state.claudeApiKey);
   xhr.setRequestHeader('anthropic-version', '2023-06-01');
   xhr.setRequestHeader('anthropic-dangerous-direct-browser-access', 'true');
-  xhr.timeout = 30000;
+  xhr.timeout = 45000;
+  var _t0 = Date.now();
+  var _diag = function(status, raw, parsed) { recordAiDiag({ at: new Date().toISOString(), provider: 'claude', model: modelId, status: status, elapsedMs: Date.now() - _t0, meta: window._lastCaptureMeta || null, raw: String(raw || '').slice(0, 6000), parsed: parsed }); };
 
   xhr.onload = function() {
     finishCaptureBtn(btn);
@@ -5729,12 +5808,15 @@ function sendClaudeVision(req, imageDataUrl, captureId, btn, autoMode) {
         }
         window._lastAIResponse = text;
         var vitals = parseVitalsFromAI(text);
+        _diag(xhr.status, text, _diagSummary(vitals));
         if (vitals && vitals._noMonitor) {
           handleAIReadFailure(captureId, imageDataUrl, '写真にモニター画面が写っていないようです。モニターを撮影し直してください', autoMode);
+        } else if (vitals && vitals._nothingRead) {
+          handleAIReadFailure(captureId, imageDataUrl, 'モニターは写っていますが、読み取れる数値がありませんでした（表示が「---」なら患者が未接続の可能性があります。ピント・反射・距離も確認してください）', autoMode);
         } else if (vitals) {
           if (autoMode) {
             applyVitalData(vitals, captureId, false);
-            addLog('🧠 Claude読取成功 (' + modelId + ') HR:' + vitals.hr + ' SpO2:' + vitals.spo2 + ' RR:' + vitals.rr + ' CO2:' + vitals.etco2_ex + ' BP:' + vitals.sys + '/' + vitals.dia + ' T:' + vitals.temp);
+            addLog('🧠 Claude読取成功 (' + modelId + ') HR:' + _fmtV(vitals.hr) + ' SpO2:' + _fmtV(vitals.spo2) + ' RR:' + _fmtV(vitals.rr) + ' CO2:' + _fmtV(vitals.etco2_ex) + ' BP:' + _fmtV(vitals.sys) + '/' + _fmtV(vitals.dia) + ' T:' + _fmtV(vitals.temp) + (vitals._unsure && vitals._unsure.length ? ' ⚠要確認:' + vitals._unsure.join(',') : ''));
             resetTimer();
           } else {
             openVitalConfirm(vitals, captureId, imageDataUrl, null);
@@ -5751,17 +5833,20 @@ function sendClaudeVision(req, imageDataUrl, captureId, btn, autoMode) {
         var errBody = JSON.parse(xhr.responseText);
         if (errBody.error && errBody.error.message) errMsg = errBody.error.message;
       } catch(e2) {}
+      _diag(xhr.status, xhr.responseText, null);
       handleAIReadFailure(captureId, imageDataUrl, 'Claude APIエラー: ' + errMsg, autoMode);
     }
   };
 
   xhr.onerror = function() {
     finishCaptureBtn(btn);
+    _diag('network-error', '', null);
     handleAIReadFailure(captureId, imageDataUrl, 'ネットワークエラー', autoMode);
   };
 
   xhr.ontimeout = function() {
     finishCaptureBtn(btn);
+    _diag('timeout', '', null);
     handleAIReadFailure(captureId, imageDataUrl, 'タイムアウト', autoMode);
   };
 
@@ -5862,50 +5947,30 @@ function parseVitalsFromAI(text) {
     // 1項目以上読めていれば成功とする（前回値で補完するため）
     var count = [hr, spo2, rr, etco2_in, etco2_ex, sys, dia, temp, gas_in, gas_ex].filter(function(v) { return v !== null; }).length;
     console.log('[VetAnes] Valid values count:', count);
-    if (count < 1) return null;
+    if (count < 1) return { _nothingRead: true };  // モニターは写っているが数値が1つも読めなかった
 
-    // null項目は前回値で補完
-    var lastHr = state.vitals.hr.length > 0 ? state.vitals.hr[state.vitals.hr.length - 1] : 0;
-    var lastSpo2 = state.vitals.spo2.length > 0 ? state.vitals.spo2[state.vitals.spo2.length - 1] : 0;
-    var lastRr = state.vitals.rr.length > 0 ? state.vitals.rr[state.vitals.rr.length - 1] : 0;
-    var lastEtco2In = state.vitals.etco2_in.length > 0 ? state.vitals.etco2_in[state.vitals.etco2_in.length - 1] : 0;
-    var lastEtco2Ex = state.vitals.etco2_ex.length > 0 ? state.vitals.etco2_ex[state.vitals.etco2_ex.length - 1] : 0;
-    var lastSys = state.vitals.sys.length > 0 ? state.vitals.sys[state.vitals.sys.length - 1] : 0;
-    var lastDia = state.vitals.dia.length > 0 ? state.vitals.dia[state.vitals.dia.length - 1] : 0;
-    var lastTemp = state.vitals.temp.length > 0 ? state.vitals.temp[state.vitals.temp.length - 1] : 0;
-    var lastGasIn = state.vitals.gas_in.length > 0 ? state.vitals.gas_in[state.vitals.gas_in.length - 1] : 0;
-    var lastGasEx = state.vitals.gas_ex.length > 0 ? state.vitals.gas_ex[state.vitals.gas_ex.length - 1] : 0;
-
-    var finalSys = sys !== null ? sys : lastSys;
-    var finalDia = dia !== null ? dia : lastDia;
-    var mean = (finalSys > 0 && finalDia > 0) ? Math.round(finalDia + (finalSys - finalDia) / 3) : 0;
-
-    // AIが読めず前回値で補完した項目を記録（確認ダイアログでハイライト表示）
+    // 読めなかった項目は前回値で埋めず null のまま返す。
+    // （以前は前回値で埋めていたため、モニターが「---」でもアプリに数値が並び、
+    //   AIが捏造しているように見える重大な混乱を招いていた）
     var missing = [];
-    if (hr === null) missing.push('hr');
-    if (spo2 === null) missing.push('spo2');
-    if (rr === null) missing.push('rr');
-    if (etco2_in === null) missing.push('etco2_in');
-    if (etco2_ex === null) missing.push('etco2_ex');
-    if (sys === null) missing.push('sys');
-    if (dia === null) missing.push('dia');
-    if (temp === null) missing.push('temp');
-    if (gas_in === null) missing.push('gas_in');
-    if (gas_ex === null) missing.push('gas_ex');
+    [['hr',hr],['spo2',spo2],['rr',rr],['etco2_in',etco2_in],['etco2_ex',etco2_ex],
+     ['sys',sys],['dia',dia],['temp',temp],['gas_in',gas_in],['gas_ex',gas_ex]].forEach(function(pr) {
+      if (pr[1] === null) missing.push(pr[0]);
+    });
+    // AIが「自信なし」と自己申告した項目（誤った数値を出すより、ここに入れてもらう）
+    var unsure = [];
+    if (obj && Array.isArray(obj.unsure)) {
+      obj.unsure.forEach(function(u) { if (typeof u === 'string') unsure.push(u.toLowerCase().replace(/[\s\-]/g, '_')); });
+    }
+    var mean = (sys !== null && dia !== null && sys > 0 && dia > 0) ? Math.round(dia + (sys - dia) / 3) : null;
 
     return {
-      hr: hr !== null ? hr : lastHr,
-      spo2: spo2 !== null ? spo2 : lastSpo2,
-      rr: rr !== null ? rr : lastRr,
-      etco2_in: etco2_in !== null ? etco2_in : lastEtco2In,
-      etco2_ex: etco2_ex !== null ? etco2_ex : lastEtco2Ex,
-      sys: finalSys,
-      dia: finalDia,
-      mean: mean,
-      temp: temp !== null ? temp : lastTemp,
-      gas_in: gas_in !== null ? gas_in : lastGasIn,
-      gas_ex: gas_ex !== null ? gas_ex : lastGasEx,
-      _missing: missing
+      hr: hr, spo2: spo2, rr: rr,
+      etco2_in: etco2_in, etco2_ex: etco2_ex,
+      sys: sys, dia: dia, mean: mean,
+      temp: temp, gas_in: gas_in, gas_ex: gas_ex,
+      _missing: missing,
+      _unsure: unsure
     };
   } catch(e) {
     return null;
@@ -5929,14 +5994,36 @@ function openVitalConfirm(vitals, captureId, imageDataUrl, errorMsg) {
   if (errorMsg) { errEl.textContent = '⚠ ' + errorMsg; errEl.style.display = 'block'; }
   else { errEl.style.display = 'none'; }
 
-  var missing = (vitals && vitals._missing) || [];
+  // 読めなかった項目は空欄（プレースホルダ「未読取」）。前回値は絶対に入れない。
+  // AIが自信なしと申告した項目は黄色で強調。
+  var unsure = (vitals && vitals._unsure) || [];
+  var nMissing = 0, nUnsure = 0, nRead = 0;
   VC_FIELDS.forEach(function(k) {
     var inp = document.getElementById('vc_' + k);
     if (!inp) return;
     var v = vitals ? vitals[k] : null;
-    inp.value = (v === null || v === undefined) ? '' : v;
-    inp.classList.toggle('vc-carried', missing.indexOf(k) >= 0);
+    var isMissing = (v === null || v === undefined || (typeof v === 'number' && isNaN(v)));
+    inp.value = isMissing ? '' : v;
+    inp.placeholder = isMissing ? '未読取' : '';
+    inp.classList.remove('vc-carried');
+    inp.classList.toggle('vc-unread', isMissing);
+    var isUnsure = !isMissing && unsure.indexOf(k) >= 0;
+    inp.classList.toggle('vc-unsure', isUnsure);
+    if (isMissing) nMissing++; else if (isUnsure) nUnsure++; else nRead++;
   });
+
+  var hint = document.getElementById('vcHint');
+  if (hint) {
+    var parts = ['値をタップして修正できます。'];
+    if (vitals && !errorMsg) {
+      parts.push('AI読取: ' + nRead + '項目');
+      if (nUnsure) parts.push('<span class="vc-unsure-mark">黄色枠 ' + nUnsure + '項目</span>はAIが「自信なし」と申告したもの — 必ずモニターと見比べてください');
+      if (nMissing) parts.push('<span class="vc-unread-mark">「未読取」' + nMissing + '項目</span>はAIが読めなかったもの — 空欄のまま記録すると「--」として残ります');
+    } else {
+      parts.push('必要な項目だけ入力してください。空欄は「--」として記録されます。');
+    }
+    hint.innerHTML = parts.join('　');
+  }
 
   document.getElementById('vitalConfirmModal').style.display = 'flex';
 }
@@ -5957,15 +6044,88 @@ function closeVitalConfirm() {
 
 function confirmVitalData() {
   var d = {};
+  var anyValue = false;
   VC_FIELDS.forEach(function(k) {
-    var v = parseFloat(document.getElementById('vc_' + k).value);
-    d[k] = isNaN(v) ? 0 : v;
+    var raw = document.getElementById('vc_' + k).value;
+    var v = (raw === '' || raw === null) ? NaN : parseFloat(raw);
+    d[k] = isNaN(v) ? null : v;     // 空欄は 0 ではなく null（「--」）として記録する
+    if (d[k] !== null) anyValue = true;
   });
-  d.mean = (d.sys > 0 && d.dia > 0) ? Math.round(d.dia + (d.sys - d.dia) / 3) : 0;
+  if (!anyValue) {
+    alert('数値が1つも入力されていません。\nモニターの値を入力するか、「キャンセル」を押してください。');
+    return;
+  }
+  d.mean = (d.sys !== null && d.dia !== null && d.sys > 0 && d.dia > 0) ? Math.round(d.dia + (d.sys - d.dia) / 3) : null;
   document.getElementById('vitalConfirmModal').style.display = 'none';
   applyVitalData(d, vcState.captureId, false);
   resetTimer();
   vcState.captureId = null;
+}
+
+// ===================================================================
+//  AI読取 診断ログ（直近5件を端末内に保存。設定画面から表示・コピー・共有できる）
+//  ※ APIキーは保存しない。読み取り不良の原因調査のため開発者に送ってもらう用途。
+// ===================================================================
+var _AI_DIAG_KEY = 'vetanes_ai_diag';
+function _diagSummary(v) {
+  if (!v) return null;
+  if (v._noMonitor) return 'NO_MONITOR';
+  if (v._nothingRead) return 'NOTHING_READ';
+  return { hr:v.hr, spo2:v.spo2, rr:v.rr, etco2_in:v.etco2_in, etco2_ex:v.etco2_ex, sys:v.sys, dia:v.dia, temp:v.temp, gas_in:v.gas_in, gas_ex:v.gas_ex, missing:v._missing||[], unsure:v._unsure||[] };
+}
+function recordAiDiag(entry) {
+  try {
+    var arr = JSON.parse(localStorage.getItem(_AI_DIAG_KEY) || '[]');
+    arr.unshift(entry);
+    if (arr.length > 5) arr.length = 5;
+    localStorage.setItem(_AI_DIAG_KEY, JSON.stringify(arr));
+  } catch(e) { /* 容量不足等は無視（診断ログのために本体を壊さない） */ }
+}
+function buildAiDiagText() {
+  var arr = [];
+  try { arr = JSON.parse(localStorage.getItem(_AI_DIAG_KEY) || '[]'); } catch(e) {}
+  if (!arr.length) return '（まだAI読取の記録がありません。モニター撮影を行うとここに記録されます）';
+  var out = ['VetAnes AI読取 診断ログ（新しい順・最大5件）', 'app: ' + (document.querySelector('.startup-card .sub span') ? document.querySelector('.startup-card .sub span').textContent : '?'), 'UA: ' + navigator.userAgent, ''];
+  arr.forEach(function(e, i) {
+    out.push('■ #' + (i + 1) + '  ' + (e.at || ''));
+    out.push('  provider/model: ' + e.provider + ' / ' + e.model + '    status: ' + e.status + '    ' + (e.elapsedMs != null ? e.elapsedMs + 'ms' : ''));
+    if (e.meta) {
+      var zm = (typeof e.meta.zoom === 'number') ? e.meta.zoom.toFixed(2) : String(e.meta.zoom);
+      var cam = (e.meta.camSettings && e.meta.camSettings.width) ? ('  camera:' + e.meta.camSettings.width + 'x' + e.meta.camSettings.height + (e.meta.camSettings.zoom ? ' z' + e.meta.camSettings.zoom : '')) : '';
+      out.push('  image: 元' + e.meta.srcW + 'x' + e.meta.srcH + ' → 送信' + e.meta.sentW + 'x' + e.meta.sentH + ' (~' + Math.round((e.meta.bytes || 0) / 1024) + 'KB)  zoom:' + zm + (e.meta.hwZoom ? '(光学)' : '(デジタル)') + cam + (e.meta.autoMode ? '  [自動撮影]' : ''));
+    }
+    out.push('  parsed: ' + JSON.stringify(e.parsed));
+    out.push('  --- raw response ---');
+    out.push(String(e.raw || '').split('\n').map(function(l) { return '  ' + l; }).join('\n'));
+    out.push('');
+  });
+  return out.join('\n');
+}
+function showAiDiag() {
+  var box = document.getElementById('aiDiagBox'), ta = document.getElementById('aiDiagText');
+  if (!box || !ta) return;
+  ta.value = buildAiDiagText();
+  box.style.display = (box.style.display === 'none' || !box.style.display) ? 'block' : 'none';
+}
+function copyAiDiag() {
+  var ta = document.getElementById('aiDiagText'); if (!ta) return;
+  ta.value = buildAiDiagText();
+  var done = function(ok) { alert(ok ? '診断ログをコピーしました。メール等に貼り付けて開発者へ送ってください。' : 'コピーできませんでした。テキスト欄を長押しして「すべて選択」→「コピー」してください。'); };
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(ta.value).then(function(){ done(true); }, function(){ done(false); }); return; }
+    ta.focus(); ta.select(); ta.setSelectionRange(0, 999999);
+    done(!!document.execCommand('copy'));
+  } catch(e) { done(false); }
+}
+function shareAiDiag() {
+  var text = buildAiDiagText();
+  if (navigator.share) { navigator.share({ title: 'VetAnes AI読取 診断ログ', text: text }).catch(function(){}); }
+  else copyAiDiag();
+}
+function clearAiDiag() {
+  if (!confirm('診断ログを削除しますか？')) return;
+  try { localStorage.removeItem(_AI_DIAG_KEY); } catch(e) {}
+  var ta = document.getElementById('aiDiagText'); if (ta) ta.value = '（削除しました）';
 }
 
 // ===================================================================
@@ -6294,17 +6454,18 @@ function generateMockVitals(sp){
   return{hr:r(b.hr,40),spo2:Math.min(100,r(b.spo2,6)),rr:Math.max(1,r(b.rr,10)),etco2_in:Math.max(0,r(b.etco2_in,1)),etco2_ex:r(b.etco2_ex,15),sys,dia,mean:Math.round(dia+(sys-dia)/3),temp:rf(b.temp,2),gas_in:Math.max(0,rf(b.gas_in,0.8)),gas_ex:Math.max(0,rf(b.gas_ex,0.6))};
 }
 
+function _fmtV(v){ return (v === null || v === undefined || (typeof v === 'number' && isNaN(v))) ? '--' : v; }
 function applyVitalData(d, captureId, isManual){
-  document.getElementById('valHR').textContent=d.hr;document.getElementById('valSpO2').textContent=d.spo2;
-  document.getElementById('valRR').textContent=d.rr;
-  document.getElementById('valEtCO2In').textContent=d.etco2_in;document.getElementById('valEtCO2Ex').textContent=d.etco2_ex;
-  document.getElementById('valSys').textContent=d.sys;document.getElementById('valDia').textContent=d.dia;
-  document.getElementById('valMean').textContent=d.mean;document.getElementById('valTemp').textContent=d.temp;
-  document.getElementById('valGasIn').textContent=d.gas_in;document.getElementById('valGasEx').textContent=d.gas_ex;
+  document.getElementById('valHR').textContent=_fmtV(d.hr);document.getElementById('valSpO2').textContent=_fmtV(d.spo2);
+  document.getElementById('valRR').textContent=_fmtV(d.rr);
+  document.getElementById('valEtCO2In').textContent=_fmtV(d.etco2_in);document.getElementById('valEtCO2Ex').textContent=_fmtV(d.etco2_ex);
+  document.getElementById('valSys').textContent=_fmtV(d.sys);document.getElementById('valDia').textContent=_fmtV(d.dia);
+  document.getElementById('valMean').textContent=_fmtV(d.mean);document.getElementById('valTemp').textContent=_fmtV(d.temp);
+  document.getElementById('valGasIn').textContent=_fmtV(d.gas_in);document.getElementById('valGasEx').textContent=_fmtV(d.gas_ex);
   // グラフ描画で例外が起きても、記録（ログ・保存）は必ず実行する
   try { addVitalToChart(d); } catch(e) { console.warn('addVitalToChart error:', e); }
   const prefix = isManual ? '✏️' : '📊';
-  addLog(`${prefix} HR:${d.hr} SpO2:${d.spo2} RR:${d.rr} CO2in:${d.etco2_in} CO2ex:${d.etco2_ex} BP:${d.sys}/${d.dia}(${d.mean}) T:${d.temp} GasIn:${d.gas_in} GasEx:${d.gas_ex}`, captureId || null);
+  addLog(`${prefix} HR:${_fmtV(d.hr)} SpO2:${_fmtV(d.spo2)} RR:${_fmtV(d.rr)} CO2in:${_fmtV(d.etco2_in)} CO2ex:${_fmtV(d.etco2_ex)} BP:${_fmtV(d.sys)}/${_fmtV(d.dia)}(${_fmtV(d.mean)}) T:${_fmtV(d.temp)} GasIn:${_fmtV(d.gas_in)} GasEx:${_fmtV(d.gas_ex)}`, captureId || null);
   try { saveSessionSoon(true); } catch(e) { console.warn('saveSessionSoon error:', e); }
   try { checkAlarms(d); } catch(e) { console.warn('checkAlarms error:', e); }
 }
@@ -6313,13 +6474,14 @@ function applyVitalData(d, captureId, isManual){
 //  ALARMS
 // ===================================================================
 function checkAlarms(d){
-  if(d.mean<60){document.getElementById('vitalBP').classList.add('alert');showAlert('低血圧警告',`MAP ${d.mean} mmHg\n昇圧剤の投与を検討してください。`);}else{document.getElementById('vitalBP').classList.remove('alert');}
-  if(d.sys>0&&d.dia>0&&(d.sys-d.dia)<15){showAlert('脈圧異常',`脈圧: ${d.sys-d.dia}mmHg\nカフサイズを確認してください。`);}
-  if(d.spo2<90){document.getElementById('vitalSpO2').classList.add('alert');showAlert('SpO2低下',`SpO2: ${d.spo2}%`);}else{document.getElementById('vitalSpO2').classList.remove('alert');}
+  var isNum=function(v){return typeof v==='number'&&!isNaN(v);};  // null（未読取）は判定対象外
+  if(isNum(d.mean)&&d.mean<60){document.getElementById('vitalBP').classList.add('alert');showAlert('低血圧警告',`MAP ${d.mean} mmHg\n昇圧剤の投与を検討してください。`);}else{document.getElementById('vitalBP').classList.remove('alert');}
+  if(isNum(d.sys)&&isNum(d.dia)&&d.sys>0&&d.dia>0&&(d.sys-d.dia)<15){showAlert('脈圧異常',`脈圧: ${d.sys-d.dia}mmHg\nカフサイズを確認してください。`);}
+  if(isNum(d.spo2)&&d.spo2<90){document.getElementById('vitalSpO2').classList.add('alert');showAlert('SpO2低下',`SpO2: ${d.spo2}%`);}else{document.getElementById('vitalSpO2').classList.remove('alert');}
   const hrLow=state.patient.species==='cat'?100:state.patient.species==='rabbit'?150:60;
-  document.getElementById('vitalHR').classList.toggle('alert',d.hr<hrLow);
-  document.getElementById('vitalEtCO2').classList.toggle('alert',d.etco2_ex>50||d.etco2_ex<25);
-  document.getElementById('vitalTemp').classList.toggle('alert',d.temp<(state.patient.species==='reptile'?22:36));
+  document.getElementById('vitalHR').classList.toggle('alert',isNum(d.hr)&&d.hr<hrLow);
+  document.getElementById('vitalEtCO2').classList.toggle('alert',isNum(d.etco2_ex)&&(d.etco2_ex>50||d.etco2_ex<25));
+  document.getElementById('vitalTemp').classList.toggle('alert',isNum(d.temp)&&d.temp<(state.patient.species==='reptile'?22:36));
 }
 function showAlert(t,m){
   const c=document.getElementById('alertContainer'),o=document.createElement('div');o.className='alert-overlay';
@@ -7675,7 +7837,7 @@ function resumeSession() {
     Object.keys(_dispMap).forEach(function(dispId) {
       var arr = state.vitals[_dispMap[dispId]];
       var el = document.getElementById(dispId);
-      if (el && arr && arr.length > 0) el.textContent = arr[arr.length - 1];
+      if (el && arr && arr.length > 0) el.textContent = _fmtV(arr[arr.length - 1]);
     });
   } catch(e) { console.warn('vital display restore error:', e); }
 
@@ -8224,17 +8386,17 @@ function generateReport() {
       if (tl === '+5min') continue;
       html += '<tr>';
       html += '<td>' + tl + '</td>';
-      html += '<td>' + (state.vitals.hr[vi] !== undefined ? state.vitals.hr[vi] : '-') + '</td>';
-      html += '<td>' + (state.vitals.spo2[vi] !== undefined ? state.vitals.spo2[vi] : '-') + '</td>';
-      html += '<td>' + (state.vitals.rr[vi] !== undefined ? state.vitals.rr[vi] : '-') + '</td>';
-      html += '<td>' + (state.vitals.etco2_in[vi] !== undefined ? state.vitals.etco2_in[vi] : '-') + '</td>';
-      html += '<td>' + (state.vitals.etco2_ex[vi] !== undefined ? state.vitals.etco2_ex[vi] : '-') + '</td>';
-      html += '<td>' + (state.vitals.sys[vi] !== undefined ? state.vitals.sys[vi] : '-') + '</td>';
-      html += '<td>' + (state.vitals.dia[vi] !== undefined ? state.vitals.dia[vi] : '-') + '</td>';
-      html += '<td>' + (state.vitals.mean[vi] !== undefined ? state.vitals.mean[vi] : '-') + '</td>';
-      html += '<td>' + (state.vitals.temp[vi] !== undefined ? state.vitals.temp[vi] : '-') + '</td>';
-      html += '<td>' + (state.vitals.gas_in[vi] !== undefined ? state.vitals.gas_in[vi] : '-') + '</td>';
-      html += '<td>' + (state.vitals.gas_ex[vi] !== undefined ? state.vitals.gas_ex[vi] : '-') + '</td>';
+      html += '<td>' + (state.vitals.hr[vi] != null ? state.vitals.hr[vi] : '-') + '</td>';
+      html += '<td>' + (state.vitals.spo2[vi] != null ? state.vitals.spo2[vi] : '-') + '</td>';
+      html += '<td>' + (state.vitals.rr[vi] != null ? state.vitals.rr[vi] : '-') + '</td>';
+      html += '<td>' + (state.vitals.etco2_in[vi] != null ? state.vitals.etco2_in[vi] : '-') + '</td>';
+      html += '<td>' + (state.vitals.etco2_ex[vi] != null ? state.vitals.etco2_ex[vi] : '-') + '</td>';
+      html += '<td>' + (state.vitals.sys[vi] != null ? state.vitals.sys[vi] : '-') + '</td>';
+      html += '<td>' + (state.vitals.dia[vi] != null ? state.vitals.dia[vi] : '-') + '</td>';
+      html += '<td>' + (state.vitals.mean[vi] != null ? state.vitals.mean[vi] : '-') + '</td>';
+      html += '<td>' + (state.vitals.temp[vi] != null ? state.vitals.temp[vi] : '-') + '</td>';
+      html += '<td>' + (state.vitals.gas_in[vi] != null ? state.vitals.gas_in[vi] : '-') + '</td>';
+      html += '<td>' + (state.vitals.gas_ex[vi] != null ? state.vitals.gas_ex[vi] : '-') + '</td>';
       html += '</tr>';
     }
     html += '</tbody></table>';
