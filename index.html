@@ -1375,7 +1375,7 @@
         <button type="button" class="btn-settings-gear" onclick="openSettings()">⚙️</button>
       </div>
     </div>
-    <p class="sub">獣医麻酔管理アシスタント <span style="font-size:12px;font-weight:700;color:var(--accent-cyan);border:1px solid var(--accent-cyan);border-radius:6px;padding:1px 8px;">v2.9 (2026-09-04)</span></p>
+    <p class="sub">獣医麻酔管理アシスタント <span style="font-size:12px;font-weight:700;color:var(--accent-cyan);border:1px solid var(--accent-cyan);border-radius:6px;padding:1px 8px;">v2.10 (2026-09-04)</span></p>
 
     <!-- 施術情報 -->
     <div class="form-section-title">施術情報</div>
@@ -1552,7 +1552,7 @@
         <div style="background:var(--bg-secondary); border:1px solid var(--border); border-radius:10px; padding:16px; margin-bottom:16px;">
           <label style="font-size:13px; font-weight:600; color:var(--text-primary); display:block; margin-bottom:8px;">🔑 Google AI (Gemini) API キー</label>
           <div style="display:flex; gap:8px; align-items:center;">
-            <input type="password" id="inputApiKey" placeholder="AIzaSy..." autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" style="flex:1; padding:10px 12px; background:var(--bg-card); border:1px solid var(--border); border-radius:8px; color:var(--text-primary); font-size:14px; font-family:monospace;">
+            <input type="password" id="inputApiKey" placeholder="AIzaSy... / AQ. で始まるキー" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" style="flex:1; padding:10px 12px; background:var(--bg-card); border:1px solid var(--border); border-radius:8px; color:var(--text-primary); font-size:14px; font-family:monospace;">
             <button type="button" onclick="toggleKeyVisibility('inputApiKey','btnToggleKey')" style="width:44px; height:44px; background:var(--bg-card); border:1px solid var(--border); border-radius:8px; color:var(--text-secondary); font-size:18px; cursor:pointer;" id="btnToggleKey">👁</button>
           </div>
           <p style="font-size:11px; color:var(--text-muted); margin-top:6px;">※ キーはこの端末のブラウザにのみ保存されます</p>
@@ -1569,7 +1569,7 @@
           <ol style="font-size:11px; color:var(--text-secondary); padding-left:18px; line-height:1.8;">
             <li><a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--accent-blue);">aistudio.google.com/apikey</a> にアクセス</li>
             <li>Googleアカウントでログイン → 「APIキーを作成」</li>
-            <li>生成されたキー（AIzaSy...）を上に貼り付け</li>
+            <li>生成されたキーを上に貼り付け（AIzaSy... または AQ. で始まる文字列。どちらの形式でも使えます）</li>
           </ol>
         </div>
       </div>
@@ -6174,10 +6174,13 @@ function _decKey(encoded) {
   try { return decodeURIComponent(escape(atob(encoded))); } catch(e) { return ''; }
 }
 function validateGeminiKey(key) {
-  // Googleが発行するキーの長さはプロジェクトによって異なる。
-  // 桁数を厳密に固定すると正しいキーを弾いてしまうため、接頭辞と最低限の長さだけをチェックする
+  // Googleのキーには2形式ある:
+  //   旧形式: AIza で始まる英数字（例 AIzaSy...）
+  //   新形式: AQ.  で始まりドットを含む（2025年以降に発行されたキーに多い）
+  // 桁数はプロジェクトによって異なるため、接頭辞と最低限の長さだけをチェックする
   // （実際の有効性は「接続テスト」でAPIに問い合わせて確認する）
-  return typeof key === 'string' && /^AIza[A-Za-z0-9_-]{20,}$/.test(key);
+  if (typeof key !== 'string') return false;
+  return /^AIza[A-Za-z0-9_-]{20,}$/.test(key) || /^AQ\.[A-Za-z0-9._-]{15,}$/.test(key);
 }
 function validateClaudeKey(key) {
   return typeof key === 'string' && /^sk-ant-/.test(key) && key.length > 20;
@@ -6275,7 +6278,7 @@ function saveApiSettings() {
   // 正しいキーまで保存できなくなる事故（実際に発生）を防ぐ。
   if (state.apiKey && !validateGeminiKey(state.apiKey)) {
     var goG = confirm(
-      '⚠ Gemini APIキーの形式が想定（AIza… で始まる英数字）と異なります。\n\n' +
+      '⚠ Gemini APIキーの形式が想定（AIza… または AQ.… で始まる）と異なります。\n\n' +
       '読み取った内容: ' + describeKeyForDiag(rawGemini) + '\n' +
       '掃除後: ' + describeKeyForDiag(cleanGemini) + '\n\n' +
       '貼り付け元に余計な文字が混ざっていないか確認してください。\n' +
