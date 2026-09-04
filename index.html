@@ -1375,7 +1375,7 @@
         <button type="button" class="btn-settings-gear" onclick="openSettings()">⚙️</button>
       </div>
     </div>
-    <p class="sub">獣医麻酔管理アシスタント <span style="font-size:12px;font-weight:700;color:var(--accent-cyan);border:1px solid var(--accent-cyan);border-radius:6px;padding:1px 8px;">v2.10 (2026-09-04)</span></p>
+    <p class="sub">獣医麻酔管理アシスタント <span style="font-size:12px;font-weight:700;color:var(--accent-cyan);border:1px solid var(--accent-cyan);border-radius:6px;padding:1px 8px;">v2.11 (2026-09-04)</span></p>
 
     <!-- 施術情報 -->
     <div class="form-section-title">施術情報</div>
@@ -1560,9 +1560,10 @@
         <div style="background:var(--bg-secondary); border:1px solid var(--border); border-radius:10px; padding:16px; margin-bottom:16px;">
           <label style="font-size:13px; font-weight:600; color:var(--text-primary); display:block; margin-bottom:8px;">🧠 Gemini モデル</label>
           <select id="selectApiModel" style="width:100%; padding:10px 12px; background:var(--bg-card); border:1px solid var(--border); border-radius:8px; color:var(--text-primary); font-size:14px;">
-            <option value="gemini-pro">Gemini 2.5 Pro（読み取り精度重視・推奨）</option>
-            <option value="gemini-flash">Gemini 2.5 Flash（高速・低コスト）</option>
+            <option value="gemini-pro">Gemini Pro（読み取り精度重視・推奨）</option>
+            <option value="gemini-flash">Gemini Flash（高速・低コスト）</option>
           </select>
+          <p style="font-size:11px; color:var(--text-muted); margin-top:6px;">実際のモデルは、お使いのキーで利用できる最新のものが自動選択されます（接続テストで確認できます）</p>
         </div>
         <div style="margin-bottom:16px; padding:12px; background:rgba(59,130,246,0.08); border:1px solid rgba(59,130,246,0.2); border-radius:10px;">
           <div style="font-size:12px; font-weight:700; color:var(--accent-blue); margin-bottom:6px;">💡 Gemini APIキーの取得</div>
@@ -5677,9 +5678,95 @@ function handleAIReadFailure(captureId, imageDataUrl, msg, autoMode) {
 
 // modelVal省略時は保存済み設定（state.apiModel）、指定時はその値でIDを解決する
 // （接続テストは保存前の画面上の選択値をそのままテストできるようにするため）
+// ===================================================================
+//  Gemini モデルの動的解決
+//  Googleはモデルの提供状況を頻繁に変える（例: 新規キーでは gemini-2.5-pro が
+//  使えず gemini-3.1-pro-preview を案内される）。IDをハードコードすると
+//  その度に壊れるため、ユーザーのキーで実際に使えるモデル一覧を
+//  ListModels APIから取得して自動選択し、1週間キャッシュする。
+// ===================================================================
+var _GEMINI_MODEL_CACHE_KEY = 'vetanes_gemini_models_v1';
+
+function _geminiKindFrom(modelVal) {
+  return ((modelVal || state.apiModel) === 'gemini-pro') ? 'pro' : 'flash';
+}
+// ListModelsが使えない時の候補（先頭から順に試す）
+function _geminiFallbackCandidates(kind) {
+  return kind === 'pro'
+    ? ['gemini-3.1-pro-preview', 'gemini-pro-latest', 'gemini-2.5-pro']
+    : ['gemini-flash-latest', 'gemini-3.1-flash-preview', 'gemini-2.5-flash'];
+}
+function _geminiCacheFor(key) {
+  try {
+    var c = JSON.parse(localStorage.getItem(_GEMINI_MODEL_CACHE_KEY) || 'null') || {};
+    // キーを変えたらプロジェクトも変わり使えるモデルも変わるため、キャッシュを無効化
+    return (c.keyHead === String(key || '').slice(0, 12)) ? c : {};
+  } catch(e) { return {}; }
+}
+// 同期版（従来互換）：キャッシュ済みならそれを、なければ第一候補を返す
 function getGeminiModelId(modelVal) {
-  if ((modelVal || state.apiModel) === 'gemini-pro') return 'gemini-2.5-pro';
-  return 'gemini-2.5-flash';
+  var kind = _geminiKindFrom(modelVal);
+  var c = _geminiCacheFor(state.apiKey);
+  return c[kind] || _geminiFallbackCandidates(kind)[0];
+}
+// ListModels応答から最適なモデルを選ぶ（テスト可能な純関数）
+function _pickGeminiModel(models, kind) {
+  var best = null, bestScore = -1;
+  (models || []).forEach(function(m) {
+    var name = String(m.name || '').replace(/^models\//, '');
+    var methods = m.supportedGenerationMethods || m.supportedActions || [];
+    if (methods.length && methods.indexOf('generateContent') < 0) return;
+    if (/(tts|image|embed|audio|live|native|computer|robotics|deep-research|thinking)/.test(name)) return;
+    var score = -1;
+    var mm = name.match(new RegExp('^gemini-([0-9]+(?:\\.[0-9]+)?)-' + kind + '(?:$|-)'));
+    if (mm) {
+      var ver = parseFloat(mm[1]);
+      var stable = new RegExp('^gemini-[0-9.]+-' + kind + '$').test(name) ? 2 : 0;
+      var preview = /-preview/.test(name) ? 1 : 0;
+      var dated = /-\d{4,}/.test(name) ? -0.5 : 0;   // 日付付きスナップショットよりエイリアス優先
+      score = ver * 10 + stable + preview + dated;
+    } else if (name === 'gemini-' + kind + '-latest') {
+      score = 9990;   // 「最新」エイリアスがあれば常にそれが最も安全
+    }
+    if (score > bestScore) { bestScore = score; best = name; }
+  });
+  return best;
+}
+// 非同期版：ListModelsで解決してキャッシュ。失敗時は同期版へフォールバック
+function resolveGeminiModelId(kind, key, cb) {
+  var c = _geminiCacheFor(key);
+  if (c[kind] && (Date.now() - (c.at || 0)) < 7 * 24 * 3600 * 1000) { cb(c[kind]); return; }
+  var fallback = function() { cb(getGeminiModelId(kind === 'pro' ? 'gemini-pro' : 'gemini-flash')); };
+  try {
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', 'https://generativelanguage.googleapis.com/v1beta/models?pageSize=1000', true);
+    xhr.setRequestHeader('x-goog-api-key', key);
+    xhr.timeout = 15000;
+    xhr.onload = function() {
+      var pick = null;
+      try { var resp = JSON.parse(xhr.responseText); pick = _pickGeminiModel(resp.models || [], kind); } catch(e) {}
+      if (pick) {
+        var c2 = _geminiCacheFor(key);
+        c2.keyHead = String(key || '').slice(0, 12);
+        c2[kind] = pick; c2.at = Date.now();
+        try { localStorage.setItem(_GEMINI_MODEL_CACHE_KEY, JSON.stringify(c2)); } catch(e) {}
+        console.log('[VetAnes] Gemini model resolved:', kind, '->', pick);
+        cb(pick);
+      } else fallback();
+    };
+    xhr.onerror = fallback;
+    xhr.ontimeout = fallback;
+    xhr.send();
+  } catch(e) { fallback(); }
+}
+// 「このモデルはもう使えない」系エラーの判定
+function _geminiModelGoneError(status, msg) {
+  return status === 404 || /no longer available|not found|NOT_FOUND|is not supported|does not exist|not available to/i.test(String(msg || ''));
+}
+function _geminiAltModel(kind, failedId) {
+  var cands = _geminiFallbackCandidates(kind);
+  for (var i = 0; i < cands.length; i++) { if (cands[i] !== failedId) return cands[i]; }
+  return cands[0];
 }
 
 function dataUrlToBase64Parts(dataUrl) {
@@ -5697,7 +5784,14 @@ function callGeminiVision(imageDataUrl, captureId, btn, autoMode) {
 }
 
 function sendGeminiVision(req, imageDataUrl, captureId, btn, autoMode) {
-  var modelId = getGeminiModelId();
+  var kind = _geminiKindFrom();
+  resolveGeminiModelId(kind, state.apiKey, function(modelId) {
+    _sendGeminiVisionWith(modelId, false, req, imageDataUrl, captureId, btn, autoMode);
+  });
+}
+
+function _sendGeminiVisionWith(modelId, isRetry, req, imageDataUrl, captureId, btn, autoMode) {
+  var kind = _geminiKindFrom();
   var apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/' + modelId + ':generateContent';
 
   var contentParts = req.images.map(function(url) {
@@ -5765,6 +5859,15 @@ function sendGeminiVision(req, imageDataUrl, captureId, btn, autoMode) {
         if (errBody.error && errBody.error.message) errMsg = errBody.error.message;
       } catch(e2) {}
       _diag(xhr.status, xhr.responseText, null);
+      // モデル自体が使えないエラーなら、キャッシュを破棄して代替モデルで1回だけ自動再試行
+      if (!isRetry && _geminiModelGoneError(xhr.status, errMsg)) {
+        try { localStorage.removeItem(_GEMINI_MODEL_CACHE_KEY); } catch(e3) {}
+        var alt = _geminiAltModel(kind, modelId);
+        addLog('ℹ モデル ' + modelId + ' が利用できないため ' + alt + ' で再試行します');
+        if (btn) { btn.classList.add('capturing'); btn.innerHTML = '<span class="icon">⏳</span><span>解析中...</span>'; }
+        _sendGeminiVisionWith(alt, true, req, imageDataUrl, captureId, btn, autoMode);
+        return;
+      }
       handleAIReadFailure(captureId, imageDataUrl, 'APIエラー: ' + errMsg, autoMode);
     }
   };
@@ -6397,8 +6500,13 @@ function testGeminiConnection(resultEl) {
   showTestResult(resultEl, null, '⏳ Gemini 接続テスト中...');
 
   var modelSelect = document.getElementById('selectApiModel');
-  var modelId = getGeminiModelId(modelSelect ? modelSelect.value : null);
+  var kind = _geminiKindFrom(modelSelect ? modelSelect.value : null);
+  resolveGeminiModelId(kind, key, function(modelId) {
+    _testGeminiWith(modelId, false, kind, key, resultEl);
+  });
+}
 
+function _testGeminiWith(modelId, isRetry, kind, key, resultEl) {
   var apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/' + modelId + ':generateContent';
 
   var body = JSON.stringify({
@@ -6418,6 +6526,13 @@ function testGeminiConnection(resultEl) {
     } else {
       var errMsg = 'HTTP ' + xhr.status;
       try { var errBody = JSON.parse(xhr.responseText); if (errBody.error && errBody.error.message) errMsg = errBody.error.message; } catch(e2) {}
+      if (!isRetry && _geminiModelGoneError(xhr.status, errMsg)) {
+        try { localStorage.removeItem(_GEMINI_MODEL_CACHE_KEY); } catch(e3) {}
+        var alt = _geminiAltModel(kind, modelId);
+        showTestResult(resultEl, null, '⏳ ' + modelId + ' は利用不可 → ' + alt + ' で再試行中...');
+        _testGeminiWith(alt, true, kind, key, resultEl);
+        return;
+      }
       showTestResult(resultEl, false, '❌ Gemini エラー: ' + errMsg);
     }
   };
