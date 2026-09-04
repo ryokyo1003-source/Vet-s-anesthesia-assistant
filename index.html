@@ -1375,7 +1375,7 @@
         <button type="button" class="btn-settings-gear" onclick="openSettings()">⚙️</button>
       </div>
     </div>
-    <p class="sub">獣医麻酔管理アシスタント <span style="font-size:12px;font-weight:700;color:var(--accent-cyan);border:1px solid var(--accent-cyan);border-radius:6px;padding:1px 8px;">v2.7 (2026-08-23)</span></p>
+    <p class="sub">獣医麻酔管理アシスタント <span style="font-size:12px;font-weight:700;color:var(--accent-cyan);border:1px solid var(--accent-cyan);border-radius:6px;padding:1px 8px;">v2.8 (2026-08-23)</span></p>
 
     <!-- 施術情報 -->
     <div class="form-section-title">施術情報</div>
@@ -3754,6 +3754,9 @@ function startMonitoring() {
     alert('⚠ この端末/ブラウザでは記録の自動保存ができません。\n（プライベートブラウズ中か、保存領域が無効の可能性）\n\nこのまま進めるとアプリを閉じた時に記録が失われます。\n通常モードのブラウザで開き直すことを強く推奨します。');
   }
 
+  // AI読取モードなのにAPIキー未設定なら、使い始めの時点で警告する
+  try { warnIfAiKeyMissing(); } catch(e) {}
+
   document.getElementById('dispId').textContent = state.patient.id;
   document.getElementById('dispName').textContent = state.patient.name;
   const sp = state.patient.species;
@@ -5064,7 +5067,32 @@ function processCapturedFrame(img, btn, autoMode){
 // ===================================================================
 var guidedCapture = { stream: null };
 
+// AI読取モードなのに、選択中プロバイダのAPIキーが未設定かどうか
+function aiKeyMissing() {
+  if (state.apiMode !== 'ai') return false;   // デモモードはキー不要
+  return state.apiProvider === 'claude' ? !state.claudeApiKey : !state.apiKey;
+}
+
+// モニタリング開始/再開時の警告（画面に残るアラート＋音声）
+function warnIfAiKeyMissing() {
+  if (!aiKeyMissing()) return;
+  try {
+    showAlert('APIキー未設定', 'AI読み取り用のAPIキーが設定されていません。\nこのままではモニター撮影しても数値は自動入力されず、すべて手入力になります。\n設定(⚙)→「AI読取設定」でキーを登録してください。');
+  } catch(e) {
+    try { alert('⚠ AI読み取り用のAPIキーが未設定です。設定(⚙)→「AI読取設定」で登録してください。'); } catch(e2) {}
+  }
+  addLog('⚠ APIキー未設定：AI読み取りは動作しません（設定→AI読取設定で登録）');
+}
+
 function handleCameraCapture(){
+  // APIキー未設定のまま撮影しようとした場合は、撮影前に知らせて設定画面へ誘導する
+  if (aiKeyMissing() && !state._aiKeyWarnedCapture) {
+    state._aiKeyWarnedCapture = true;   // 毎回は聞かない（1セッション1回。キャンセルなら以後は手入力前提で撮影可）
+    if (confirm('⚠ AI読み取り用のAPIキーが未設定です。\n撮影しても数値は自動入力されず、写真を見ながらの手入力になります。\n\nOK：設定画面を開いてキーを登録する\nキャンセル：このまま撮影して手入力する')) {
+      openSettings('tabApiSettings');
+      return;
+    }
+  }
   // ボタンを押した瞬間に何か反応があることを示す（カメラ起動待ちで「無反応」に見えないように）
   var btn = document.getElementById('btnCapture');
   if (btn) { btn.classList.add('capturing'); btn.innerHTML = '<span class="icon">📷</span><span>カメラ起動中...</span>'; }
@@ -5422,6 +5450,12 @@ async function toggleAutoCapture(){
 }
 
 async function startAutoCapture(){
+  // 自動撮影はAI読み取りが前提。キー未設定のまま動かすと5分ごとに空振りするだけなので開始させない
+  if (aiKeyMissing()) {
+    alert('⚠ 自動撮影モードにはAI読み取りが必要ですが、APIキーが未設定です。\n設定(⚙)→「AI読取設定」でキーを登録してから開始してください。');
+    openSettings('tabApiSettings');
+    return;
+  }
   var btnToggle = document.getElementById('btnAutoToggle');
   var wrap = document.getElementById('autoPreviewWrap');
   var video = document.getElementById('autoPreviewVideo');
@@ -7868,6 +7902,8 @@ function resumeSession() {
   }
 
   addLog('🔄 セッション再開');
+  // 再開時もAPIキー未設定なら警告
+  try { warnIfAiKeyMissing(); } catch(e) {}
 }
 
 function updateResumeButton() {
