@@ -1375,7 +1375,7 @@
         <button type="button" class="btn-settings-gear" onclick="openSettings()">⚙️</button>
       </div>
     </div>
-    <p class="sub">獣医麻酔管理アシスタント <span style="font-size:12px;font-weight:700;color:var(--accent-cyan);border:1px solid var(--accent-cyan);border-radius:6px;padding:1px 8px;">v2.11 (2026-09-04)</span></p>
+    <p class="sub">獣医麻酔管理アシスタント <span style="font-size:12px;font-weight:700;color:var(--accent-cyan);border:1px solid var(--accent-cyan);border-radius:6px;padding:1px 8px;">v2.12 (2026-10-29)</span></p>
 
     <!-- 施術情報 -->
     <div class="form-section-title">施術情報</div>
@@ -5868,7 +5868,7 @@ function _sendGeminiVisionWith(modelId, isRetry, req, imageDataUrl, captureId, b
         _sendGeminiVisionWith(alt, true, req, imageDataUrl, captureId, btn, autoMode);
         return;
       }
-      handleAIReadFailure(captureId, imageDataUrl, 'APIエラー: ' + errMsg, autoMode);
+      handleAIReadFailure(captureId, imageDataUrl, 'APIエラー: ' + friendlyApiError('gemini', errMsg), autoMode);
     }
   };
 
@@ -5971,7 +5971,7 @@ function sendClaudeVision(req, imageDataUrl, captureId, btn, autoMode) {
         if (errBody.error && errBody.error.message) errMsg = errBody.error.message;
       } catch(e2) {}
       _diag(xhr.status, xhr.responseText, null);
-      handleAIReadFailure(captureId, imageDataUrl, 'Claude APIエラー: ' + errMsg, autoMode);
+      handleAIReadFailure(captureId, imageDataUrl, 'Claude APIエラー: ' + friendlyApiError('claude', errMsg), autoMode);
     }
   };
 
@@ -6480,6 +6480,32 @@ function toggleKeyVisibility(inputId, btnId) {
 // 後方互換
 function toggleApiKeyVisibility() { toggleKeyVisibility('inputApiKey', 'btnToggleKey'); }
 
+// Google/Anthropicが返す英語のエラーを、現場で意味が分かる日本語に変換する。
+// 「端末やアプリの故障」と誤解されやすい課金・上限系エラーを特に丁寧に説明する。
+function friendlyApiError(provider, errMsg) {
+  var m = String(errMsg || '');
+  if (/prepayment credits? (are|is) depleted|prepaid credits/i.test(m)) {
+    return 'Google側の前払いクレジット残高がなくなっています。\n' +
+      'このエラーはキーを作り直しても解消しません（残高はキーではなくプロジェクト単位のため）。\n' +
+      '対処: 管理者が aistudio.google.com で該当プロジェクトにチャージ（課金設定）するか、\n' +
+      '残高のある別プロジェクトのキーをこの端末に登録してください。\n（元のエラー: ' + m + '）';
+  }
+  if (/credit balance is too low|insufficient credit/i.test(m)) {
+    return 'Anthropic側のクレジット残高が不足しています。console.anthropic.com で残高を追加してください。\n（元のエラー: ' + m + '）';
+  }
+  if (/RESOURCE_EXHAUSTED|quota|rate limit|exceeded/i.test(m)) {
+    return '利用上限（クォータ）に達したか、短時間にリクエストが集中しています。\n' +
+      '数分待って再試行してください。頻発する場合は課金プラン/上限設定の確認が必要です。\n（元のエラー: ' + m + '）';
+  }
+  if (/API key not valid|API_KEY_INVALID|invalid.*api.?key|invalid x-api-key|authentication_error/i.test(m)) {
+    return 'APIキーが正しくありません。設定画面でキーを貼り直してください。\n（元のエラー: ' + m + '）';
+  }
+  if (/overloaded|UNAVAILABLE|503/i.test(m)) {
+    return 'AI側が混雑しています。少し待ってからもう一度お試しください。\n（元のエラー: ' + m + '）';
+  }
+  return m;
+}
+
 function testApiConnection() {
   var resultEl = document.getElementById('apiTestResult');
 
@@ -6533,7 +6559,7 @@ function _testGeminiWith(modelId, isRetry, kind, key, resultEl) {
         _testGeminiWith(alt, true, kind, key, resultEl);
         return;
       }
-      showTestResult(resultEl, false, '❌ Gemini エラー: ' + errMsg);
+      showTestResult(resultEl, false, '❌ Gemini エラー: ' + friendlyApiError('gemini', errMsg));
     }
   };
   xhr.onerror = function() { showTestResult(resultEl, false, '❌ ネットワークエラー'); };
@@ -6573,7 +6599,7 @@ function testClaudeConnection(resultEl) {
     } else {
       var errMsg = 'HTTP ' + xhr.status;
       try { var errBody = JSON.parse(xhr.responseText); if (errBody.error && errBody.error.message) errMsg = errBody.error.message; } catch(e2) {}
-      showTestResult(resultEl, false, '❌ Claude エラー: ' + errMsg);
+      showTestResult(resultEl, false, '❌ Claude エラー: ' + friendlyApiError('claude', errMsg));
     }
   };
   xhr.onerror = function() { showTestResult(resultEl, false, '❌ ネットワークエラー'); };
